@@ -1,0 +1,67 @@
+import { FastifyInstance } from "fastify";
+import { db } from "../db/index.js";
+import {
+  locations,
+  weatherCache,
+  plantInstances,
+  zones,
+} from "../db/schema.js";
+import { eq, desc } from "drizzle-orm";
+import { checkWeatherAlerts } from "../services/alerts.js";
+
+export async function alertRoutes(app: FastifyInstance) {
+  // GET /:locationId - get active weather alerts for a location
+  app.get<{ Params: { locationId: string } }>(
+    "/:locationId",
+    async (request, reply) => {
+      const locationId = Number(request.params.locationId);
+      if (isNaN(locationId)) {
+        return reply.status(400).send({ error: "Invalid location ID" });
+      }
+
+      const location = await db.query.locations.findFirst({
+        where: eq(locations.id, locationId),
+      });
+
+      if (!location) {
+        return reply.status(404).send({ error: "Location not found" });
+      }
+
+      // Get latest weather
+      const cached = db
+        .select()
+        .from(weatherCache)
+        .where(eq(weatherCache.locationId, locationId))
+        .orderBy(desc(weatherCache.fetchedAt))
+        .limit(1)
+        .all();
+
+      const weather = cached[0];
+      if (!weather) {
+        return { alerts: [], message: "No weather data available" };
+      }
+
+      // Get all plant instances for this location (through zones)
+      const locationZones = db
+        .select({ id: zones.id })
+        .from(zones)
+        .where(eq(zones.locationId, locationId))
+        .all();
+
+      const zoneIds = locationZones.map((z) => z.id);
+
+      const plants = [];
+      for (const zId of zoneIds) {
+        const instances = await db.query.plantInstances.findMany({
+          where: eq(plantInstances.zoneId, zId),
+          with: { plantReference: true },
+        });
+        plants.push(...instances);
+      }
+
+      const alerts = checkWeatherAlerts(locationId, weather, plants);
+
+      return { alerts };
+    },
+  );
+}

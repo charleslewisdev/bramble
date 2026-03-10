@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patio Container Zone Map</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&display=swap');
+  :root{--soil:#5c3d1e;--muted:#7a6a5a;--aqua:#3db8c0;--green:#4a7c3f;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#f5f0e8;font-family:'DM Mono',monospace;color:var(--soil);padding:24px;}
+  h1{font-family:'DM Serif Display',serif;font-size:1.5rem;margin-bottom:3px;color:var(--soil);}
+  .sub{font-size:.68rem;color:var(--muted);margin-bottom:18px;}
+  .wrap{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;}
+  .leg{flex:1;min-width:230px;max-width:270px;}
+  .leg h2{font-family:'DM Serif Display',serif;font-size:.95rem;margin-bottom:10px;color:var(--soil);}
+  .li{display:flex;gap:9px;align-items:flex-start;margin-bottom:7px;padding:7px 9px;background:#fff;border-radius:7px;border-left:3px solid #ccc;font-size:.68rem;line-height:1.4;}
+  .li.locked{border-left-color:var(--green);}
+  .li.planned{border-left-color:var(--aqua);}
+  .li.tbd{border-left-color:#e0a030;}
+  .li.warn{border-left-color:#c05050;}
+  .dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:2px;}
+  .li strong{display:block;font-size:.71rem;margin-bottom:1px;}
+  .li span{color:var(--muted);}
+  .note{margin-top:12px;padding:9px;background:#fff;border-radius:7px;font-size:.65rem;color:var(--muted);line-height:1.7;}
+  .note strong{color:var(--soil);}
+</style>
+</head>
+<body>
+<h1>Backyard · Patio &amp; Container Zone</h1>
+<p class="sub">123 Garden Street · Portland OR · House = East wall (top) · Yard faces WEST · All decisions locked April 2026</p>
+<div class="wrap">
+<svg width="660" height="600" viewBox="0 0 660 600" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <pattern id="rk" patternUnits="userSpaceOnUse" width="8" height="8">
+    <rect width="8" height="8" fill="#c8bfb0"/>
+    <circle cx="2" cy="3" r="1.2" fill="#b0a898" opacity=".6"/>
+    <circle cx="6" cy="6" r="1" fill="#d4cabb" opacity=".5"/>
+  </pattern>
+  <pattern id="wg" patternUnits="userSpaceOnUse" width="7" height="7">
+    <rect width="7" height="7" fill="#c8a060"/>
+    <line x1="0" y1="3" x2="7" y2="3" stroke="#a07838" stroke-width=".5" opacity=".4"/>
+  </pattern>
+  <pattern id="bk" patternUnits="userSpaceOnUse" width="5" height="5">
+    <rect width="5" height="5" fill="#7a5530"/>
+    <line x1="0" y1="2.5" x2="5" y2="2.5" stroke="#5a3a18" stroke-width=".6" opacity=".5"/>
+  </pattern>
+  <filter id="sh"><feDropShadow dx="1" dy="2" stdDeviation="2" flood-opacity=".15"/></filter>
+</defs>
+
+<!-- yard bg -->
+<rect width="660" height="600" fill="#ece6da" rx="10"/>
+
+<!-- HOUSE WALL top -->
+<rect x="0" y="0" width="660" height="20" fill="#c0b8b0" stroke="#a8a098" stroke-width="1"/>
+<text x="330" y="14" font-family="DM Mono" font-size="8.5" fill="#686058" text-anchor="middle" letter-spacing="2">HOUSE WALL · EAST · (morning shadow zone)</text>
+
+<!-- fences -->
+<rect x="0" y="0" width="14" height="600" fill="#8a5520"/>
+<text x="7" y="300" font-family="DM Mono" font-size="7" fill="#f0e8d8" text-anchor="middle" transform="rotate(-90,7,300)">WEST FENCE · ARBORVITAE</text>
+<rect x="646" y="0" width="14" height="600" fill="#8a5520"/>
+<text x="653" y="300" font-family="DM Mono" font-size="7" fill="#f0e8d8" text-anchor="middle" transform="rotate(90,653,300)">EAST FENCE</text>
+<rect x="0" y="582" width="660" height="18" fill="#8a5520"/>
+<text x="330" y="594" font-family="DM Mono" font-size="7.5" fill="#f0e8d8" text-anchor="middle">SOUTH FENCE</text>
+
+<!-- arborvitae row -->
+<rect x="14" y="520" width="632" height="62" fill="#3a6820" stroke="#2a5010" stroke-width="1.5"/>
+<text x="330" y="554" font-family="DM Mono" font-size="8" fill="#a8d878" text-anchor="middle">ARBORVITAE ROW (full width west fence)</text>
+
+<!-- apricot in arborvitae -->
+<circle cx="310" cy="520" r="26" fill="#5a9a30" stroke="#3a7018" stroke-width="2" filter="url(#sh)"/>
+<rect x="298" y="537" width="24" height="9" fill="#5c3d1e" rx="2"/>
+<text x="310" y="515" font-family="DM Mono" font-size="7" fill="white" text-anchor="middle">APRICOT</text>
+<text x="310" y="525" font-family="DM Mono" font-size="6" fill="#c8f090" text-anchor="middle">potted</text>
+
+<!-- japanese maple SW -->
+<circle cx="570" cy="506" r="34" fill="#4a6820" stroke="#2a4808" stroke-width="2" filter="url(#sh)" opacity=".9"/>
+<text x="570" y="501" font-family="DM Mono" font-size="7" fill="#d8f0a0" text-anchor="middle">JAP. MAPLE</text>
+<text x="570" y="512" font-family="DM Mono" font-size="6" fill="#c0e088" text-anchor="middle">SW corner</text>
+<text x="570" y="548" font-family="DM Mono" font-size="6" fill="#7a6050" text-anchor="middle">bleeding hearts</text>
+<text x="570" y="558" font-family="DM Mono" font-size="6" fill="#7a6050" text-anchor="middle">astilbe · woodruff</text>
+
+<!-- LAWN ZONE -->
+<rect x="14" y="330" width="550" height="190" fill="url(#rk)"/>
+<text x="255" y="430" font-family="DM Mono" font-size="9" fill="#9a8f80" text-anchor="middle">LAWN CONVERSION ZONE</text>
+<text x="255" y="443" font-family="DM Mono" font-size="7.5" fill="#9a8f80" text-anchor="middle">river rock → Fleur de Lawn · April 2026</text>
+
+<!-- visual triangle (faint) -->
+<g opacity=".22" stroke="#e08020" stroke-width="1.5" stroke-dasharray="6,4" fill="none">
+  <line x1="310" y1="520" x2="105" y2="175"/>
+  <line x1="105" y1="175" x2="380" y2="290"/>
+  <line x1="380" y1="290" x2="310" y2="520"/>
+</g>
+<text x="210" y="400" font-family="DM Mono" font-size="7" fill="#b06010" text-anchor="middle" opacity=".55">· · · visual focal triangle · · ·</text>
+
+<!-- GAZEBO left -->
+<rect x="14" y="20" width="230" height="210" fill="url(#wg)" stroke="#906820" stroke-width="2" rx="2" filter="url(#sh)"/>
+<line x1="14" y1="20" x2="244" y2="230" stroke="#806010" stroke-width=".6" opacity=".2"/>
+<line x1="244" y1="20" x2="14" y2="230" stroke="#806010" stroke-width=".6" opacity=".2"/>
+<text x="129" y="118" font-family="DM Serif Display" font-size="13" fill="#5a3a10" text-anchor="middle">Gazebo / Patio</text>
+<text x="129" y="133" font-family="DM Mono" font-size="7" fill="#7a5830" text-anchor="middle">plastic roof · fabric walls · fire pit · BBQ</text>
+
+<!-- bird bowl hanging on gazebo/slab corner -->
+<circle cx="244" cy="20" r="10" fill="#5ab0d8" stroke="#3880a8" stroke-width="1.5"/>
+<line x1="244" y1="10" x2="244" y2="20" stroke="#3880a8" stroke-width="1" stroke-dasharray="2,1.5"/>
+<text x="244" y="7" font-family="DM Mono" font-size="5.5" fill="#307898" text-anchor="middle">bird bowl ↓</text>
+
+<!-- SLAB center -->
+<rect x="244" y="20" width="210" height="210" fill="#d8d2ca" stroke="#b0a898" stroke-width="1.5"/>
+<text x="349" y="125" font-family="DM Serif Display" font-size="13" fill="#888078" text-anchor="middle">Slab</text>
+<text x="349" y="141" font-family="DM Mono" font-size="7" fill="#a09088" text-anchor="middle">full sun noon–evening</text>
+
+<!-- door -->
+<rect x="280" y="0" width="52" height="20" fill="#a0c8d0" stroke="#70a0b0" stroke-width="1.5"/>
+<text x="306" y="14" font-family="DM Mono" font-size="7.5" fill="#305a68" text-anchor="middle">DOOR</text>
+
+<!-- herb ladder near door -->
+<rect x="346" y="22" width="28" height="52" fill="#f0ead8" stroke="#c0a870" stroke-width="1.5" rx="2"/>
+<line x1="346" y1="35" x2="374" y2="35" stroke="#c0a870" stroke-width="1.1"/>
+<line x1="346" y1="47" x2="374" y2="47" stroke="#c0a870" stroke-width="1.1"/>
+<line x1="346" y1="59" x2="374" y2="59" stroke="#c0a870" stroke-width="1.1"/>
+<text x="360" y="82" font-family="DM Mono" font-size="6.5" fill="#907850" text-anchor="middle">HERB LADDER</text>
+
+<!-- basil at ladder base -->
+<rect x="346" y="75" width="28" height="18" fill="#2d5a27" stroke="#1e4018" stroke-width="1" rx="2"/>
+<text x="360" y="87" font-family="DM Mono" font-size="6" fill="#a0e080" text-anchor="middle">BASIL pot</text>
+
+<!-- rosemary in-ground at slab corner -->
+<circle cx="248" cy="232" r="18" fill="#3a7a30" stroke="#2a5a22" stroke-width="2" filter="url(#sh)"/>
+<text x="248" y="229" font-family="DM Mono" font-size="6" fill="white" text-anchor="middle">ROSEMARY</text>
+<text x="248" y="239" font-family="DM Mono" font-size="5.5" fill="#b0e890" text-anchor="middle">bonsai in-gnd</text>
+
+<!-- strawberry tower next to rosemary -->
+<rect x="265" y="218" width="32" height="60" fill="#d4c4a8" stroke="#b09878" stroke-width="1.5" rx="3"/>
+<line x1="265" y1="233" x2="297" y2="233" stroke="#b09878" stroke-width="1"/>
+<line x1="265" y1="246" x2="297" y2="246" stroke="#b09878" stroke-width="1"/>
+<line x1="265" y1="259" x2="297" y2="259" stroke="#b09878" stroke-width="1"/>
+<line x1="265" y1="267" x2="297" y2="267" stroke="#b09878" stroke-width="1"/>
+<text x="281" y="288" font-family="DM Mono" font-size="6" fill="#907850" text-anchor="middle">STRAWBERRY</text>
+<text x="281" y="297" font-family="DM Mono" font-size="6" fill="#907850" text-anchor="middle">TOWER</text>
+
+<!-- bog garden at gazebo/slab junction near bird bowl -->
+<rect x="380" y="175" width="62" height="55" fill="#1e3a2c" stroke="#142a1e" stroke-width="2" rx="5" filter="url(#sh)"/>
+<text x="411" y="198" font-family="DM Mono" font-size="7.5" fill="#70d0a0" text-anchor="middle">BOG</text>
+<text x="411" y="210" font-family="DM Mono" font-size="7.5" fill="#70d0a0" text-anchor="middle">GARDEN</text>
+<text x="411" y="221" font-family="DM Mono" font-size="6" fill="#50a878" text-anchor="middle">3-tier · Saracenia</text>
+
+<!-- wood deck -->
+<rect x="454" y="110" width="42" height="120" fill="#c09050" stroke="#906820" stroke-width="1.5" rx="2"/>
+<text x="475" y="168" font-family="DM Mono" font-size="7" fill="#5a3a10" text-anchor="middle">wood</text>
+<text x="475" y="179" font-family="DM Mono" font-size="7" fill="#5a3a10" text-anchor="middle">deck</text>
+<!-- 4x4 post -->
+<rect x="487" y="192" width="10" height="10" fill="#604020" stroke="#402808" stroke-width="1.5"/>
+<text x="492" y="213" font-family="DM Mono" font-size="5.5" fill="#604020" text-anchor="middle">4×4</text>
+
+<!-- pergola right - clematis half (house side) -->
+<rect x="496" y="20" width="150" height="100" fill="url(#bk)" stroke="#7a5020" stroke-width="2" rx="2"/>
+<text x="571" y="65" font-family="DM Mono" font-size="8" fill="#f0d8a0" text-anchor="middle">clematis canopy</text>
+<text x="571" y="77" font-family="DM Mono" font-size="6.5" fill="#d0b878" text-anchor="middle">'Bees Jubilee' · Group 2</text>
+<text x="571" y="89" font-family="DM Mono" font-size="6" fill="#c8a860" text-anchor="middle">sword ferns hang here ↓</text>
+
+<!-- pergola herb bed half (open/sunny side) -->
+<rect x="496" y="120" width="150" height="110" fill="url(#bk)" stroke="#7a5020" stroke-width="2" rx="2"/>
+<text x="571" y="162" font-family="DM Mono" font-size="8" fill="#f0d8a0" text-anchor="middle">Pergola Herb Bed</text>
+<text x="571" y="174" font-family="DM Mono" font-size="6.5" fill="#d0b878" text-anchor="middle">oregano · thyme · sage</text>
+<text x="571" y="185" font-family="DM Mono" font-size="6.5" fill="#d0b878" text-anchor="middle">chives · cilantro</text>
+<text x="571" y="196" font-family="DM Mono" font-size="6.5" fill="#d0b878" text-anchor="middle">Serotina vine (returning?)</text>
+<!-- pergola dashed frame -->
+<rect x="493" y="17" width="156" height="216" fill="none" stroke="#d09040" stroke-width="1.2" stroke-dasharray="5,3" rx="4"/>
+<text x="571" y="244" font-family="DM Mono" font-size="6.5" fill="#c07830" text-anchor="middle">10×10 metal arch above</text>
+
+<!-- container beds below gazebo -->
+<rect x="14" y="230" width="118" height="100" fill="#5c4a2a" stroke="#4a3820" stroke-width="1.5" rx="3"/>
+<text x="73" y="270" font-family="DM Mono" font-size="8" fill="#d4b880" text-anchor="middle">Bed (Irene)</text>
+<text x="73" y="282" font-family="DM Mono" font-size="6.5" fill="#b09060" text-anchor="middle">Salvia Caradonna</text>
+<text x="73" y="293" font-family="DM Mono" font-size="6.5" fill="#b09060" text-anchor="middle">Agastache · Echinacea</text>
+<rect x="132" y="230" width="34" height="100" fill="#c8bfb0" stroke="#a09080" stroke-width="1"/>
+<text x="149" y="284" font-family="DM Mono" font-size="6" fill="#807060" text-anchor="middle" transform="rotate(90,149,284)">walkway</text>
+<rect x="166" y="230" width="120" height="100" fill="#5c4a2a" stroke="#4a3820" stroke-width="1.5" rx="3"/>
+<text x="226" y="268" font-family="DM Mono" font-size="7.5" fill="#d4b880" text-anchor="middle">Bed (Jacob's</text>
+<text x="226" y="280" font-family="DM Mono" font-size="7.5" fill="#d4b880" text-anchor="middle">Ladder)</text>
+<text x="226" y="293" font-family="DM Mono" font-size="6.5" fill="#b09060" text-anchor="middle">Lavender · Ajuga</text>
+<text x="226" y="304" font-family="DM Mono" font-size="6.5" fill="#b09060" text-anchor="middle">Pulmonaria</text>
+
+<!-- CERAMIC A — inside gazebo, Canna Tropicanna Black -->
+<ellipse cx="105" cy="188" rx="21" ry="11" fill="#2a9098" stroke="#1a6870" stroke-width="1.5"/>
+<rect x="84" y="118" width="42" height="70" fill="#3db8c0" stroke="#2a9098" stroke-width="2" rx="4"/>
+<ellipse cx="105" cy="118" rx="21" ry="11" fill="#5dd8e0" stroke="#2a9098" stroke-width="2"/>
+<text x="105" y="148" font-family="DM Mono" font-size="7" fill="white" text-anchor="middle" font-weight="500">CERAMIC A</text>
+<text x="105" y="159" font-family="DM Mono" font-size="6.5" fill="#b8f0f4" text-anchor="middle">Canna</text>
+<text x="105" y="169" font-family="DM Mono" font-size="6" fill="#b8f0f4" text-anchor="middle">'Tropicanna Black'</text>
+
+<!-- CERAMIC B — slab edge/lawn, Canna Tropicanna -->
+<ellipse cx="375" cy="305" rx="18" ry="9" fill="#2a9098" stroke="#1a6870" stroke-width="1.5"/>
+<rect x="357" y="248" width="36" height="57" fill="#3db8c0" stroke="#2a9098" stroke-width="2" rx="3"/>
+<ellipse cx="375" cy="248" rx="18" ry="9" fill="#5dd8e0" stroke="#2a9098" stroke-width="2"/>
+<text x="375" y="273" font-family="DM Mono" font-size="7" fill="white" text-anchor="middle" font-weight="500">CERAMIC B</text>
+<text x="375" y="284" font-family="DM Mono" font-size="6.5" fill="#b8f0f4" text-anchor="middle">Canna</text>
+<text x="375" y="294" font-family="DM Mono" font-size="6" fill="#b8f0f4" text-anchor="middle">'Tropicanna'</text>
+
+<!-- compass -->
+<g transform="translate(618,290)">
+  <circle cx="0" cy="0" r="20" fill="white" fill-opacity=".6" stroke="#c0b0a0" stroke-width="1"/>
+  <text x="0" y="-6" font-family="DM Mono" font-size="9" fill="#3a3028" text-anchor="middle" font-weight="500">E</text>
+  <text x="0" y="15" font-family="DM Mono" font-size="9" fill="#8a7a6a" text-anchor="middle">W</text>
+  <text x="-14" y="5" font-family="DM Mono" font-size="9" fill="#8a7a6a" text-anchor="middle">N</text>
+  <text x="14" y="5" font-family="DM Mono" font-size="9" fill="#8a7a6a" text-anchor="middle">S</text>
+  <polygon points="0,-14 3,-4 -3,-4" fill="#3a3028"/>
+</g>
+</svg>
+
+<div class="leg">
+  <h2>All Placements</h2>
+  <div class="li locked"><div class="dot" style="background:#3db8c0"></div><div><strong>Ceramic A — Gazebo (Large)</strong><span>Canna 'Tropicanna Black'. Deep burgundy-black foliage. Filtered light under plastic roof. Overwinter: close fabric walls + mulch.</span></div></div>
+  <div class="li locked"><div class="dot" style="background:#3db8c0"></div><div><strong>Ceramic B — Slab Edge (Largest)</strong><span>Canna 'Tropicanna'. Warm striped foliage + orange flowers. Full afternoon sun. Complements A as matched pair.</span></div></div>
+  <div class="li tbd"><div class="dot" style="background:#e0a030"></div><div><strong>Ceramic C — Front Door (Medium)</strong><span>Hosta 'Sum and Substance'. Chartreuse-gold, pairs with burgundy dwarf maple. Morning sun only.</span></div></div>
+  <div class="li locked"><div class="dot" style="background:#d4c4a8"></div><div><strong>Strawberry Tower — Slab next to Rosemary</strong><span>5-tier vertical. Oregon strawberries + mix varieties. Drip top-feed line priority. Afternoon sun on slab.</span></div></div>
+  <div class="li locked"><div class="dot" style="background:#2d5a27"></div><div><strong>Basil — Dark pot at herb ladder base</strong><span>Large dark container for heat absorption against house wall. Start indoors April, outside late May.</span></div></div>
+  <div class="li locked"><div class="dot" style="background:#4a7a3a"></div><div><strong>Cilantro — Pergola herb bed</strong><span>Cool shade under clematis canopy slows bolting. With oregano, thyme, sage, chives.</span></div></div>
+  <div class="li locked"><div class="dot" style="background:#1e3a2c"></div><div><strong>Bog Garden — Gazebo/Slab Junction Corner</strong><span>3-tier cedar tower near bird bowl. Saracenia + Darlingtonia + Drosera. Rainwater only.</span></div></div>
+  <div class="li locked"><div class="dot" style="background:#5ab0d8"></div><div><strong>Bird Bowl — Gazebo Corner</strong><span>Hanging glass bowl with rocks. Already placed. Clusters with bog garden as water vignette.</span></div></div>
+  <div class="li locked"><div class="dot" style="background:#3a6820"></div><div><strong>Sword Ferns — House-side Pergola</strong><span>Hang on clematis/shaded half of pergola. Shade = lush growth. Drip line to coco baskets.</span></div></div>
+  <div class="li warn"><div class="dot" style="background:#c05050"></div><div><strong>Still TBD / Action needed</strong><span>Bay Laurel: scratch test to confirm alive. Eucalyptus: retire (dog toxic). Aloe: stake. Andromeda + Wallflower: wait and see.</span></div></div>
+  <div class="note"><strong>Visual triangle:</strong> Apricot (arborvitae row) → Ceramic A (gazebo) → Ceramic B (slab edge) — three focal points that draw the eye around the yard, away from the fence line.</div>
+</div>
+</div>
+</body>
+</html>

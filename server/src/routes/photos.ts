@@ -1,0 +1,167 @@
+import { FastifyInstance } from "fastify";
+import { db } from "../db/index.js";
+import { plantPhotos, plantInstances } from "../db/schema.js";
+import { eq } from "drizzle-orm";
+import { existsSync, mkdirSync, writeFileSync, unlinkSync, readFileSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
+import { randomUUID } from "crypto";
+import { z } from "zod";
+
+const __photos_dirname = dirname(fileURLToPath(import.meta.url));
+const PHOTOS_DIR = process.env.PHOTOS_DIR ?? resolve(__photos_dirname, "../../data/photos");
+
+function ensurePhotosDir() {
+  if (!existsSync(PHOTOS_DIR)) {
+    mkdirSync(PHOTOS_DIR, { recursive: true });
+  }
+}
+
+function getContentType(filename: string): string {
+  const ext = filename.split(".").pop()?.toLowerCase();
+  switch (ext) {
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    case "png":
+      return "image/png";
+    case "gif":
+      return "image/gif";
+    case "webp":
+      return "image/webp";
+    default:
+      return "application/octet-stream";
+  }
+}
+
+/**
+ * Validate that a filename is safe (no path traversal).
+ * Rejects filenames containing "..", "/", or "\".
+ */
+function isValidFilename(filename: string): boolean {
+  if (!filename || filename.includes("..") || filename.includes("/") || filename.includes("\\")) {
+    return false;
+  }
+  return true;
+}
+
+const uploadPhotoSchema = z.object({
+  plantInstanceId: z.number().int().positive(),
+  imageData: z.string().min(1),
+  caption: z.string().optional(),
+});
+
+const idParamSchema = z.object({
+  id: z.string().refine((v) => !isNaN(Number(v)) && Number(v) > 0 && Number.isInteger(Number(v)), {
+    message: "Invalid ID",
+  }),
+});
+
+const filenameParamSchema = z.object({
+  filename: z.string().min(1).refine(isValidFilename, { message: "Invalid filename" }),
+});
+
+export async function photoRoutes(app: FastifyInstance) {
+  // POST / - upload photo as base64
+  app.post("/", { bodyLimit: 10 * 1024 * 1024 }, async (request, reply) => {
+    const parsed = uploadPhotoSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid request body" });
+    }
+    const { plantInstanceId, imageData, caption } = parsed.data;
+
+    // Verify plant instance exists
+    const instance = await db.query.plantInstances.findFirst({
+      where: eq(plantInstances.id, plantInstanceId),
+    });
+
+    if (!instance) {
+      return reply.status(404).send({ error: "Plant instance not found" });
+    }
+
+    // Detect image format from base64 header or default to jpg
+    let extension = "jpg";
+    let rawBase64 = imageData;
+
+    if (imageData.startsWith("data:")) {
+      const match = imageData.match(/^data:image\/(\w+);base64,/);
+      if (match) {
+        extension = match[1] === "jpeg" ? "jpg" : match[1]!;
+        rawBase64 = imageData.replace(/^data:image\/\w+;base64,/, "");
+      }
+    }
+
+    const filename = `${randomUUID()}.${extension}`;
+    const buffer = Buffer.from(rawBase64, "base64");
+
+    ensurePhotosDir();
+    writeFileSync(resolve(PHOTOS_DIR, filename), buffer);
+
+    const result = db
+      .insert(plantPhotos)
+      .values({
+        plantInstanceId,
+        filename,
+        caption: caption ?? null,
+      })
+      .returning()
+      .get();
+
+    return reply.status(201).send(result);
+  });
+
+  // GET /file/:filename - serve photo file
+  app.get<{ Params: { filename: string } }>(
+    "/file/:filename",
+    async (request, reply) => {
+      const paramsParsed = filenameParamSchema.safeParse(request.params);
+      if (!paramsParsed.success) {
+        return reply.status(400).send({ error: "Invalid filename" });
+      }
+      const { filename } = paramsParsed.data;
+
+      const filepath = resolve(PHOTOS_DIR, filename);
+
+      // Path traversal protection: ensure resolved path is within PHOTOS_DIR
+      const canonicalPhotosDir = resolve(PHOTOS_DIR);
+      if (!filepath.startsWith(canonicalPhotosDir + "/") && filepath !== canonicalPhotosDir) {
+        return reply.status(400).send({ error: "Invalid filename" });
+      }
+
+      if (!existsSync(filepath)) {
+        return reply.status(404).send({ error: "Photo file not found" });
+      }
+
+      const contentType = getContentType(filename);
+      const buffer = readFileSync(filepath);
+
+      return reply.type(contentType).send(buffer);
+    },
+  );
+
+  // DELETE /:id - delete photo record and file
+  app.delete<{ Params: { id: string } }>("/:id", async (request, reply) => {
+    const paramsParsed = idParamSchema.safeParse(request.params);
+    if (!paramsParsed.success) {
+      return reply.status(400).send({ error: "Invalid ID" });
+    }
+    const id = Number(request.params.id);
+    const photo = await db.query.plantPhotos.findFirst({
+      where: eq(plantPhotos.id, id),
+    });
+
+    if (!photo) {
+      return reply.status(404).send({ error: "Photo not found" });
+    }
+
+    // Delete file if it exists
+    const filepath = resolve(PHOTOS_DIR, photo.filename);
+    const canonicalPhotosDir = resolve(PHOTOS_DIR);
+    if (filepath.startsWith(canonicalPhotosDir + "/") && existsSync(filepath)) {
+      unlinkSync(filepath);
+    }
+
+    db.delete(plantPhotos).where(eq(plantPhotos.id, id)).run();
+    return reply.status(204).send();
+  });
+}

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" style="image-rendering:pixelated">
+  <!-- Background circle -->
+  <rect width="32" height="32" rx="6" fill="#1c1917"/>
+  <!-- Pixel leaf (from sidebar logo) -->
+  <rect x="14" y="4" width="4" height="4" fill="#22c55e"/>
+  <rect x="10" y="8" width="4" height="4" fill="#16a34a"/>
+  <rect x="14" y="8" width="4" height="4" fill="#22c55e"/>
+  <rect x="18" y="8" width="4" height="4" fill="#16a34a"/>
+  <rect x="6" y="12" width="4" height="4" fill="#22c55e"/>
+  <rect x="10" y="12" width="4" height="4" fill="#15803d"/>
+  <rect x="14" y="12" width="4" height="4" fill="#16a34a"/>
+  <rect x="18" y="12" width="4" height="4" fill="#22c55e"/>
+  <rect x="10" y="16" width="4" height="4" fill="#16a34a"/>
+  <rect x="14" y="16" width="4" height="4" fill="#15803d"/>
+  <rect x="14" y="20" width="4" height="4" fill="#92400e"/>
+  <rect x="14" y="24" width="4" height="4" fill="#78350f"/>
+</svg>

@@ -1,0 +1,16 @@
+services:
+  bramble:
+    build: .
+    container_name: bramble
+    ports:
+      - "3000:3000"
+    volumes:
+      - bramble-data:/data
+    environment:
+      - DATABASE_URL=/data/bramble.db
+      - PORT=3000
+      - PERENUAL_API_KEY=${PERENUAL_API_KEY:-}  # Optional: enables online plant search
+    restart: unless-stopped
+
+volumes:
+  bramble-data:

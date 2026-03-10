@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>bramble</Name>
+  <Repository>charleslewisdev/bramble:latest</Repository>
+  <Registry>https://hub.docker.com/r/charleslewisdev/bramble</Registry>
+  <Network>bridge</Network>
+  <Shell>bash</Shell>
+  <Privileged>false</Privileged>
+  <Support/>
+  <Overview>Self-hosted garden management, care, research, and planning app. Tracks plants, zones, care tasks, and property data with interactive pixel art garden maps.</Overview>
+  <Category>Productivity:</Category>
+  <WebUI>http://[IP]:[PORT:3333]/</WebUI>
+  <Icon>https://raw.githubusercontent.com/charleslewisdev/bramble/main/docs/icon.svg</Icon>
+  <ExtraParams/>
+  <DateInstalled/>
+  <Description>Bramble - Garden management app with pixel art property maps, plant mood tracking, care task scheduling, and weather integration. Self-hosted with SQLite database.</Description>
+  <Config Name="Web UI Port" Target="3000" Default="3333" Mode="tcp" Description="Web interface port" Type="Port" Display="always" Required="true" Mask="false">3333</Config>
+  <Config Name="Data Directory" Target="/data" Default="/mnt/nvme_cache/appdata/bramble" Mode="rw" Description="Persistent data (SQLite database, photos)" Type="Path" Display="always" Required="true" Mask="false">/mnt/nvme_cache/appdata/bramble</Config>
+  <Config Name="Perenual API Key" Target="PERENUAL_API_KEY" Default="" Mode="" Description="Optional: enables online plant database search (get free key at perenual.com)" Type="Variable" Display="always" Required="false" Mask="false"/>
+</Container>
