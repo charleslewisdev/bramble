@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Search,
@@ -14,16 +14,19 @@ import {
   Bird,
   Flower2,
   Shield,
+  Plus,
 } from "lucide-react";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import Chip from "../components/ui/Chip";
-import { Select } from "../components/ui/Input";
+import Modal from "../components/ui/Modal";
+import { Input, Select, Textarea } from "../components/ui/Input";
 import PlantSprite from "../components/sprites/PlantSprite";
 import SafetyBadge from "../components/ui/SafetyBadge";
 import {
   usePlantReferences,
   useCreateShoppingItem,
+  useCreatePlantReference,
   usePlantSearch,
   useImportPlant,
 } from "../api/hooks";
@@ -59,7 +62,9 @@ export default function PlantBrowser() {
   } = usePlantSearch(search);
   const addToCart = useCreateShoppingItem();
   const importPlant = useImportPlant();
+  const createPlantRef = useCreatePlantReference();
   const [importingIds, setImportingIds] = useState<Set<number>>(new Set());
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   let filtered = plants ?? [];
   if (typeFilter) {
@@ -129,6 +134,13 @@ export default function PlantBrowser() {
               }}
             />
           </div>
+          <Button
+            variant="primary"
+            onClick={() => setShowCreateModal(true)}
+          >
+            <Plus size={16} />
+            Add Plant
+          </Button>
           <Button
             variant={showFilters ? "primary" : "secondary"}
             onClick={() => setShowFilters(!showFilters)}
@@ -427,6 +439,219 @@ export default function PlantBrowser() {
             </p>
           </Card>
         )}
+
+      {/* Create Custom Plant Modal */}
+      <CreatePlantModal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreated={(id) => navigate(`/plants/${id}`)}
+        mutation={createPlantRef}
+      />
     </div>
+  );
+}
+
+// ---------- Create Plant Modal ----------
+
+const allPlantTypes: PlantType[] = [
+  "flower", "shrub", "tree", "herb", "grass", "fern", "succulent",
+  "cactus", "vine", "bulb", "vegetable", "fruit", "houseplant",
+  "groundcover", "aquatic",
+];
+
+function CreatePlantModal({
+  open,
+  onClose,
+  onCreated,
+  mutation,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onCreated: (id: number) => void;
+  mutation: ReturnType<typeof useCreatePlantReference>;
+}) {
+  const [commonName, setCommonName] = useState("");
+  const [latinName, setLatinName] = useState("");
+  const [cultivar, setCultivar] = useState("");
+  const [plantType, setPlantType] = useState("");
+  const [sunRequirement, setSunRequirement] = useState("");
+  const [waterNeeds, setWaterNeeds] = useState("");
+  const [hardinessZoneMin, setHardinessZoneMin] = useState("");
+  const [hardinessZoneMax, setHardinessZoneMax] = useState("");
+  const [description, setDescription] = useState("");
+  const [careNotes, setCareNotes] = useState("");
+  const [error, setError] = useState("");
+
+  function resetForm() {
+    setCommonName("");
+    setLatinName("");
+    setCultivar("");
+    setPlantType("");
+    setSunRequirement("");
+    setWaterNeeds("");
+    setHardinessZoneMin("");
+    setHardinessZoneMax("");
+    setDescription("");
+    setCareNotes("");
+    setError("");
+  }
+
+  function handleClose() {
+    resetForm();
+    onClose();
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError("");
+
+    if (!commonName.trim()) {
+      setError("Common name is required.");
+      return;
+    }
+    if (!plantType) {
+      setError("Plant type is required.");
+      return;
+    }
+
+    try {
+      const result = await mutation.mutateAsync({
+        commonName: commonName.trim(),
+        latinName: latinName.trim() || null,
+        cultivar: cultivar.trim() || null,
+        plantType,
+        sunRequirement: sunRequirement || null,
+        waterNeeds: waterNeeds || null,
+        hardinessZoneMin: hardinessZoneMin ? Number(hardinessZoneMin) : null,
+        hardinessZoneMax: hardinessZoneMax ? Number(hardinessZoneMax) : null,
+        description: description.trim() || null,
+        careNotes: careNotes.trim() || null,
+        source: "custom",
+      });
+      resetForm();
+      onClose();
+      onCreated(result.id);
+    } catch {
+      setError("Failed to create plant. Please try again.");
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={handleClose} title="Create Custom Plant" wide>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {error && (
+          <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+            {error}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Input
+            label="Common Name *"
+            placeholder="e.g. Japanese Maple"
+            value={commonName}
+            onChange={(e) => setCommonName(e.target.value)}
+          />
+          <Input
+            label="Latin Name"
+            placeholder="e.g. Acer palmatum"
+            value={latinName}
+            onChange={(e) => setLatinName(e.target.value)}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Input
+            label="Cultivar"
+            placeholder="e.g. Bloodgood"
+            value={cultivar}
+            onChange={(e) => setCultivar(e.target.value)}
+          />
+          <Select
+            label="Plant Type *"
+            value={plantType}
+            onChange={(e) => setPlantType(e.target.value)}
+          >
+            <option value="">Select type...</option>
+            {allPlantTypes.map((t) => (
+              <option key={t} value={t}>
+                {t.charAt(0).toUpperCase() + t.slice(1).replace("_", " ")}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Select
+            label="Sun Requirement"
+            value={sunRequirement}
+            onChange={(e) => setSunRequirement(e.target.value)}
+          >
+            <option value="">Select sun...</option>
+            <option value="full_sun">Full Sun</option>
+            <option value="partial_sun">Partial Sun</option>
+            <option value="partial_shade">Partial Shade</option>
+            <option value="full_shade">Full Shade</option>
+          </Select>
+          <Select
+            label="Water Needs"
+            value={waterNeeds}
+            onChange={(e) => setWaterNeeds(e.target.value)}
+          >
+            <option value="">Select water...</option>
+            <option value="low">Low</option>
+            <option value="moderate">Moderate</option>
+            <option value="high">High</option>
+            <option value="aquatic">Aquatic</option>
+          </Select>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Input
+            label="Hardiness Zone Min"
+            type="number"
+            min={1}
+            max={13}
+            placeholder="e.g. 5"
+            value={hardinessZoneMin}
+            onChange={(e) => setHardinessZoneMin(e.target.value)}
+          />
+          <Input
+            label="Hardiness Zone Max"
+            type="number"
+            min={1}
+            max={13}
+            placeholder="e.g. 9"
+            value={hardinessZoneMax}
+            onChange={(e) => setHardinessZoneMax(e.target.value)}
+          />
+        </div>
+
+        <Textarea
+          label="Description"
+          placeholder="General information about this plant..."
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={3}
+        />
+
+        <Textarea
+          label="Care Notes"
+          placeholder="Watering, pruning, fertilizing tips..."
+          value={careNotes}
+          onChange={(e) => setCareNotes(e.target.value)}
+          rows={3}
+        />
+
+        <div className="flex justify-end gap-3 pt-2">
+          <Button type="button" variant="secondary" onClick={handleClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={mutation.isPending}>
+            {mutation.isPending ? "Creating..." : "Create Plant"}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
