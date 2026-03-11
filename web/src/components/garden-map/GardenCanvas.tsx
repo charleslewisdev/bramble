@@ -32,6 +32,7 @@ import {
 } from "./tiles";
 import { clearTextureCache, createPlantSprite, preloadPlantTextures } from "./sprite-textures";
 import { ParticleEmitter, getMoodParticleType, getMoodParticleRate } from "./particles";
+import { SpeechBubbleManager } from "./speech-bubbles";
 import { loadHouseTexture, clearHouseTextureCache } from "./house-sprite";
 import { WeatherEffectSystem } from "./weather-effects";
 import { WildlifeSystem } from "./wildlife";
@@ -115,6 +116,7 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
   const plantHitAreasRef = useRef<Array<{ plant: PlantInstance; x: number; y: number; w: number; h: number }>>([]);
   const weatherSystemRef = useRef<WeatherEffectSystem | null>(null);
   const wildlifeSystemRef = useRef<WildlifeSystem | null>(null);
+  const speechBubbleRef = useRef<SpeechBubbleManager | null>(null);
   const tickerCallbackRef = useRef<((dt: { deltaTime: number }) => void) | null>(null);
   const appInitFailedRef = useRef(false);
   const [ready, setReady] = useState(false);
@@ -196,6 +198,8 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
     weatherSystemRef.current = null;
     wildlifeSystemRef.current?.destroy();
     wildlifeSystemRef.current = null;
+    speechBubbleRef.current?.destroy();
+    speechBubbleRef.current = null;
     if (viewportRef.current) {
       app.stage.removeChild(viewportRef.current);
       viewportRef.current.destroy({ children: true });
@@ -459,6 +463,7 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
       const plantSprite = await createPlantSprite(
         plant.plantReference?.plantType,
         plant.mood as PlantMood,
+        plant.status ?? undefined,
       );
 
       plantSprite.label = "plant-sprite";
@@ -478,13 +483,6 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
         h: spriteH,
       });
 
-      // Planned plants are distinctly ghost-like, sleeping slightly faded
-      if (plant.status === "planned") {
-        plantSprite.alpha = 0.45;
-      } else if (plant.mood === "sleeping") {
-        plantSprite.alpha = 0.65;
-      }
-
       parent.addChild(plantSprite);
 
       plantAnims.push({
@@ -494,6 +492,19 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
         baseY: plantSprite.y,
         phase: Math.random() * Math.PI * 2,
       });
+
+      // Create particle emitter for mood effects
+      const particleType = getMoodParticleType(plant.mood as string);
+      if (particleType) {
+        const rate = getMoodParticleRate(plant.mood as string);
+        const emitter = new ParticleEmitter(parent, {
+          x: pos.x,
+          y: pos.y - 16,
+          type: particleType,
+          rate: rate * 0.3, // subtle — avoid particle storm
+        });
+        particleEmitters.push(emitter);
+      }
 
       return plantSprite;
     }
@@ -545,6 +556,23 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
     animsRef.current = plantAnims;
     emittersRef.current = particleEmitters;
     zoneRotationsRef.current = zoneRotations;
+
+    // ---- LAYER 5b: Speech bubbles (above plants) ----
+    const speechBubbleManager = new SpeechBubbleManager(viewport);
+    speechBubbleManager.setPlants(
+      plantAnims.map((a) => ({
+        sprite: a.sprite,
+        plant: {
+          id: a.plant.id,
+          nickname: a.plant.nickname,
+          mood: a.plant.mood,
+          status: a.plant.status,
+        },
+        baseX: a.baseX,
+        baseY: a.baseY,
+      })),
+    );
+    speechBubbleRef.current = speechBubbleManager;
 
     // ---- LAYER 6: Weather effects ----
     const weatherSystem = new WeatherEffectSystem(viewport, map.pixelWidth, map.pixelHeight);
@@ -651,6 +679,14 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
             (a) => a.plant.zoneId !== rot.zoneId,
           );
 
+          // Destroy old particle emitters (they're children of rot.container, already removed)
+          // Recreate fresh emitters for the new batch below
+          // Note: emitters are children of rot.container so removeChildren() already handled DOM cleanup
+          // We just need to remove them from the ref array — filter by checking if destroyed
+          emittersRef.current = emittersRef.current.filter(
+            (e) => !e.destroyed,
+          );
+
           // Add new batch (async — textures are preloaded so this resolves quickly)
           const start = rot.currentOffset;
           const rotatePromises: Promise<void>[] = [];
@@ -664,6 +700,7 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
               createPlantSprite(
                 plant.plantReference?.plantType,
                 plant.mood as PlantMood,
+                plant.status ?? undefined,
               ).then((plantSprite) => {
                 plantSprite.label = "plant-sprite";
                 plantSprite.scale.set(PLANT_SPRITE_SCALE, PLANT_SPRITE_SCALE);
@@ -681,12 +718,9 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
                   h: sh,
                 });
 
-                if (plant.status === "planned") plantSprite.alpha = 0.45;
-                else if (plant.mood === "sleeping") plantSprite.alpha = 0.65;
-
-                // Fade in
+                // Fade in — preserve the target alpha set by createPlantSprite
+                const targetAlpha = plantSprite.alpha;
                 plantSprite.alpha = 0;
-                const targetAlpha = plant.status === "planned" ? 0.45 : plant.mood === "sleeping" ? 0.65 : 1;
                 const fadeIn = () => {
                   if (plantSprite.alpha < targetAlpha) {
                     plantSprite.alpha = Math.min(plantSprite.alpha + 0.05, targetAlpha);
@@ -704,13 +738,44 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
                   baseY: plantSprite.y,
                   phase: Math.random() * Math.PI * 2,
                 });
+
+                // Create particle emitter for rotated plant
+                const pType = getMoodParticleType(plant.mood as string);
+                if (pType) {
+                  const pRate = getMoodParticleRate(plant.mood as string);
+                  const emitter = new ParticleEmitter(rot.container, {
+                    x: pos.x,
+                    y: pos.y - 16,
+                    type: pType,
+                    rate: pRate * 0.3,
+                  });
+                  emittersRef.current.push(emitter);
+                }
               }),
             );
           }
           // Fire and forget — textures are cached so this resolves near-instantly
-          Promise.all(rotatePromises);
+          Promise.all(rotatePromises).then(() => {
+            // Update speech bubble plant list after rotation
+            speechBubbleManager.setPlants(
+              animsRef.current.map((a) => ({
+                sprite: a.sprite,
+                plant: {
+                  id: a.plant.id,
+                  nickname: a.plant.nickname,
+                  mood: a.plant.mood,
+                  status: a.plant.status,
+                },
+                baseX: a.baseX,
+                baseY: a.baseY,
+              })),
+            );
+          });
         }
       }
+
+      // Speech bubbles
+      speechBubbleManager.update(dt);
 
       // Weather effects
       weatherSystem.update(dt);
@@ -755,6 +820,8 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
         weatherSystemRef.current = null;
         wildlifeSystemRef.current?.destroy();
         wildlifeSystemRef.current = null;
+        speechBubbleRef.current?.destroy();
+        speechBubbleRef.current = null;
         if (viewportRef.current) {
           app.stage.removeChild(viewportRef.current);
           viewportRef.current.destroy({ children: true });

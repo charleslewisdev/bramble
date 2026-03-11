@@ -23,6 +23,7 @@ export class ParticleEmitter {
   private graphics: Graphics;
   private elapsed = 0;
   private emitTimer = 0;
+  public destroyed = false;
 
   constructor(
     parent: Container,
@@ -164,6 +165,7 @@ export class ParticleEmitter {
   }
 
   destroy(): void {
+    this.destroyed = true;
     this.container.destroy({ children: true });
   }
 }
