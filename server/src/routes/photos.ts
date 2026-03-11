@@ -51,11 +51,7 @@ const uploadPhotoSchema = z.object({
   caption: z.string().optional(),
 });
 
-const idParamSchema = z.object({
-  id: z.string().refine((v) => !isNaN(Number(v)) && Number(v) > 0 && Number.isInteger(Number(v)), {
-    message: "Invalid ID",
-  }),
-});
+import { idParamSchema } from "../lib/validation.js";
 
 const filenameParamSchema = z.object({
   filename: z.string().min(1).refine(isValidFilename, { message: "Invalid filename" }),

@@ -27,7 +27,8 @@ export async function getHardinessZone(
       zone: data.zone,
       temperatureRange: data.temperature_range,
     };
-  } catch {
+  } catch (err) {
+    console.error("Hardiness zone lookup failed:", err);
     return null;
   }
 }

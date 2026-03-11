@@ -8,7 +8,7 @@ import {
   zones,
   weatherCache,
 } from "../db/schema.js";
-import { eq, like, or, and, desc } from "drizzle-orm";
+import { eq, like, or, and, desc, inArray } from "drizzle-orm";
 import {
   searchPerenualPlants,
   getPerenualPlantDetail,
@@ -18,12 +18,7 @@ import {
 import { z } from "zod";
 import { generateDefaultCareTasks } from "../services/care-tasks.js";
 import { calculatePlantMood } from "../services/mood.js";
-
-const idParamSchema = z.object({
-  id: z.string().refine((v) => !isNaN(Number(v)) && Number(v) > 0 && Number.isInteger(Number(v)), {
-    message: "Invalid ID",
-  }),
-});
+import { idParamSchema } from "../lib/validation.js";
 
 const plantTypeEnum = z.enum([
   "flower", "shrub", "tree", "herb", "grass", "fern", "succulent",
@@ -359,7 +354,7 @@ export async function plantRoutes(app: FastifyInstance) {
       if (locationId) {
         const locationIdNum = Number(locationId);
         if (isNaN(locationIdNum)) return [];
-        // BUG-007 fix: Use a proper SQL join instead of fetching all and filtering in JS
+        // Get zone IDs for this location
         const locationZones = db
           .select({ id: zones.id })
           .from(zones)
@@ -369,16 +364,11 @@ export async function plantRoutes(app: FastifyInstance) {
         const zoneIds = locationZones.map((z) => z.id);
         if (zoneIds.length === 0) return [];
 
-        // Fetch instances for all zones belonging to this location
-        const results = [];
-        for (const zId of zoneIds) {
-          const instances = await db.query.plantInstances.findMany({
-            where: eq(plantInstances.zoneId, zId),
-            with: { plantReference: true, zone: true },
-          });
-          results.push(...instances);
-        }
-        return results;
+        // Fetch all instances in one query using inArray
+        return db.query.plantInstances.findMany({
+          where: inArray(plantInstances.zoneId, zoneIds),
+          with: { plantReference: true, zone: true },
+        });
       }
 
       return db.query.plantInstances.findMany({
@@ -511,44 +501,78 @@ export async function plantRoutes(app: FastifyInstance) {
       },
     });
 
+    if (allInstances.length === 0) {
+      return { updated: 0, total: 0 };
+    }
+
+    // Batch-fetch weather cache: get unique location IDs from zones, fetch once per location
+    const locationIds = [...new Set(
+      allInstances
+        .filter((inst) => inst.zone?.locationId)
+        .map((inst) => inst.zone!.locationId),
+    )];
+
+    const weatherByLocation = new Map<number, typeof weatherCache.$inferSelect | null>();
+    for (const locId of locationIds) {
+      const cached = db
+        .select()
+        .from(weatherCache)
+        .where(eq(weatherCache.locationId, locId))
+        .orderBy(desc(weatherCache.fetchedAt))
+        .limit(1)
+        .all();
+      weatherByLocation.set(locId, cached[0] ?? null);
+    }
+
+    // Batch-fetch all water care tasks for these plant instances
+    const instanceIds = allInstances.map((inst) => inst.id);
+    const allWaterTasks = db
+      .select()
+      .from(careTasks)
+      .where(and(
+        inArray(careTasks.plantInstanceId, instanceIds),
+        eq(careTasks.taskType, "water"),
+      ))
+      .all();
+
+    const waterTaskByInstance = new Map<number, typeof careTasks.$inferSelect>();
+    for (const task of allWaterTasks) {
+      if (task.plantInstanceId) {
+        waterTaskByInstance.set(task.plantInstanceId, task);
+      }
+    }
+
+    // Batch-fetch latest water logs for all water tasks
+    const waterTaskIds = allWaterTasks.map((t) => t.id);
+    const latestWaterLogs = new Map<number, typeof careTaskLogs.$inferSelect>();
+    if (waterTaskIds.length > 0) {
+      const allWaterLogs = db
+        .select()
+        .from(careTaskLogs)
+        .where(inArray(careTaskLogs.careTaskId, waterTaskIds))
+        .orderBy(desc(careTaskLogs.completedAt))
+        .all();
+
+      // Keep only the latest log per care task
+      for (const log of allWaterLogs) {
+        if (!latestWaterLogs.has(log.careTaskId)) {
+          latestWaterLogs.set(log.careTaskId, log);
+        }
+      }
+    }
+
     let updatedCount = 0;
 
     for (const instance of allInstances) {
       if (!instance.plantReference) continue;
 
-      // Get weather for the plant's location (via zone)
-      let weather = null;
-      if (instance.zone?.locationId) {
-        const cached = db
-          .select()
-          .from(weatherCache)
-          .where(eq(weatherCache.locationId, instance.zone.locationId))
-          .orderBy(desc(weatherCache.fetchedAt))
-          .limit(1)
-          .all();
-        weather = cached[0] ?? null;
-      }
+      const weather = instance.zone?.locationId
+        ? weatherByLocation.get(instance.zone.locationId) ?? null
+        : null;
 
-      // Get the latest water care task log
-      let lastWaterLog = null;
-      let waterIntervalDays = null;
-      const waterTask = await db.query.careTasks.findFirst({
-        where: and(
-          eq(careTasks.plantInstanceId, instance.id),
-          eq(careTasks.taskType, "water"),
-        ),
-      });
-      if (waterTask) {
-        waterIntervalDays = waterTask.intervalDays;
-        const logs = db
-          .select()
-          .from(careTaskLogs)
-          .where(eq(careTaskLogs.careTaskId, waterTask.id))
-          .orderBy(desc(careTaskLogs.completedAt))
-          .limit(1)
-          .all();
-        lastWaterLog = logs[0] ?? null;
-      }
+      const waterTask = waterTaskByInstance.get(instance.id);
+      const lastWaterLog = waterTask ? latestWaterLogs.get(waterTask.id) ?? null : null;
+      const waterIntervalDays = waterTask?.intervalDays ?? null;
 
       const newMood = calculatePlantMood(instance, instance.plantReference, {
         weather,

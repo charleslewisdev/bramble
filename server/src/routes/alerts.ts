@@ -6,7 +6,7 @@ import {
   plantInstances,
   zones,
 } from "../db/schema.js";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import { checkWeatherAlerts } from "../services/alerts.js";
 
 export async function alertRoutes(app: FastifyInstance) {
@@ -41,7 +41,7 @@ export async function alertRoutes(app: FastifyInstance) {
         return { alerts: [], message: "No weather data available" };
       }
 
-      // Get all plant instances for this location (through zones)
+      // Get all plant instances for this location (through zones) in a single query
       const locationZones = db
         .select({ id: zones.id })
         .from(zones)
@@ -50,14 +50,12 @@ export async function alertRoutes(app: FastifyInstance) {
 
       const zoneIds = locationZones.map((z) => z.id);
 
-      const plants = [];
-      for (const zId of zoneIds) {
-        const instances = await db.query.plantInstances.findMany({
-          where: eq(plantInstances.zoneId, zId),
-          with: { plantReference: true },
-        });
-        plants.push(...instances);
-      }
+      const plants = zoneIds.length > 0
+        ? await db.query.plantInstances.findMany({
+            where: inArray(plantInstances.zoneId, zoneIds),
+            with: { plantReference: true },
+          })
+        : [];
 
       const alerts = checkWeatherAlerts(locationId, weather, plants);
 

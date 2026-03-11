@@ -3,12 +3,7 @@ import { db } from "../db/index.js";
 import { zones } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-
-const idParamSchema = z.object({
-  id: z.string().refine((v) => !isNaN(Number(v)) && Number(v) > 0 && Number.isInteger(Number(v)), {
-    message: "Invalid ID",
-  }),
-});
+import { idParamSchema } from "../lib/validation.js";
 
 const sunExposureEnum = z.enum(["full_sun", "partial_sun", "partial_shade", "full_shade"]);
 const soilTypeEnum = z.enum(["clay", "sandy", "loamy", "silty", "peaty", "chalky", "mixed"]);

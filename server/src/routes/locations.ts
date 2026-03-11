@@ -9,12 +9,7 @@ import {
   detectTimezoneFromCoordinates,
 } from "../services/hardiness.js";
 import { z } from "zod";
-
-const idParamSchema = z.object({
-  id: z.string().refine((v) => !isNaN(Number(v)) && Number(v) > 0 && Number.isInteger(Number(v)), {
-    message: "Invalid ID",
-  }),
-});
+import { idParamSchema } from "../lib/validation.js";
 
 const roofTypeEnum = z.enum(["flat", "gable", "hip", "shed", "gambrel", "pergola", "gazebo", "open", "canopy"]);
 
@@ -122,8 +117,8 @@ export async function locationRoutes(app: FastifyInstance) {
               }
             }
           }
-        } catch {
-          // Reverse geocode failed
+        } catch (err) {
+          request.log.warn(err, "Reverse geocode failed for hardiness lookup");
         }
         return reply.status(404).send({ error: "Could not determine hardiness zone from coordinates" });
       }
@@ -176,8 +171,8 @@ export async function locationRoutes(app: FastifyInstance) {
           latitude = results[0]!.lat;
           longitude = results[0]!.lng;
         }
-      } catch {
-        // Geocoding failed — continue without coordinates
+      } catch (err) {
+        request.log.warn(err, "Auto-geocoding failed — continuing without coordinates");
       }
     }
 
@@ -201,8 +196,8 @@ export async function locationRoutes(app: FastifyInstance) {
           if (zoneResult) {
             hardinessZone = zoneResult.zone;
           }
-        } catch {
-          // Hardiness lookup failed — continue without it
+        } catch (err) {
+          request.log.warn(err, "Hardiness zone lookup failed — continuing without it");
         }
       }
     }

@@ -8,40 +8,37 @@ import {
   careTaskLogs,
   zones,
 } from "../db/schema.js";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
 import { fetchWeather } from "../services/weather.js";
 import { calculatePlantMood } from "../services/mood.js";
 import { z } from "zod";
-
-const locationIdParamSchema = z.object({
-  locationId: z.string().refine((v) => !isNaN(Number(v)) && Number(v) > 0 && Number.isInteger(Number(v)), {
-    message: "Invalid ID",
-  }),
-});
+import { locationIdParamSchema } from "../lib/validation.js";
 
 function upsertWeatherCache(locationId: number, weather: Awaited<ReturnType<typeof fetchWeather>>) {
-  // Delete existing cache for this location, then insert fresh
-  db.delete(weatherCache).where(eq(weatherCache.locationId, locationId)).run();
+  // Wrap delete + insert in a transaction for atomicity
+  return db.transaction((tx) => {
+    tx.delete(weatherCache).where(eq(weatherCache.locationId, locationId)).run();
 
-  return db
-    .insert(weatherCache)
-    .values({
-      locationId,
-      temperature: weather.current.temperature,
-      temperatureHigh: weather.daily.temperatureMax,
-      temperatureLow: weather.daily.temperatureMin,
-      humidity: weather.current.humidity,
-      precipitation: weather.current.precipitation,
-      windSpeed: weather.current.windSpeed,
-      conditions: weather.current.conditions,
-      forecastJson: weather.forecast,
-      uvIndex: weather.current.uvIndex,
-      precipitationProbability: weather.daily.precipitationProbability,
-      soilTemperature: weather.soilTemperature,
-      windGust: weather.current.windGust,
-    })
-    .returning()
-    .get();
+    return tx
+      .insert(weatherCache)
+      .values({
+        locationId,
+        temperature: weather.current.temperature,
+        temperatureHigh: weather.daily.temperatureMax,
+        temperatureLow: weather.daily.temperatureMin,
+        humidity: weather.current.humidity,
+        precipitation: weather.current.precipitation,
+        windSpeed: weather.current.windSpeed,
+        conditions: weather.current.conditions,
+        forecastJson: weather.forecast,
+        uvIndex: weather.current.uvIndex,
+        precipitationProbability: weather.daily.precipitationProbability,
+        soilTemperature: weather.soilTemperature,
+        windGust: weather.current.windGust,
+      })
+      .returning()
+      .get();
+  });
 }
 
 async function refreshMoodsForLocation(locationId: number) {
@@ -55,7 +52,15 @@ async function refreshMoodsForLocation(locationId: number) {
   const zoneIds = locationZones.map((z) => z.id);
   if (zoneIds.length === 0) return 0;
 
-  // Get latest weather
+  // Get all plant instances for this location in one query
+  const allInstances = await db.query.plantInstances.findMany({
+    where: inArray(plantInstances.zoneId, zoneIds),
+    with: { plantReference: true },
+  });
+
+  if (allInstances.length === 0) return 0;
+
+  // Get latest weather (single query)
   const cached = db
     .select()
     .from(weatherCache)
@@ -65,51 +70,64 @@ async function refreshMoodsForLocation(locationId: number) {
     .all();
   const weather = cached[0] ?? null;
 
+  // Batch-fetch all water care tasks for these instances
+  const instanceIds = allInstances.map((inst) => inst.id);
+  const allWaterTasks = db
+    .select()
+    .from(careTasks)
+    .where(and(
+      inArray(careTasks.plantInstanceId, instanceIds),
+      eq(careTasks.taskType, "water"),
+    ))
+    .all();
+
+  const waterTaskByInstance = new Map<number, typeof careTasks.$inferSelect>();
+  for (const task of allWaterTasks) {
+    if (task.plantInstanceId) {
+      waterTaskByInstance.set(task.plantInstanceId, task);
+    }
+  }
+
+  // Batch-fetch latest water logs for all water tasks
+  const waterTaskIds = allWaterTasks.map((t) => t.id);
+  const latestWaterLogs = new Map<number, typeof careTaskLogs.$inferSelect>();
+  if (waterTaskIds.length > 0) {
+    const allWaterLogs = db
+      .select()
+      .from(careTaskLogs)
+      .where(inArray(careTaskLogs.careTaskId, waterTaskIds))
+      .orderBy(desc(careTaskLogs.completedAt))
+      .all();
+
+    // Keep only the latest log per care task
+    for (const log of allWaterLogs) {
+      if (!latestWaterLogs.has(log.careTaskId)) {
+        latestWaterLogs.set(log.careTaskId, log);
+      }
+    }
+  }
+
   let updatedCount = 0;
 
-  for (const zId of zoneIds) {
-    const instancesInZone = await db.query.plantInstances.findMany({
-      where: eq(plantInstances.zoneId, zId),
-      with: { plantReference: true },
+  for (const instance of allInstances) {
+    if (!instance.plantReference) continue;
+
+    const waterTask = waterTaskByInstance.get(instance.id);
+    const lastWaterLog = waterTask ? latestWaterLogs.get(waterTask.id) ?? null : null;
+    const waterIntervalDays = waterTask?.intervalDays ?? null;
+
+    const newMood = calculatePlantMood(instance, instance.plantReference, {
+      weather,
+      lastWaterLog,
+      waterIntervalDays,
     });
 
-    for (const instance of instancesInZone) {
-      if (!instance.plantReference) continue;
-
-      // Get latest water log
-      let lastWaterLog = null;
-      let waterIntervalDays = null;
-      const waterTask = await db.query.careTasks.findFirst({
-        where: and(
-          eq(careTasks.plantInstanceId, instance.id),
-          eq(careTasks.taskType, "water"),
-        ),
-      });
-      if (waterTask) {
-        waterIntervalDays = waterTask.intervalDays;
-        const logs = db
-          .select()
-          .from(careTaskLogs)
-          .where(eq(careTaskLogs.careTaskId, waterTask.id))
-          .orderBy(desc(careTaskLogs.completedAt))
-          .limit(1)
-          .all();
-        lastWaterLog = logs[0] ?? null;
-      }
-
-      const newMood = calculatePlantMood(instance, instance.plantReference, {
-        weather,
-        lastWaterLog,
-        waterIntervalDays,
-      });
-
-      if (newMood !== instance.mood) {
-        db.update(plantInstances)
-          .set({ mood: newMood, updatedAt: new Date().toISOString() })
-          .where(eq(plantInstances.id, instance.id))
-          .run();
-        updatedCount++;
-      }
+    if (newMood !== instance.mood) {
+      db.update(plantInstances)
+        .set({ mood: newMood, updatedAt: new Date().toISOString() })
+        .where(eq(plantInstances.id, instance.id))
+        .run();
+      updatedCount++;
     }
   }
 

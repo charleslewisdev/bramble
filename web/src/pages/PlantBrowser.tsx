@@ -266,27 +266,27 @@ export default function PlantBrowser() {
                       for="children"
                     />
                   )}
-                  {plant.droughtTolerant === 1 && (
+                  {plant.droughtTolerant && (
                     <Chip color="amber">
                       <Droplets size={10} /> Drought tolerant
                     </Chip>
                   )}
-                  {plant.deerResistant === 1 && (
+                  {plant.deerResistant && (
                     <Chip color="green">
                       <Shield size={10} /> Deer resistant
                     </Chip>
                   )}
-                  {plant.attractsPollinators === 1 && (
+                  {plant.attractsPollinators && (
                     <Chip color="yellow">
                       <Bug size={10} /> Pollinators
                     </Chip>
                   )}
-                  {plant.attractsBirds === 1 && (
+                  {plant.attractsBirds && (
                     <Chip color="sky">
                       <Bird size={10} /> Birds
                     </Chip>
                   )}
-                  {plant.attractsButterflies === 1 && (
+                  {plant.attractsButterflies && (
                     <Chip color="pink">
                       <Flower2 size={10} /> Butterflies
                     </Chip>

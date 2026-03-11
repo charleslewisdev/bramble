@@ -12,7 +12,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`API ${res.status}: ${body || res.statusText}`);
+    let message = res.statusText;
+    try {
+      const parsed = JSON.parse(body);
+      if (parsed.error) message = parsed.error;
+    } catch {
+      if (body) message = body;
+    }
+    throw new Error(`API ${res.status}: ${message}`);
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
@@ -182,12 +189,12 @@ export interface PlantReference {
   pruningNotes?: string | null;
   overwinteringNotes?: string | null;
   nativeRegion?: string | null;
-  deerResistant?: number | null;
-  droughtTolerant?: number | null;
-  containerSuitable?: number | null;
-  attractsPollinators?: number | null;
-  attractsBirds?: number | null;
-  attractsButterflies?: number | null;
+  deerResistant?: boolean | null;
+  droughtTolerant?: boolean | null;
+  containerSuitable?: boolean | null;
+  attractsPollinators?: boolean | null;
+  attractsBirds?: boolean | null;
+  attractsButterflies?: boolean | null;
   companionPlants?: string | null;
   minTempF?: number | null;
   maxTempF?: number | null;

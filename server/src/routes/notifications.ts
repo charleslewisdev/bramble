@@ -6,12 +6,7 @@ import { sendNotification } from "../services/notifications.js";
 import { getResolvedPreferences } from "../services/notification-preferences.js";
 import { sendDigest } from "../services/scheduler.js";
 import { z } from "zod";
-
-const idParamSchema = z.object({
-  id: z.string().refine((v) => !isNaN(Number(v)) && Number(v) > 0 && Number.isInteger(Number(v)), {
-    message: "Invalid ID",
-  }),
-});
+import { idParamSchema } from "../lib/validation.js";
 
 const channelTypeEnum = z.enum(["slack", "discord", "email", "pushover", "ntfy", "homeassistant"]);
 

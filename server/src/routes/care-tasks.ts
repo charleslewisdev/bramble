@@ -4,12 +4,7 @@ import { careTasks, careTaskLogs, plantInstances } from "../db/schema.js";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { generateDefaultCareTasks } from "../services/care-tasks.js";
-
-const idParamSchema = z.object({
-  id: z.string().refine((v) => !isNaN(Number(v)) && Number(v) > 0 && Number.isInteger(Number(v)), {
-    message: "Invalid ID",
-  }),
-});
+import { idParamSchema } from "../lib/validation.js";
 
 const taskTypeEnum = z.enum([
   "water", "fertilize", "prune", "mulch", "harvest",

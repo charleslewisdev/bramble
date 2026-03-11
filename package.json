@@ -9,7 +9,9 @@
     "build": "pnpm --filter server build && pnpm --filter web build",
     "db:generate": "pnpm --filter server db:generate",
     "db:migrate": "pnpm --filter server db:migrate",
-    "db:seed": "pnpm --filter server db:seed"
+    "db:seed": "pnpm --filter server db:seed",
+    "test": "pnpm --filter server test && pnpm --filter web test",
+    "test:watch": "pnpm --parallel test:watch"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

@@ -3,12 +3,7 @@ import { db } from "../db/index.js";
 import { locations } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-
-const locationIdParamSchema = z.object({
-  locationId: z.string().refine((v) => !isNaN(Number(v)) && Number(v) > 0 && Number.isInteger(Number(v)), {
-    message: "Invalid ID",
-  }),
-});
+import { locationIdParamSchema } from "../lib/validation.js";
 
 export interface WildlifeEntry {
   name: string;

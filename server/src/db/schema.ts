@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 
 // ─── Locations ───────────────────────────────────────────────────────────────
@@ -116,7 +116,9 @@ export const zones = sqliteTable("zones", {
   updatedAt: text("updated_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
-});
+}, (table) => [
+  index("zones_location_id_idx").on(table.locationId),
+]);
 
 export const zonesRelations = relations(zones, ({ one, many }) => ({
   location: one(locations, {
@@ -208,12 +210,12 @@ export const plantReferences = sqliteTable("plant_references", {
   pruningNotes: text("pruning_notes"),
   overwinteringNotes: text("overwintering_notes"),
   nativeRegion: text("native_region"),
-  deerResistant: integer("deer_resistant"),
-  droughtTolerant: integer("drought_tolerant"),
-  containerSuitable: integer("container_suitable"),
-  attractsPollinators: integer("attracts_pollinators"),
-  attractsBirds: integer("attracts_birds"),
-  attractsButterflies: integer("attracts_butterflies"),
+  deerResistant: integer("deer_resistant", { mode: "boolean" }),
+  droughtTolerant: integer("drought_tolerant", { mode: "boolean" }),
+  containerSuitable: integer("container_suitable", { mode: "boolean" }),
+  attractsPollinators: integer("attracts_pollinators", { mode: "boolean" }),
+  attractsBirds: integer("attracts_birds", { mode: "boolean" }),
+  attractsButterflies: integer("attracts_butterflies", { mode: "boolean" }),
   companionPlants: text("companion_plants"),
   minTempF: integer("min_temp_f"),
   maxTempF: integer("max_temp_f"),
@@ -228,7 +230,10 @@ export const plantReferences = sqliteTable("plant_references", {
   updatedAt: text("updated_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
-});
+}, (table) => [
+  index("plant_refs_common_name_idx").on(table.commonName),
+  index("plant_refs_external_id_idx").on(table.externalId),
+]);
 
 export const plantReferencesRelations = relations(
   plantReferences,
@@ -294,7 +299,10 @@ export const plantInstances = sqliteTable("plant_instances", {
   updatedAt: text("updated_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
-});
+}, (table) => [
+  index("plant_instances_zone_id_idx").on(table.zoneId),
+  index("plant_instances_ref_id_idx").on(table.plantReferenceId),
+]);
 
 export const plantInstancesRelations = relations(
   plantInstances,
@@ -386,7 +394,11 @@ export const careTasks = sqliteTable("care_tasks", {
   updatedAt: text("updated_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
-});
+}, (table) => [
+  index("care_tasks_plant_instance_id_idx").on(table.plantInstanceId),
+  index("care_tasks_zone_id_idx").on(table.zoneId),
+  index("care_tasks_due_date_idx").on(table.dueDate),
+]);
 
 export const careTasksRelations = relations(careTasks, ({ one, many }) => ({
   plantInstance: one(plantInstances, {
@@ -421,7 +433,9 @@ export const careTaskLogs = sqliteTable("care_task_logs", {
   completedAt: text("completed_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
-});
+}, (table) => [
+  index("care_task_logs_care_task_id_idx").on(table.careTaskId),
+]);
 
 export const careTaskLogsRelations = relations(careTaskLogs, ({ one }) => ({
   careTask: one(careTasks, {
@@ -490,7 +504,9 @@ export const weatherCache = sqliteTable("weather_cache", {
   fetchedAt: text("fetched_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
-});
+}, (table) => [
+  index("weather_cache_location_fetched_idx").on(table.locationId, table.fetchedAt),
+]);
 
 export const weatherCacheRelations = relations(weatherCache, ({ one }) => ({
   location: one(locations, {

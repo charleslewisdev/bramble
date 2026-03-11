@@ -400,29 +400,23 @@ export async function getPerenualPlantDetail(
       lifecycle: mapCycleToLifecycle(plant.cycle),
       nativeRegion: plant.origin?.join(", ") || null,
       deerResistant: null, // Not available from Perenual
-      droughtTolerant: plant.drought_tolerant ? 1 : 0,
-      containerSuitable: plant.indoor ? 1 : null,
+      droughtTolerant: plant.drought_tolerant ?? false,
+      containerSuitable: plant.indoor ?? null,
       attractsPollinators:
         plant.attracts?.some((a) =>
           ["Bees", "Butterflies", "Pollinators"].some((p) =>
             a.toLowerCase().includes(p.toLowerCase()),
           ),
-        )
-          ? 1
-          : 0,
+        ) ?? false,
       attractsBirds:
         plant.attracts?.some((a) =>
           a.toLowerCase().includes("bird") ||
           a.toLowerCase().includes("hummingbird"),
-        )
-          ? 1
-          : 0,
+        ) ?? false,
       attractsButterflies:
         plant.attracts?.some((a) =>
           a.toLowerCase().includes("butterfl"),
-        )
-          ? 1
-          : 0,
+        ) ?? false,
       toxicityDogs: plant.poisonous_to_pets ? "toxic" : "safe",
       toxicityCats: plant.poisonous_to_pets ? "toxic" : "safe",
       toxicityChildren: plant.poisonous_to_humans ? "toxic" : "safe",

@@ -329,32 +329,32 @@ export default function PlantDetail() {
 
           {/* Trait badges */}
           <div className="flex flex-wrap gap-2 mt-3">
-            {plant.droughtTolerant === 1 && (
+            {plant.droughtTolerant && (
               <span className="text-xs px-2 py-1 rounded-lg bg-amber-900/30 text-amber-400 flex items-center gap-1.5">
                 <Droplets size={12} /> Drought Tolerant
               </span>
             )}
-            {plant.deerResistant === 1 && (
+            {plant.deerResistant && (
               <span className="text-xs px-2 py-1 rounded-lg bg-green-900/30 text-green-400 flex items-center gap-1.5">
                 <Shield size={12} /> Deer Resistant
               </span>
             )}
-            {plant.containerSuitable === 1 && (
+            {plant.containerSuitable && (
               <span className="text-xs px-2 py-1 rounded-lg bg-blue-900/30 text-blue-400 flex items-center gap-1.5">
                 <Container size={12} /> Container Suitable
               </span>
             )}
-            {plant.attractsPollinators === 1 && (
+            {plant.attractsPollinators && (
               <span className="text-xs px-2 py-1 rounded-lg bg-yellow-900/30 text-yellow-400 flex items-center gap-1.5">
                 <Bug size={12} /> Attracts Pollinators
               </span>
             )}
-            {plant.attractsBirds === 1 && (
+            {plant.attractsBirds && (
               <span className="text-xs px-2 py-1 rounded-lg bg-sky-900/30 text-sky-400 flex items-center gap-1.5">
                 <Bird size={12} /> Attracts Birds
               </span>
             )}
-            {plant.attractsButterflies === 1 && (
+            {plant.attractsButterflies && (
               <span className="text-xs px-2 py-1 rounded-lg bg-pink-900/30 text-pink-400 flex items-center gap-1.5">
                 <Flower2 size={12} /> Attracts Butterflies
               </span>

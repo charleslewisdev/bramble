@@ -3,12 +3,7 @@ import { db } from "../db/index.js";
 import { shoppingListItems } from "../db/schema.js";
 import { eq, asc, desc } from "drizzle-orm";
 import { z } from "zod";
-
-const idParamSchema = z.object({
-  id: z.string().refine((v) => !isNaN(Number(v)) && Number(v) > 0 && Number.isInteger(Number(v)), {
-    message: "Invalid ID",
-  }),
-});
+import { idParamSchema } from "../lib/validation.js";
 
 const categoryEnum = z.enum(["plant", "soil", "fertilizer", "tool", "container", "other"]);
 

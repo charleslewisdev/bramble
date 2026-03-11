@@ -163,7 +163,8 @@ async function getWeatherHints(): Promise<{ rainForecast: boolean; frostWarning:
     }
 
     return { rainForecast, frostWarning };
-  } catch {
+  } catch (err) {
+    console.error("[Scheduler] Weather hints error:", err);
     return { rainForecast: false, frostWarning: false };
   }
 }

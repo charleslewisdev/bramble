@@ -1,9 +1,10 @@
 import { existsSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
-import Fastify from "fastify";
+import Fastify, { type FastifyError } from "fastify";
 import fastifyStatic from "@fastify/static";
 import cors from "@fastify/cors";
+import { ZodError } from "zod";
 import { db } from "./db/index.js";
 import { locationRoutes } from "./routes/locations.js";
 import { zoneRoutes } from "./routes/zones.js";
@@ -23,7 +24,27 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = Fastify({ logger: true });
 
 await app.register(cors, {
-  origin: process.env.CORS_ORIGIN ?? true,
+  origin: process.env.CORS_ORIGIN || false,
+});
+
+// Global error handler
+app.setErrorHandler((error, request, reply) => {
+  if (error instanceof ZodError) {
+    return reply.status(400).send({
+      error: "Validation error",
+      details: error.issues.map((i) => i.message),
+    });
+  }
+
+  // Fastify validation errors (schema-based)
+  const fastifyErr = error as FastifyError;
+  if (fastifyErr.validation) {
+    return reply.status(400).send({ error: fastifyErr.message });
+  }
+
+  // Log the full error internally, return sanitized response
+  request.log.error(error, "Unhandled error");
+  return reply.status(500).send({ error: "Internal server error" });
 });
 
 // Register routes

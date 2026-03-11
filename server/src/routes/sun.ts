@@ -5,12 +5,7 @@ import { eq } from "drizzle-orm";
 import { getSunInfo } from "../services/sun.js";
 import { calculateShadows } from "../services/shadows.js";
 import { z } from "zod";
-
-const locationIdParamSchema = z.object({
-  locationId: z.string().refine((v) => !isNaN(Number(v)) && Number(v) > 0 && Number.isInteger(Number(v)), {
-    message: "Invalid ID",
-  }),
-});
+import { locationIdParamSchema } from "../lib/validation.js";
 
 function parseDateParam(dateStr: string | undefined): Date {
   if (dateStr) {
