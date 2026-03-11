@@ -6,9 +6,14 @@
 import { Assets, Sprite, Texture } from "pixi.js";
 import type { PlantMood } from "../../api";
 import { getSpriteType } from "../../api";
+import { createPaletteSwappedTexture, parseBloomColor, clearPaletteCache } from "./palette-swap";
+import { loadAnimFrames, PlantAnimator, clearAnimCache } from "./sprite-animation";
 
 const PLANT_SPRITE_BASE = "/sprites/plants/";
+const SPECIES_SPRITE_BASE = "/sprites/plants/species/";
 const textureCache = new Map<string, Texture>();
+// Track species that don't have sprites so we don't retry
+const missingSpecies = new Set<string>();
 
 // Mood tints as hex numbers for PixiJS tint property (multiplicative)
 const MOOD_TINT_COLORS: Record<string, number> = {
@@ -31,6 +36,26 @@ async function loadPlantTexture(type: string): Promise<Texture> {
 }
 
 /**
+ * Try to load a species-specific sprite (e.g. "sunflower", "lavender").
+ * Returns the texture if it exists, null otherwise. Caches misses.
+ */
+async function tryLoadSpeciesTexture(species: string): Promise<Texture | null> {
+  const slug = species.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+  if (missingSpecies.has(slug)) return null;
+  const key = `species:${slug}`;
+  if (textureCache.has(key)) return textureCache.get(key)!;
+  try {
+    const texture = await Assets.load(`${SPECIES_SPRITE_BASE}${slug}.png`);
+    texture.source.scaleMode = "nearest";
+    textureCache.set(key, texture);
+    return texture;
+  } catch {
+    missingSpecies.add(slug);
+    return null;
+  }
+}
+
+/**
  * Create a plant sprite from a PNG texture with status/mood tint applied.
  * Status takes priority for visual treatment when it indicates distress.
  * Returns a Sprite (not a Container like the old createPlantGraphics).
@@ -39,10 +64,26 @@ export async function createPlantSprite(
   plantType: string | null | undefined,
   mood: PlantMood,
   status?: string,
+  bloomColor?: string | null,
+  commonName?: string | null,
 ): Promise<Sprite> {
   const resolved = getSpriteType(plantType);
-  const texture = await loadPlantTexture(resolved);
-  const sprite = new Sprite(texture);
+
+  // Try species-specific sprite first, fall back to generic type sprite
+  let texture: Texture;
+  const speciesTexture = commonName ? await tryLoadSpeciesTexture(commonName) : null;
+  texture = speciesTexture ?? await loadPlantTexture(resolved);
+
+  // Apply bloom color palette swap for flowers and bulbs (only if using generic sprite)
+  let finalTexture = texture;
+  if (!speciesTexture) {
+    const parsedColor = parseBloomColor(bloomColor);
+    if (parsedColor && (resolved === "flower" || resolved === "bulb")) {
+      finalTexture = createPaletteSwappedTexture(texture, parsedColor);
+    }
+  }
+
+  const sprite = new Sprite(finalTexture);
 
   // Status-driven visuals take priority for distressed/inactive states
   if (status === "dead") {
@@ -87,4 +128,20 @@ export function clearTextureCache(): void {
     texture.destroy(true);
   }
   textureCache.clear();
+  missingSpecies.clear();
+  clearPaletteCache();
+  clearAnimCache();
+}
+
+/**
+ * Try to load animated sprite frames for a plant type.
+ * Returns a PlantAnimator if animation exists, null otherwise.
+ */
+export async function tryLoadPlantAnimation(
+  plantType: string | null | undefined,
+): Promise<PlantAnimator | null> {
+  const resolved = getSpriteType(plantType);
+  const frames = await loadAnimFrames(resolved);
+  if (!frames) return null;
+  return new PlantAnimator(frames);
 }

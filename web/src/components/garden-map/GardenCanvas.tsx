@@ -29,8 +29,11 @@ import {
   computeWangCorners,
   clearWangTilesetCache,
   type LoadedWangTileset,
+  loadFenceTexture,
+  clearFenceTextureCache,
 } from "./tiles";
-import { clearTextureCache, createPlantSprite, preloadPlantTextures } from "./sprite-textures";
+import { clearTextureCache, createPlantSprite, preloadPlantTextures, tryLoadPlantAnimation } from "./sprite-textures";
+import type { PlantAnimator } from "./sprite-animation";
 import { ParticleEmitter, getMoodParticleType, getMoodParticleRate } from "./particles";
 import { SpeechBubbleManager } from "./speech-bubbles";
 import { loadHouseTexture, clearHouseTextureCache } from "./house-sprite";
@@ -65,6 +68,7 @@ interface PlantAnim {
   baseX: number;
   baseY: number;
   phase: number; // random phase offset
+  animator?: PlantAnimator | null; // spritesheet frame cycling
 }
 
 // Zone rotation state for zones with more plants than slots
@@ -260,8 +264,12 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
     const tileContainer = new Container();
     tileContainer.label = "tiles";
 
-    // Preload Wang tilesets, then render all tiles
-    const wangTilesets = await preloadWangTilesets();
+    // Preload Wang tilesets and fence textures, then render all tiles
+    const [wangTilesets, fenceH, fenceCorner] = await Promise.all([
+      preloadWangTilesets(),
+      loadFenceTexture("horizontal"),
+      loadFenceTexture("corner"),
+    ]);
 
     // Create tile textures (cache by type+seed combos for procedural fallback)
     const tileTextureCache = new Map<string, Texture>();
@@ -308,18 +316,34 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
         const cell = map.tiles[y]![x]!;
         if (cell.type === TileType.EMPTY) continue;
 
-        // Use Wang tileset if available for this tile type, else procedural
-        const wangName = WANG_TILESET_MAP[cell.type];
-        const wangTileset = wangName ? wangTilesets.get(wangName) : undefined;
-        const texture = wangTileset
-          ? getWangTileTexture(wangTileset, x, y)
-          : getProceduralTileTexture(cell.type, cell.seed);
+        let texture: Texture;
+        if (cell.type === TileType.FENCE_H || cell.type === TileType.FENCE_V) {
+          texture = fenceH;
+        } else if (cell.type === TileType.FENCE_CORNER) {
+          texture = fenceCorner;
+        } else {
+          // Use Wang tileset if available for this tile type, else procedural
+          const wangName = WANG_TILESET_MAP[cell.type];
+          const wangTileset = wangName ? wangTilesets.get(wangName) : undefined;
+          texture = wangTileset
+            ? getWangTileTexture(wangTileset, x, y)
+            : getProceduralTileTexture(cell.type, cell.seed);
+        }
 
         const sprite = new Sprite(texture);
         sprite.x = x * TILE_SIZE;
         sprite.y = y * TILE_SIZE;
         sprite.width = TILE_SIZE;
         sprite.height = TILE_SIZE;
+
+        // Rotate vertical fences 90 degrees
+        if (cell.type === TileType.FENCE_V) {
+          sprite.anchor.set(0.5, 0.5);
+          sprite.x = x * TILE_SIZE + TILE_SIZE / 2;
+          sprite.y = y * TILE_SIZE + TILE_SIZE / 2;
+          sprite.rotation = Math.PI / 2;
+        }
+
         tileContainer.addChild(sprite);
       }
     }
@@ -464,6 +488,8 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
         plant.plantReference?.plantType,
         plant.mood as PlantMood,
         plant.status ?? undefined,
+        plant.plantReference?.bloomColor,
+        plant.plantReference?.commonName,
       );
 
       plantSprite.label = "plant-sprite";
@@ -485,12 +511,19 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
 
       parent.addChild(plantSprite);
 
+      // Try to load spritesheet animation (gracefully falls back to static)
+      const animator = await tryLoadPlantAnimation(plant.plantReference?.plantType);
+      if (animator) {
+        plantSprite.texture = animator.getCurrentFrame();
+      }
+
       plantAnims.push({
         sprite: plantSprite,
         plant,
         baseX: plantSprite.x,
         baseY: plantSprite.y,
         phase: Math.random() * Math.PI * 2,
+        animator,
       });
 
       // Create particle emitter for mood effects
@@ -614,6 +647,11 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
       for (const anim of animsRef.current) {
         const { sprite, plant, baseX, baseY, phase: animPhase } = anim;
         const mood = plant.mood as PlantMood;
+
+        // Advance spritesheet animation if available
+        if (anim.animator) {
+          sprite.texture = anim.animator.update(dt);
+        }
 
         switch (mood) {
           case "happy":
@@ -831,6 +869,7 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
       clearTextureCache();
       clearHouseTextureCache();
       clearWangTilesetCache();
+      clearFenceTextureCache();
     };
   }, [buildScene, ready]);
 

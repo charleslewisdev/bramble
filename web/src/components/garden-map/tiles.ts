@@ -4,6 +4,8 @@
  * Zone-type-aware ground tiles with warm color palettes.
  */
 
+import { Assets, Texture } from "pixi.js";
+
 export const TILE_SIZE = 16;
 
 export enum TileType {
@@ -784,4 +786,29 @@ export async function preloadWangTilesets(): Promise<Map<string, LoadedWangTiles
 export function clearWangTilesetCache(): void {
   tilesetCache.clear();
   tileCanvasCache.clear();
+}
+
+// ---- Fence PNG textures ----
+
+const fenceTextureCache = new Map<string, Texture>();
+
+/**
+ * Load a fence PNG texture by type. Results are cached.
+ * The PNGs are 32x32 and will be scaled down to TILE_SIZE when rendered.
+ */
+export async function loadFenceTexture(type: "horizontal" | "corner"): Promise<Texture> {
+  const key = `fence:${type}`;
+  const cached = fenceTextureCache.get(key);
+  if (cached) return cached;
+  const texture = await Assets.load(`/sprites/objects/fence-${type}.png`);
+  texture.source.scaleMode = "nearest";
+  fenceTextureCache.set(key, texture);
+  return texture;
+}
+
+/**
+ * Clear fence texture cache (for cleanup).
+ */
+export function clearFenceTextureCache(): void {
+  fenceTextureCache.clear();
 }
