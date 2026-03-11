@@ -300,10 +300,13 @@ describe("WANG_TILESET_MAP", () => {
     expect(WANG_TILESET_MAP[TileType.SOIL_MULCH]).toBe("grass-dirt");
   });
 
-  it("maps stone types to grass-cobble", () => {
-    expect(WANG_TILESET_MAP[TileType.PATH_STONE]).toBe("grass-cobble");
-    expect(WANG_TILESET_MAP[TileType.STONE_PAVER]).toBe("grass-cobble");
-    expect(WANG_TILESET_MAP[TileType.STONE_PAVER_LIGHT]).toBe("grass-cobble");
+  it("maps stone paver to grass-cement", () => {
+    expect(WANG_TILESET_MAP[TileType.STONE_PAVER]).toBe("grass-cement");
+  });
+
+  it("maps path stone and light pavers to grass-pavers", () => {
+    expect(WANG_TILESET_MAP[TileType.PATH_STONE]).toBe("grass-pavers");
+    expect(WANG_TILESET_MAP[TileType.STONE_PAVER_LIGHT]).toBe("grass-pavers");
   });
 
   it("maps gravel types to grass-gravel", () => {
