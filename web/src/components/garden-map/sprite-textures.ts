@@ -31,19 +31,40 @@ async function loadPlantTexture(type: string): Promise<Texture> {
 }
 
 /**
- * Create a plant sprite from a PNG texture with mood tint applied.
- * This is async because it may need to load the texture from disk.
+ * Create a plant sprite from a PNG texture with status/mood tint applied.
+ * Status takes priority for visual treatment when it indicates distress.
  * Returns a Sprite (not a Container like the old createPlantGraphics).
  */
 export async function createPlantSprite(
   plantType: string | null | undefined,
   mood: PlantMood,
+  status?: string,
 ): Promise<Sprite> {
   const resolved = getSpriteType(plantType);
   const texture = await loadPlantTexture(resolved);
   const sprite = new Sprite(texture);
-  sprite.tint = MOOD_TINT_COLORS[mood] ?? 0xffffff;
-  if (mood === "sleeping") sprite.alpha = 0.6;
+
+  // Status-driven visuals take priority for distressed/inactive states
+  if (status === "dead") {
+    sprite.tint = 0x555544;
+    sprite.alpha = 0.5;
+  } else if (status === "removed") {
+    sprite.tint = 0x444433;
+    sprite.alpha = 0.35;
+  } else if (status === "struggling") {
+    sprite.tint = 0xaa8855;
+  } else if (status === "dormant") {
+    sprite.tint = 0x667755;
+    sprite.alpha = 0.65;
+  } else if (status === "planned") {
+    sprite.tint = 0xaaddff;
+    sprite.alpha = 0.45;
+  } else {
+    // Healthy statuses (planted, established) use mood-based tinting
+    sprite.tint = MOOD_TINT_COLORS[mood] ?? 0xffffff;
+    if (mood === "sleeping") sprite.alpha = 0.6;
+  }
+
   return sprite;
 }
 
