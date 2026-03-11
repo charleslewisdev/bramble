@@ -1,334 +1,61 @@
 /**
- * Converts the SVG pixel art sprite data into PixiJS-compatible canvas textures.
- * Reuses the same pixel data and mood tint system from PlantSprite.tsx.
+ * Loads PNG sprite textures for plant types and applies mood tints via PixiJS.
+ * Replaces the old code-generated Graphics API pixel drawing approach.
  */
 
-import { Texture, Graphics, Container } from "pixi.js";
-import type { PlantType, PlantMood } from "../../api";
+import { Assets, Sprite, Texture } from "pixi.js";
+import type { PlantMood } from "../../api";
 import { getSpriteType } from "../../api";
 
-const SPRITE_SIZE = 16;
-
-// ---- Mood tint colors (mirrored from PlantSprite.tsx) ----
-
-type TintMap = Record<string, string>;
-
-const MOOD_TINTS: Record<PlantMood, TintMap> = {
-  happy: {},
-  thirsty: {
-    "#22c55e": "#6b8f71", "#16a34a": "#5a7a60", "#15803d": "#4d6b52",
-    "#166534": "#3f5c43", "#f87171": "#c9a0a0", "#ef4444": "#b08080",
-    "#c084fc": "#9a8aaa", "#a855f7": "#8a7a9a", "#facc15": "#c9c080",
-    "#eab308": "#b0a870",
-  },
-  cold: {
-    "#22c55e": "#5eafc5", "#16a34a": "#4e9fb5", "#15803d": "#3e8fa5",
-    "#166534": "#2e7f95", "#f87171": "#7171f8", "#ef4444": "#4444ef",
-  },
-  hot: {
-    "#22c55e": "#c5a55e", "#16a34a": "#b5954e", "#15803d": "#a5853e",
-    "#166534": "#95752e",
-  },
-  wilting: {
-    "#22c55e": "#8b7355", "#16a34a": "#7b6345", "#15803d": "#6b5335",
-    "#166534": "#5b4325", "#f87171": "#8b6355", "#ef4444": "#7b5345",
-    "#c084fc": "#8b7365", "#a855f7": "#7b6355", "#facc15": "#8b8355",
-    "#eab308": "#7b7345",
-  },
-  sleeping: {
-    "#22c55e": "#1a6b33", "#16a34a": "#145528", "#15803d": "#0e3f1d",
-    "#166534": "#082912",
-  },
-  new: {},
-};
-
-function applyMoodTint(color: string, mood: PlantMood): string {
-  return MOOD_TINTS[mood]?.[color] ?? color;
-}
-
-// ---- Pixel data for each plant type (mirrored from PlantSprite.tsx) ----
-
-type PixelData = Array<[number, number, string]>;
-
-function getPlantPixels(type: PlantType): PixelData {
-  switch (type) {
-    case "flower":
-      return [
-        [7,12,"#16a34a"],[7,11,"#16a34a"],[7,10,"#16a34a"],[7,9,"#16a34a"],
-        [8,12,"#16a34a"],[8,11,"#16a34a"],
-        [6,11,"#22c55e"],[5,10,"#22c55e"],[9,11,"#22c55e"],[10,10,"#22c55e"],
-        [7,5,"#f87171"],[8,5,"#f87171"],[6,6,"#f87171"],[9,6,"#f87171"],
-        [5,7,"#ef4444"],[10,7,"#ef4444"],[6,8,"#f87171"],[9,8,"#f87171"],
-        [7,8,"#f87171"],[8,8,"#f87171"],
-        [7,6,"#facc15"],[8,6,"#facc15"],[7,7,"#eab308"],[8,7,"#eab308"],
-        [5,13,"#a16207"],[6,13,"#a16207"],[7,13,"#a16207"],[8,13,"#a16207"],
-        [9,13,"#a16207"],[10,13,"#a16207"],
-        [6,14,"#92400e"],[7,14,"#92400e"],[8,14,"#92400e"],[9,14,"#92400e"],
-      ];
-    case "shrub":
-      return [
-        [7,12,"#92400e"],[8,12,"#92400e"],[7,13,"#92400e"],[8,13,"#92400e"],
-        [7,14,"#92400e"],[8,14,"#92400e"],
-        [4,7,"#22c55e"],[5,7,"#16a34a"],[6,7,"#22c55e"],[7,7,"#16a34a"],
-        [8,7,"#22c55e"],[9,7,"#16a34a"],[10,7,"#22c55e"],[11,7,"#16a34a"],
-        [3,8,"#16a34a"],[4,8,"#22c55e"],[5,8,"#16a34a"],[6,8,"#22c55e"],
-        [7,8,"#16a34a"],[8,8,"#22c55e"],[9,8,"#16a34a"],[10,8,"#22c55e"],
-        [11,8,"#16a34a"],[12,8,"#22c55e"],
-        [4,9,"#16a34a"],[5,9,"#22c55e"],[6,9,"#15803d"],[7,9,"#22c55e"],
-        [8,9,"#15803d"],[9,9,"#22c55e"],[10,9,"#16a34a"],[11,9,"#22c55e"],
-        [5,10,"#15803d"],[6,10,"#16a34a"],[7,10,"#15803d"],[8,10,"#16a34a"],
-        [9,10,"#15803d"],[10,10,"#16a34a"],
-        [5,11,"#166534"],[6,11,"#15803d"],[7,11,"#166534"],[8,11,"#15803d"],
-        [9,11,"#166534"],[10,11,"#15803d"],
-        [5,6,"#22c55e"],[6,6,"#16a34a"],[7,6,"#22c55e"],[8,6,"#16a34a"],
-        [9,6,"#22c55e"],[10,6,"#16a34a"],
-        [6,5,"#22c55e"],[7,5,"#16a34a"],[8,5,"#22c55e"],[9,5,"#16a34a"],
-      ];
-    case "tree":
-      return [
-        [7,11,"#92400e"],[8,11,"#92400e"],[7,12,"#92400e"],[8,12,"#78350f"],
-        [7,13,"#78350f"],[8,13,"#92400e"],[7,14,"#78350f"],[8,14,"#78350f"],
-        [6,3,"#16a34a"],[7,3,"#22c55e"],[8,3,"#16a34a"],[9,3,"#22c55e"],
-        [5,4,"#22c55e"],[6,4,"#16a34a"],[7,4,"#22c55e"],[8,4,"#16a34a"],
-        [9,4,"#22c55e"],[10,4,"#16a34a"],
-        [4,5,"#16a34a"],[5,5,"#22c55e"],[6,5,"#15803d"],[7,5,"#22c55e"],
-        [8,5,"#15803d"],[9,5,"#22c55e"],[10,5,"#15803d"],[11,5,"#16a34a"],
-        [4,6,"#22c55e"],[5,6,"#15803d"],[6,6,"#16a34a"],[7,6,"#15803d"],
-        [8,6,"#16a34a"],[9,6,"#15803d"],[10,6,"#16a34a"],[11,6,"#22c55e"],
-        [4,7,"#15803d"],[5,7,"#16a34a"],[6,7,"#15803d"],[7,7,"#166534"],
-        [8,7,"#15803d"],[9,7,"#166534"],[10,7,"#16a34a"],[11,7,"#15803d"],
-        [5,8,"#166534"],[6,8,"#15803d"],[7,8,"#166534"],[8,8,"#15803d"],
-        [9,8,"#166534"],[10,8,"#15803d"],
-        [5,9,"#15803d"],[6,9,"#166534"],[7,9,"#15803d"],[8,9,"#166534"],
-        [9,9,"#15803d"],[10,9,"#166534"],
-        [6,10,"#166534"],[7,10,"#15803d"],[8,10,"#166534"],[9,10,"#15803d"],
-      ];
-    case "herb":
-      return [
-        [6,14,"#16a34a"],[6,13,"#16a34a"],[6,12,"#22c55e"],[6,11,"#22c55e"],
-        [6,10,"#22c55e"],
-        [8,14,"#16a34a"],[8,13,"#16a34a"],[8,12,"#22c55e"],[8,11,"#22c55e"],
-        [8,10,"#22c55e"],[8,9,"#22c55e"],
-        [10,14,"#16a34a"],[10,13,"#16a34a"],[10,12,"#22c55e"],[10,11,"#22c55e"],
-        [5,9,"#22c55e"],[5,10,"#16a34a"],[7,9,"#16a34a"],[7,8,"#22c55e"],
-        [9,8,"#22c55e"],[9,9,"#16a34a"],[9,10,"#22c55e"],[11,10,"#16a34a"],
-        [11,11,"#22c55e"],
-        [5,8,"#22c55e"],[7,7,"#16a34a"],[8,8,"#16a34a"],[9,7,"#22c55e"],
-        [4,15,"#a16207"],[5,15,"#a16207"],[6,15,"#a16207"],[7,15,"#a16207"],
-        [8,15,"#a16207"],[9,15,"#a16207"],[10,15,"#a16207"],[11,15,"#a16207"],
-      ];
-    case "fern":
-      return [
-        [7,14,"#15803d"],[7,13,"#16a34a"],[7,12,"#16a34a"],[8,14,"#15803d"],
-        [8,13,"#16a34a"],
-        [3,8,"#22c55e"],[4,8,"#16a34a"],[5,9,"#22c55e"],[4,9,"#16a34a"],
-        [5,10,"#15803d"],[6,10,"#16a34a"],[6,11,"#15803d"],
-        [2,7,"#22c55e"],[3,7,"#16a34a"],[4,7,"#22c55e"],[3,6,"#22c55e"],
-        [4,6,"#16a34a"],
-        [11,8,"#22c55e"],[10,8,"#16a34a"],[10,9,"#22c55e"],[11,9,"#16a34a"],
-        [9,10,"#15803d"],[10,10,"#16a34a"],[9,11,"#15803d"],
-        [12,7,"#22c55e"],[11,7,"#16a34a"],[10,7,"#22c55e"],[11,6,"#22c55e"],
-        [10,6,"#16a34a"],
-        [6,8,"#16a34a"],[7,8,"#22c55e"],[8,8,"#16a34a"],[7,7,"#22c55e"],
-        [8,7,"#16a34a"],
-        [6,9,"#22c55e"],[7,9,"#16a34a"],[8,9,"#22c55e"],[9,9,"#16a34a"],
-        [5,15,"#a16207"],[6,15,"#a16207"],[7,15,"#a16207"],[8,15,"#a16207"],
-        [9,15,"#a16207"],[10,15,"#a16207"],
-      ];
-    case "succulent":
-      return [
-        [7,7,"#22c55e"],[8,7,"#16a34a"],
-        [6,8,"#22c55e"],[7,8,"#16a34a"],[8,8,"#22c55e"],[9,8,"#16a34a"],
-        [5,9,"#16a34a"],[6,9,"#22c55e"],[7,9,"#15803d"],[8,9,"#22c55e"],
-        [9,9,"#16a34a"],[10,9,"#22c55e"],
-        [4,10,"#22c55e"],[5,10,"#16a34a"],[6,10,"#15803d"],[7,10,"#16a34a"],
-        [8,10,"#15803d"],[9,10,"#16a34a"],[10,10,"#22c55e"],[11,10,"#16a34a"],
-        [5,11,"#15803d"],[6,11,"#16a34a"],[7,11,"#15803d"],[8,11,"#16a34a"],
-        [9,11,"#15803d"],[10,11,"#16a34a"],
-        [6,12,"#166534"],[7,12,"#15803d"],[8,12,"#166534"],[9,12,"#15803d"],
-        [4,13,"#a16207"],[5,13,"#a16207"],[6,13,"#a16207"],[7,13,"#a16207"],
-        [8,13,"#a16207"],[9,13,"#a16207"],[10,13,"#a16207"],[11,13,"#a16207"],
-        [5,14,"#92400e"],[6,14,"#92400e"],[7,14,"#92400e"],[8,14,"#92400e"],
-        [9,14,"#92400e"],[10,14,"#92400e"],
-      ];
-    case "cactus":
-      return [
-        [7,5,"#16a34a"],[8,5,"#22c55e"],[7,6,"#22c55e"],[8,6,"#16a34a"],
-        [7,7,"#16a34a"],[8,7,"#22c55e"],[7,8,"#22c55e"],[8,8,"#16a34a"],
-        [7,9,"#16a34a"],[8,9,"#22c55e"],[7,10,"#22c55e"],[8,10,"#16a34a"],
-        [7,11,"#16a34a"],[8,11,"#22c55e"],
-        [5,7,"#22c55e"],[6,7,"#16a34a"],[5,8,"#16a34a"],[6,8,"#22c55e"],
-        [5,6,"#22c55e"],
-        [9,8,"#16a34a"],[10,8,"#22c55e"],[9,9,"#22c55e"],[10,9,"#16a34a"],
-        [10,7,"#16a34a"],
-        [7,4,"#f87171"],[8,4,"#ef4444"],
-        [6,6,"#facc15"],[9,7,"#facc15"],[6,9,"#facc15"],[9,10,"#facc15"],
-        [5,12,"#a16207"],[6,12,"#a16207"],[7,12,"#a16207"],[8,12,"#a16207"],
-        [9,12,"#a16207"],[10,12,"#a16207"],
-        [6,13,"#92400e"],[7,13,"#92400e"],[8,13,"#92400e"],[9,13,"#92400e"],
-      ];
-    case "vine":
-      return [
-        [3,4,"#22c55e"],[4,5,"#16a34a"],[5,5,"#22c55e"],[6,6,"#16a34a"],
-        [7,6,"#22c55e"],[8,7,"#16a34a"],[9,7,"#22c55e"],[10,8,"#16a34a"],
-        [11,8,"#22c55e"],[12,9,"#16a34a"],
-        [4,7,"#16a34a"],[5,8,"#22c55e"],[6,8,"#16a34a"],[7,9,"#22c55e"],
-        [8,9,"#16a34a"],[9,10,"#22c55e"],[10,10,"#16a34a"],
-        [3,3,"#22c55e"],[2,4,"#16a34a"],[6,5,"#22c55e"],[7,5,"#16a34a"],
-        [10,7,"#22c55e"],[11,7,"#16a34a"],
-        [5,7,"#22c55e"],[4,8,"#16a34a"],[8,8,"#22c55e"],[9,9,"#16a34a"],
-        [3,2,"#c084fc"],[7,4,"#c084fc"],[11,6,"#c084fc"],[5,9,"#a855f7"],
-        [2,3,"#78350f"],[2,5,"#78350f"],[2,7,"#78350f"],[2,9,"#78350f"],
-        [2,11,"#78350f"],
-      ];
-    case "grass":
-      return [
-        [4,14,"#16a34a"],[4,13,"#22c55e"],[4,12,"#22c55e"],[3,11,"#22c55e"],
-        [6,14,"#22c55e"],[6,13,"#16a34a"],[6,12,"#22c55e"],[6,11,"#16a34a"],
-        [6,10,"#22c55e"],
-        [8,14,"#16a34a"],[8,13,"#22c55e"],[8,12,"#16a34a"],[8,11,"#22c55e"],
-        [8,10,"#16a34a"],[8,9,"#22c55e"],[9,8,"#22c55e"],
-        [10,14,"#22c55e"],[10,13,"#16a34a"],[10,12,"#22c55e"],[10,11,"#16a34a"],
-        [10,10,"#22c55e"],
-        [12,14,"#16a34a"],[12,13,"#22c55e"],[12,12,"#22c55e"],[13,11,"#22c55e"],
-        [5,13,"#15803d"],[7,12,"#15803d"],[9,13,"#15803d"],[11,12,"#15803d"],
-      ];
-    case "bulb":
-      return [
-        [6,13,"#a16207"],[7,13,"#92400e"],[8,13,"#a16207"],[9,13,"#92400e"],
-        [6,14,"#92400e"],[7,14,"#a16207"],[8,14,"#92400e"],[9,14,"#a16207"],
-        [5,15,"#78350f"],[7,15,"#78350f"],[10,15,"#78350f"],
-        [7,12,"#16a34a"],[8,12,"#16a34a"],[7,11,"#22c55e"],[8,11,"#22c55e"],
-        [7,10,"#22c55e"],
-        [6,10,"#22c55e"],[5,9,"#22c55e"],[9,10,"#16a34a"],[10,9,"#16a34a"],
-        [6,7,"#c084fc"],[7,7,"#a855f7"],[8,7,"#c084fc"],
-        [5,8,"#a855f7"],[6,8,"#c084fc"],[7,8,"#facc15"],[8,8,"#c084fc"],
-        [9,8,"#a855f7"],
-        [6,9,"#c084fc"],[7,9,"#a855f7"],[8,9,"#c084fc"],[7,6,"#c084fc"],
-      ];
-    case "vegetable":
-      return [
-        [6,5,"#22c55e"],[7,5,"#16a34a"],[8,5,"#22c55e"],[9,5,"#16a34a"],
-        [5,6,"#16a34a"],[6,6,"#22c55e"],[9,6,"#22c55e"],[10,6,"#16a34a"],
-        [7,6,"#16a34a"],[8,6,"#16a34a"],[7,7,"#16a34a"],[8,7,"#16a34a"],
-        [6,8,"#ef4444"],[7,8,"#f87171"],[8,8,"#ef4444"],[9,8,"#f87171"],
-        [5,9,"#ef4444"],[6,9,"#f87171"],[7,9,"#ef4444"],[8,9,"#f87171"],
-        [9,9,"#ef4444"],[10,9,"#f87171"],
-        [5,10,"#dc2626"],[6,10,"#ef4444"],[7,10,"#dc2626"],[8,10,"#ef4444"],
-        [9,10,"#dc2626"],[10,10,"#ef4444"],
-        [6,11,"#dc2626"],[7,11,"#ef4444"],[8,11,"#dc2626"],[9,11,"#ef4444"],
-        [7,12,"#dc2626"],[8,12,"#dc2626"],
-        [3,13,"#78350f"],[4,13,"#92400e"],[5,13,"#78350f"],[6,13,"#92400e"],
-        [7,13,"#78350f"],[8,13,"#92400e"],[9,13,"#78350f"],[10,13,"#92400e"],
-        [11,13,"#78350f"],[12,13,"#92400e"],
-      ];
-    case "fruit":
-      return [
-        [7,10,"#92400e"],[8,10,"#78350f"],[7,11,"#78350f"],[8,11,"#92400e"],
-        [7,12,"#92400e"],[8,12,"#78350f"],[7,13,"#78350f"],[8,13,"#92400e"],
-        [7,14,"#92400e"],[8,14,"#78350f"],
-        [5,4,"#22c55e"],[6,4,"#16a34a"],[7,4,"#22c55e"],[8,4,"#16a34a"],
-        [9,4,"#22c55e"],[10,4,"#16a34a"],
-        [4,5,"#16a34a"],[5,5,"#22c55e"],[6,5,"#15803d"],[7,5,"#22c55e"],
-        [8,5,"#15803d"],[9,5,"#22c55e"],[10,5,"#15803d"],[11,5,"#16a34a"],
-        [4,6,"#15803d"],[5,6,"#16a34a"],[6,6,"#15803d"],[7,6,"#16a34a"],
-        [8,6,"#15803d"],[9,6,"#16a34a"],[10,6,"#15803d"],[11,6,"#16a34a"],
-        [4,7,"#16a34a"],[5,7,"#15803d"],[6,7,"#16a34a"],[7,7,"#15803d"],
-        [8,7,"#16a34a"],[9,7,"#15803d"],[10,7,"#16a34a"],[11,7,"#15803d"],
-        [5,8,"#166534"],[6,8,"#15803d"],[7,8,"#166534"],[8,8,"#15803d"],
-        [9,8,"#166534"],[10,8,"#15803d"],
-        [6,9,"#166534"],[7,9,"#15803d"],[8,9,"#166534"],[9,9,"#15803d"],
-        [5,6,"#ef4444"],[9,5,"#ef4444"],[7,7,"#ef4444"],[10,7,"#ef4444"],
-      ];
-    default:
-      return [
-        [7,10,"#22c55e"],[8,10,"#22c55e"],[7,11,"#16a34a"],[8,11,"#16a34a"],
-        [7,12,"#15803d"],[8,12,"#15803d"],
-      ];
-  }
-}
-
-// ---- Texture cache ----
-
+const PLANT_SPRITE_BASE = "/sprites/plants/";
 const textureCache = new Map<string, Texture>();
 
-function cacheKey(type: PlantType, mood: PlantMood): string {
-  return `${type}:${mood}`;
-}
+// Mood tints as hex numbers for PixiJS tint property (multiplicative)
+const MOOD_TINT_COLORS: Record<string, number> = {
+  happy: 0xffffff,
+  new: 0xeeffee, // slight green glow
+  thirsty: 0xccbbaa, // desaturated/dusty
+  cold: 0xaabbdd, // blue shift
+  hot: 0xddbb88, // warm/amber
+  wilting: 0x998866, // brown/dull
+  sleeping: 0x667755, // dark/muted
+};
 
-/**
- * Render plant pixels to an offscreen canvas and create a PixiJS Texture.
- */
-export function getPlantTexture(plantType: string | null | undefined, mood: PlantMood): Texture {
-  const resolved = getSpriteType(plantType);
-  const key = cacheKey(resolved, mood);
-
-  if (textureCache.has(key)) {
-    return textureCache.get(key)!;
-  }
-
-  const pixels = getPlantPixels(resolved);
-  const canvas = document.createElement("canvas");
-  canvas.width = SPRITE_SIZE;
-  canvas.height = SPRITE_SIZE;
-  const ctx = canvas.getContext("2d")!;
-
-  // Apply mood opacity
-  const opacity = mood === "sleeping" ? 0.6 : 1;
-
-  for (const [x, y, color] of pixels) {
-    const tinted = applyMoodTint(color, mood);
-    ctx.globalAlpha = opacity;
-    ctx.fillStyle = tinted;
-    ctx.fillRect(x, y, 1, 1);
-  }
-
-  // Add mood overlays
-  ctx.globalAlpha = 1;
-  if (mood === "happy") {
-    ctx.fillStyle = "#facc15";
-    ctx.fillRect(12, 3, 1, 1);
-    ctx.fillRect(13, 2, 1, 1);
-    ctx.fillRect(14, 4, 1, 1);
-  } else if (mood === "new") {
-    ctx.fillStyle = "#34d399";
-    ctx.fillRect(12, 2, 1, 1);
-    ctx.fillRect(2, 3, 1, 1);
-    ctx.fillStyle = "#6ee7b7";
-    ctx.fillRect(13, 4, 1, 1);
-    ctx.fillRect(1, 5, 1, 1);
-  } else if (mood === "thirsty") {
-    ctx.fillStyle = "#60a5fa";
-    ctx.fillRect(12, 8, 1, 1);
-    ctx.fillRect(12, 9, 1, 1);
-    ctx.fillStyle = "#93c5fd";
-    ctx.fillRect(13, 10, 1, 1);
-  } else if (mood === "hot") {
-    ctx.globalAlpha = 0.6;
-    ctx.fillStyle = "#f97316";
-    ctx.fillRect(13, 4, 1, 1);
-    ctx.fillRect(13, 5, 1, 1);
-    ctx.fillRect(1, 5, 1, 1);
-    ctx.fillRect(1, 6, 1, 1);
-    ctx.globalAlpha = 0.5;
-    ctx.fillStyle = "#fb923c";
-    ctx.fillRect(14, 5, 1, 1);
-  }
-
-  const texture = Texture.from(canvas);
+async function loadPlantTexture(type: string): Promise<Texture> {
+  const key = `plant:${type}`;
+  if (textureCache.has(key)) return textureCache.get(key)!;
+  const texture = await Assets.load(`${PLANT_SPRITE_BASE}${type}.png`);
+  texture.source.scaleMode = "nearest"; // pixelated scaling
   textureCache.set(key, texture);
   return texture;
 }
 
 /**
- * Pre-generate textures for all type+mood combos used by a plant list.
+ * Create a plant sprite from a PNG texture with mood tint applied.
+ * This is async because it may need to load the texture from disk.
+ * Returns a Sprite (not a Container like the old createPlantGraphics).
  */
-export function preloadPlantTextures(
-  plants: Array<{ plantType: string | null | undefined; mood: PlantMood }>,
-): void {
-  for (const { plantType, mood } of plants) {
-    getPlantTexture(plantType, mood);
-  }
+export async function createPlantSprite(
+  plantType: string | null | undefined,
+  mood: PlantMood,
+): Promise<Sprite> {
+  const resolved = getSpriteType(plantType);
+  const texture = await loadPlantTexture(resolved);
+  const sprite = new Sprite(texture);
+  sprite.tint = MOOD_TINT_COLORS[mood] ?? 0xffffff;
+  if (mood === "sleeping") sprite.alpha = 0.6;
+  return sprite;
+}
+
+/**
+ * Pre-load PNG textures for all plant types in a list.
+ * Call this before rendering to avoid per-sprite async delays.
+ */
+export async function preloadPlantTextures(
+  plants: Array<{ plantType: string | null | undefined }>,
+): Promise<void> {
+  const types = new Set(plants.map((p) => getSpriteType(p.plantType)));
+  await Promise.all([...types].map((t) => loadPlantTexture(t)));
 }
 
 /**
@@ -339,57 +66,4 @@ export function clearTextureCache(): void {
     texture.destroy(true);
   }
   textureCache.clear();
-}
-
-// ---- Graphics-based plant sprite (bypasses canvas→WebGL texture issues) ----
-
-function hexToInt(hex: string): number {
-  return parseInt(hex.replace("#", ""), 16);
-}
-
-/**
- * Create a plant sprite as a PixiJS Container with Graphics-drawn pixels.
- * This bypasses the canvas→WebGL texture pipeline which has premultiplied alpha issues.
- * Returns a Container sized at SPRITE_SIZE x SPRITE_SIZE (16x16).
- */
-export function createPlantGraphics(
-  plantType: string | null | undefined,
-  mood: PlantMood,
-): Container {
-  const resolved = getSpriteType(plantType);
-  const pixels = getPlantPixels(resolved);
-  const opacity = mood === "sleeping" ? 0.6 : 1;
-
-  const container = new Container();
-  const g = new Graphics();
-
-  for (const [x, y, color] of pixels) {
-    const tinted = applyMoodTint(color, mood);
-    g.rect(x, y, 1, 1).fill({ color: hexToInt(tinted), alpha: opacity });
-  }
-
-  // Mood overlays
-  if (mood === "happy") {
-    g.rect(12, 3, 1, 1).fill(0xfacc15);
-    g.rect(13, 2, 1, 1).fill(0xfacc15);
-    g.rect(14, 4, 1, 1).fill(0xfacc15);
-  } else if (mood === "new") {
-    g.rect(12, 2, 1, 1).fill(0x34d399);
-    g.rect(2, 3, 1, 1).fill(0x34d399);
-    g.rect(13, 4, 1, 1).fill(0x6ee7b7);
-    g.rect(1, 5, 1, 1).fill(0x6ee7b7);
-  } else if (mood === "thirsty") {
-    g.rect(12, 8, 1, 1).fill(0x60a5fa);
-    g.rect(12, 9, 1, 1).fill(0x60a5fa);
-    g.rect(13, 10, 1, 1).fill(0x93c5fd);
-  } else if (mood === "hot") {
-    g.rect(13, 4, 1, 1).fill({ color: 0xf97316, alpha: 0.6 });
-    g.rect(13, 5, 1, 1).fill({ color: 0xf97316, alpha: 0.6 });
-    g.rect(1, 5, 1, 1).fill({ color: 0xf97316, alpha: 0.6 });
-    g.rect(1, 6, 1, 1).fill({ color: 0xf97316, alpha: 0.6 });
-    g.rect(14, 5, 1, 1).fill({ color: 0xfb923c, alpha: 0.5 });
-  }
-
-  container.addChild(g);
-  return container;
 }

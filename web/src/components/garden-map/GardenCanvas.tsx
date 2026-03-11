@@ -19,7 +19,7 @@ import { Viewport } from "pixi-viewport";
 import type { Location, Structure, Zone, PlantInstance, Weather, SunData } from "../../api";
 import { generateMap, calculatePlantPositions, type PlantLayout } from "./map-generator";
 import { TILE_SIZE, generateTilePattern, renderTileToCanvas, TileType } from "./tiles";
-import { clearTextureCache, createPlantGraphics } from "./sprite-textures";
+import { clearTextureCache, createPlantSprite, preloadPlantTextures } from "./sprite-textures";
 import { ParticleEmitter, getMoodParticleType, getMoodParticleRate } from "./particles";
 import { generateHouseTexture, clearHouseTextureCache } from "./house-sprite";
 import { WeatherEffectSystem } from "./weather-effects";
@@ -43,8 +43,8 @@ export interface GardenCanvasHandle {
   fitView: () => void;
 }
 
-// Sprite scale relative to tiles (how big plants appear)
-const PLANT_SPRITE_SCALE = 2.5;
+// Sprite scale relative to tiles (32px PNGs × 1.25 = 40px in-world)
+const PLANT_SPRITE_SCALE = 1.25;
 
 // Animation state per plant
 interface PlantAnim {
@@ -404,52 +404,57 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
     const particleEmitters: ParticleEmitter[] = [];
     const zoneRotations: ZoneRotation[] = [];
 
-    /** Create and add a single plant graphic at a position */
-    function addPlantAtPosition(
+    // Preload all plant textures so createPlantSprite hits cache (effectively sync)
+    await preloadPlantTextures(
+      plants.map((p) => ({ plantType: p.plantReference?.plantType })),
+    );
+
+    /** Create and add a single plant sprite at a position */
+    async function addPlantAtPosition(
       plant: PlantInstance,
       pos: { x: number; y: number },
       parent: Container,
-    ): Container {
-      const plantGfx = createPlantGraphics(
+    ): Promise<Sprite> {
+      const plantSprite = await createPlantSprite(
         plant.plantReference?.plantType,
         plant.mood as PlantMood,
       );
 
-      plantGfx.label = "plant-sprite";
-      plantGfx.scale.set(PLANT_SPRITE_SCALE, PLANT_SPRITE_SCALE);
-      // Center horizontally, anchor at bottom of sprite
-      plantGfx.x = pos.x - (8 * PLANT_SPRITE_SCALE);
-      plantGfx.y = pos.y - (16 * PLANT_SPRITE_SCALE);
+      plantSprite.label = "plant-sprite";
+      plantSprite.scale.set(PLANT_SPRITE_SCALE, PLANT_SPRITE_SCALE);
+      // Center horizontally, anchor at bottom of sprite (32px base)
+      plantSprite.x = pos.x - (16 * PLANT_SPRITE_SCALE);
+      plantSprite.y = pos.y - (32 * PLANT_SPRITE_SCALE);
 
       // Register hit area for manual click detection via viewport clicked event
-      const spriteW = 16 * PLANT_SPRITE_SCALE;
-      const spriteH = 16 * PLANT_SPRITE_SCALE;
+      const spriteW = 32 * PLANT_SPRITE_SCALE;
+      const spriteH = 32 * PLANT_SPRITE_SCALE;
       plantHitAreasRef.current.push({
         plant,
-        x: plantGfx.x,
-        y: plantGfx.y,
+        x: plantSprite.x,
+        y: plantSprite.y,
         w: spriteW,
         h: spriteH,
       });
 
       // Planned plants are slightly translucent
       if (plant.status === "planned") {
-        plantGfx.alpha = 0.75;
+        plantSprite.alpha = 0.75;
       } else if (plant.mood === "sleeping") {
-        plantGfx.alpha = 0.7;
+        plantSprite.alpha = 0.7;
       }
 
-      parent.addChild(plantGfx);
+      parent.addChild(plantSprite);
 
       plantAnims.push({
-        sprite: plantGfx as unknown as Sprite,
+        sprite: plantSprite,
         plant,
-        baseX: plantGfx.x,
-        baseY: plantGfx.y,
+        baseX: plantSprite.x,
+        baseY: plantSprite.y,
         phase: Math.random() * Math.PI * 2,
       });
 
-      return plantGfx;
+      return plantSprite;
     }
 
     for (const zone of zones) {
@@ -461,11 +466,12 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
 
       if (totalPlants <= maxSlots) {
         // All plants fit — just place them
-        zonePlants.forEach((plant, i) => {
+        for (let i = 0; i < zonePlants.length; i++) {
+          const plant = zonePlants[i]!;
           const pos = positions[i];
-          if (!pos) return;
-          addPlantAtPosition(plant, pos, plantContainer);
-        });
+          if (!pos) continue;
+          await addPlantAtPosition(plant, pos, plantContainer);
+        }
       } else {
         // Too many plants for this zone — set up rotation
         const zoneContainer = new Container();
@@ -473,11 +479,12 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
 
         // Show first batch
         const visibleSlice = zonePlants.slice(0, maxSlots);
-        visibleSlice.forEach((plant, i) => {
+        for (let i = 0; i < visibleSlice.length; i++) {
+          const plant = visibleSlice[i]!;
           const pos = positions[i];
-          if (!pos) return;
-          addPlantAtPosition(plant, pos, zoneContainer);
-        });
+          if (!pos) continue;
+          await addPlantAtPosition(plant, pos, zoneContainer);
+        }
 
         plantContainer.addChild(zoneContainer);
 
@@ -603,58 +610,64 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
             (a) => a.plant.zoneId !== rot.zoneId,
           );
 
-          // Add new batch
+          // Add new batch (async — textures are preloaded so this resolves quickly)
           const start = rot.currentOffset;
+          const rotatePromises: Promise<void>[] = [];
           for (let i = 0; i < rot.maxSlots && i < rot.allPlants.length; i++) {
             const plantIdx = (start + i) % rot.allPlants.length;
             const plant = rot.allPlants[plantIdx]!;
             const pos = rot.positions[i];
             if (!pos) continue;
 
-            const plantGfx = createPlantGraphics(
-              plant.plantReference?.plantType,
-              plant.mood as PlantMood,
-            );
-            plantGfx.label = "plant-sprite";
-            plantGfx.scale.set(PLANT_SPRITE_SCALE, PLANT_SPRITE_SCALE);
-            plantGfx.x = pos.x - (8 * PLANT_SPRITE_SCALE);
-            plantGfx.y = pos.y - (16 * PLANT_SPRITE_SCALE);
+            rotatePromises.push(
+              createPlantSprite(
+                plant.plantReference?.plantType,
+                plant.mood as PlantMood,
+              ).then((plantSprite) => {
+                plantSprite.label = "plant-sprite";
+                plantSprite.scale.set(PLANT_SPRITE_SCALE, PLANT_SPRITE_SCALE);
+                plantSprite.x = pos.x - (16 * PLANT_SPRITE_SCALE);
+                plantSprite.y = pos.y - (32 * PLANT_SPRITE_SCALE);
 
-            // Register for manual hit testing (replaces old entries for this zone)
-            const sw = 16 * PLANT_SPRITE_SCALE;
-            const sh = 16 * PLANT_SPRITE_SCALE;
-            plantHitAreasRef.current.push({
-              plant,
-              x: plantGfx.x,
-              y: plantGfx.y,
-              w: sw,
-              h: sh,
-            });
+                // Register for manual hit testing
+                const sw = 32 * PLANT_SPRITE_SCALE;
+                const sh = 32 * PLANT_SPRITE_SCALE;
+                plantHitAreasRef.current.push({
+                  plant,
+                  x: plantSprite.x,
+                  y: plantSprite.y,
+                  w: sw,
+                  h: sh,
+                });
 
-            if (plant.status === "planned") plantGfx.alpha = 0.75;
-            else if (plant.mood === "sleeping") plantGfx.alpha = 0.7;
+                if (plant.status === "planned") plantSprite.alpha = 0.75;
+                else if (plant.mood === "sleeping") plantSprite.alpha = 0.7;
 
-            // Fade in
-            plantGfx.alpha = Math.min(plantGfx.alpha, 0);
-            const targetAlpha = plant.status === "planned" ? 0.75 : plant.mood === "sleeping" ? 0.7 : 1;
-            const fadeIn = () => {
-              if (plantGfx.alpha < targetAlpha) {
-                plantGfx.alpha = Math.min(plantGfx.alpha + 0.05, targetAlpha);
+                // Fade in
+                plantSprite.alpha = 0;
+                const targetAlpha = plant.status === "planned" ? 0.75 : plant.mood === "sleeping" ? 0.7 : 1;
+                const fadeIn = () => {
+                  if (plantSprite.alpha < targetAlpha) {
+                    plantSprite.alpha = Math.min(plantSprite.alpha + 0.05, targetAlpha);
+                    requestAnimationFrame(fadeIn);
+                  }
+                };
                 requestAnimationFrame(fadeIn);
-              }
-            };
-            requestAnimationFrame(fadeIn);
 
-            rot.container.addChild(plantGfx);
+                rot.container.addChild(plantSprite);
 
-            animsRef.current.push({
-              sprite: plantGfx as unknown as Sprite,
-              plant,
-              baseX: plantGfx.x,
-              baseY: plantGfx.y,
-              phase: Math.random() * Math.PI * 2,
-            });
+                animsRef.current.push({
+                  sprite: plantSprite,
+                  plant,
+                  baseX: plantSprite.x,
+                  baseY: plantSprite.y,
+                  phase: Math.random() * Math.PI * 2,
+                });
+              }),
+            );
           }
+          // Fire and forget — textures are cached so this resolves near-instantly
+          Promise.all(rotatePromises);
         }
       }
 

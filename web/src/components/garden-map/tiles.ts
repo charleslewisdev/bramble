@@ -502,3 +502,193 @@ export function renderTileToCanvas(pixels: string[]): HTMLCanvasElement {
 
   return canvas;
 }
+
+// ---------------------------------------------------------------------------
+// Wang tileset PNG loading — adds sprite-based tile support alongside
+// the procedural system above. Only a subset of TileTypes have Wang
+// tilesets; everything else keeps using generateTilePattern.
+// ---------------------------------------------------------------------------
+
+/** Corner terrain value in a Wang tile */
+export type WangTerrain = "upper" | "lower";
+
+/** The four corner values that identify a single Wang tile */
+export interface WangCorners {
+  NE: WangTerrain;
+  NW: WangTerrain;
+  SE: WangTerrain;
+  SW: WangTerrain;
+}
+
+/** Bounding box within the spritesheet PNG */
+interface WangBoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** A single tile entry from the tileset JSON metadata */
+interface WangTileEntry {
+  id: string;
+  name: string;
+  corners: WangCorners;
+  bounding_box: WangBoundingBox;
+}
+
+/** Raw JSON metadata shape (subset of fields we care about) */
+interface WangTilesetJSON {
+  id: string;
+  name: string;
+  tile_size: { width: number; height: number };
+  tileset_data: {
+    tiles: WangTileEntry[];
+    tile_size: { width: number; height: number };
+    total_tiles: number;
+    terrain_types: string[];
+  };
+}
+
+/** A fully loaded Wang tileset ready for tile extraction */
+export interface LoadedWangTileset {
+  name: string;
+  image: HTMLImageElement;
+  tiles: WangTileEntry[];
+  tileSize: { width: number; height: number };
+}
+
+// ---- Cache ----------------------------------------------------------------
+
+const tilesetCache = new Map<string, Promise<LoadedWangTileset>>();
+const tileCanvasCache = new Map<string, HTMLCanvasElement>();
+
+// ---- Tileset-to-TileType mapping ------------------------------------------
+
+/** Map existing TileType values to available Wang tilesets */
+export const WANG_TILESET_MAP: Partial<Record<TileType, string>> = {
+  [TileType.SOIL]: "grass-dirt",
+  [TileType.SOIL_TILLED]: "grass-dirt",
+  [TileType.SOIL_MULCH]: "grass-dirt",
+  [TileType.PATH_STONE]: "grass-cobble",
+  [TileType.STONE_PAVER]: "grass-cobble",
+  [TileType.STONE_PAVER_LIGHT]: "grass-cobble",
+  [TileType.PATH_GRAVEL]: "grass-gravel",
+  [TileType.PATH_DIRT]: "grass-gravel",
+};
+
+// ---- Loading --------------------------------------------------------------
+
+/**
+ * Load a Wang tileset by name. Fetches the JSON metadata and PNG spritesheet
+ * from `/sprites/tiles/<name>.json` and `/sprites/tiles/<name>.png`.
+ * Results are cached — subsequent calls with the same name return the same
+ * promise.
+ */
+export function loadWangTileset(name: string): Promise<LoadedWangTileset> {
+  const cached = tilesetCache.get(name);
+  if (cached) return cached;
+
+  const promise = (async (): Promise<LoadedWangTileset> => {
+    const basePath = `/sprites/tiles/${name}`;
+
+    // Fetch JSON metadata
+    const response = await fetch(`${basePath}.json`);
+    if (!response.ok) {
+      throw new Error(`Failed to load Wang tileset metadata: ${basePath}.json (${response.status})`);
+    }
+    const json: WangTilesetJSON = await response.json();
+
+    // Load PNG spritesheet
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error(`Failed to load Wang tileset image: ${basePath}.png`));
+      img.src = `${basePath}.png`;
+    });
+
+    return {
+      name,
+      image,
+      tiles: json.tileset_data.tiles,
+      tileSize: json.tileset_data.tile_size,
+    };
+  })();
+
+  tilesetCache.set(name, promise);
+  return promise;
+}
+
+// ---- Tile extraction ------------------------------------------------------
+
+/**
+ * Build a cache key from a tileset name and corner configuration.
+ */
+function wangCacheKey(tilesetName: string, corners: WangCorners): string {
+  return `${tilesetName}:${corners.NW}${corners.NE}${corners.SW}${corners.SE}`;
+}
+
+/**
+ * Find a tile entry in the tileset whose corners match the requested
+ * configuration. Returns undefined if no match is found.
+ */
+function findWangTile(tileset: LoadedWangTileset, corners: WangCorners): WangTileEntry | undefined {
+  return tileset.tiles.find(
+    (t) =>
+      t.corners.NE === corners.NE &&
+      t.corners.NW === corners.NW &&
+      t.corners.SE === corners.SE &&
+      t.corners.SW === corners.SW,
+  );
+}
+
+/**
+ * Extract a single 16x16 tile from a loaded Wang tileset spritesheet and
+ * return it as an HTMLCanvasElement. Results are cached per tileset + corner
+ * combination.
+ *
+ * For the initial implementation only two canonical corner configs are
+ * expected:
+ *   - All "upper" corners → interior zone tile (the non-grass terrain)
+ *   - All "lower" corners → pure grass
+ *
+ * Full neighbor-aware autotiling (all 16 corner combos) is a follow-up.
+ */
+export function getWangTileCanvas(
+  tileset: LoadedWangTileset,
+  corners: WangCorners,
+): HTMLCanvasElement {
+  const key = wangCacheKey(tileset.name, corners);
+  const cached = tileCanvasCache.get(key);
+  if (cached) return cached;
+
+  const entry = findWangTile(tileset, corners);
+  if (!entry) {
+    // Fallback: return a transparent canvas if no matching tile found
+    const fallback = document.createElement("canvas");
+    fallback.width = TILE_SIZE;
+    fallback.height = TILE_SIZE;
+    tileCanvasCache.set(key, fallback);
+    return fallback;
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = TILE_SIZE;
+  canvas.height = TILE_SIZE;
+  const ctx = canvas.getContext("2d")!;
+
+  // Extract the tile region from the spritesheet
+  ctx.drawImage(
+    tileset.image,
+    entry.bounding_box.x,
+    entry.bounding_box.y,
+    entry.bounding_box.width,
+    entry.bounding_box.height,
+    0,
+    0,
+    TILE_SIZE,
+    TILE_SIZE,
+  );
+
+  tileCanvasCache.set(key, canvas);
+  return canvas;
+}
