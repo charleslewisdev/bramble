@@ -8,12 +8,12 @@ COPY server/package.json server/
 COPY web/package.json web/
 RUN pnpm install --frozen-lockfile 2>/dev/null || pnpm install
 
+# Copy server source (needed by web for shared types import)
+COPY server/ server/
+
 # Build web
 COPY web/ web/
 RUN pnpm --filter web build
-
-# Build server
-COPY server/ server/
 RUN pnpm --filter server build
 
 # Production stage
