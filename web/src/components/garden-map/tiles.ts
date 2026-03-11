@@ -47,16 +47,16 @@ export enum TileType {
 
 // Warm, Stardew Valley-inspired color palette
 const COLORS = {
-  // Grass — rich greens with yellow-green highlights
-  grass1: "#3a7d2a",
-  grass2: "#4a9535",
-  grass3: "#2d6b1e",
-  grassHighlight: "#5aad45",
+  // Grass — matched to PixelLab Wang tileset grass palette
+  grass1: "#50c009",
+  grass2: "#61c717",
+  grass3: "#45a805",
+  grassHighlight: "#70d025",
   grassFlower1: "#e8c744",
   grassFlower2: "#d4a0d0",
   grassFlower3: "#7ec8e3",
-  cloverBase: "#48a838",
-  cloverLight: "#5cb84a",
+  cloverBase: "#55b810",
+  cloverLight: "#65c520",
   cloverSpotWhite: "#e8e8d0",
   cloverSpotYellow: "#d8d060",
 
@@ -88,13 +88,13 @@ const COLORS = {
   // Paths — earthy tones
   pathDirt1: "#a09080",
   pathDirt2: "#8a7868",
-  pathDirtEdge: "#6a8a4a",
+  pathDirtEdge: "#55b810",
   pathGravel1: "#9a9088",
   pathGravel2: "#8a8078",
   pathGravel3: "#7a7068",
   pathStone1: "#8a8278",
   pathStone2: "#7a7268",
-  pathStoneGap: "#5a6a3a",
+  pathStoneGap: "#45a805",
 
   // Sidewalk
   sidewalk1: "#b0a89a",
