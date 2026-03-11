@@ -8,7 +8,7 @@ import {
   zones,
   weatherCache,
 } from "../db/schema.js";
-import { eq, like, or, and, desc, inArray } from "drizzle-orm";
+import { eq, like, or, and, desc, inArray, sql, count } from "drizzle-orm";
 import {
   searchPerenualPlants,
   getPerenualPlantDetail,
@@ -18,7 +18,7 @@ import {
 import { z } from "zod";
 import { generateDefaultCareTasks } from "../services/care-tasks.js";
 import { calculatePlantMood } from "../services/mood.js";
-import { idParamSchema } from "../lib/validation.js";
+import { idParamSchema, parsePagination, paginatedResult } from "../lib/validation.js";
 
 const plantTypeEnum = z.enum([
   "flower", "shrub", "tree", "herb", "grass", "fern", "succulent",
@@ -133,28 +133,40 @@ const perenualCounter = {
 export async function plantRoutes(app: FastifyInstance) {
   // ─── Plant References (encyclopedia) ────────────────────────────────────────
 
-  // GET /references - search/list plant references
-  app.get<{ Querystring: { search?: string } }>(
+  // GET /references - search/list plant references (supports ?page=&limit= pagination)
+  app.get<{ Querystring: { search?: string; page?: string; limit?: string } }>(
     "/references",
     async (request) => {
       const { search } = request.query;
+      const pagination = parsePagination(request.query);
 
-      if (search) {
-        const pattern = `%${search}%`;
-        return db
+      const condition = search
+        ? or(
+            like(plantReferences.commonName, `%${search}%`),
+            like(plantReferences.latinName, `%${search}%`),
+            like(plantReferences.cultivar, `%${search}%`),
+          )
+        : undefined;
+
+      if (pagination) {
+        const [{ total }] = db
+          .select({ total: count() })
+          .from(plantReferences)
+          .where(condition)
+          .all() as [{ total: number }];
+
+        const data = db
           .select()
           .from(plantReferences)
-          .where(
-            or(
-              like(plantReferences.commonName, pattern),
-              like(plantReferences.latinName, pattern),
-              like(plantReferences.cultivar, pattern),
-            ),
-          )
+          .where(condition)
+          .limit(pagination.limit)
+          .offset(pagination.offset)
           .all();
+
+        return paginatedResult(data, total, pagination.page, pagination.limit);
       }
 
-      return db.select().from(plantReferences).all();
+      return db.select().from(plantReferences).where(condition).all();
     },
   );
 
@@ -364,25 +376,32 @@ export async function plantRoutes(app: FastifyInstance) {
 
   // ─── Plant Instances (user's actual plants) ──────────────────────────────────
 
-  // GET /instances - list all instances
-  app.get<{ Querystring: { zoneId?: string; locationId?: string } }>(
+  // GET /instances - list all instances (supports ?page=&limit= pagination)
+  app.get<{ Querystring: { zoneId?: string; locationId?: string; page?: string; limit?: string } }>(
     "/instances",
     async (request) => {
       const { zoneId, locationId } = request.query;
+      const pagination = parsePagination(request.query);
 
       if (zoneId) {
         const zoneIdNum = Number(zoneId);
-        if (isNaN(zoneIdNum)) return [];
-        return db.query.plantInstances.findMany({
+        if (isNaN(zoneIdNum)) return pagination ? paginatedResult([], 0, 1, 50) : [];
+        const results = await db.query.plantInstances.findMany({
           where: eq(plantInstances.zoneId, zoneIdNum),
           with: { plantReference: true },
+          ...(pagination && { limit: pagination.limit, offset: pagination.offset }),
         });
+        if (pagination) {
+          const [{ total }] = db.select({ total: count() }).from(plantInstances)
+            .where(eq(plantInstances.zoneId, zoneIdNum)).all() as [{ total: number }];
+          return paginatedResult(results, total, pagination.page, pagination.limit);
+        }
+        return results;
       }
 
       if (locationId) {
         const locationIdNum = Number(locationId);
-        if (isNaN(locationIdNum)) return [];
-        // Get zone IDs for this location
+        if (isNaN(locationIdNum)) return pagination ? paginatedResult([], 0, 1, 50) : [];
         const locationZones = db
           .select({ id: zones.id })
           .from(zones)
@@ -390,18 +409,30 @@ export async function plantRoutes(app: FastifyInstance) {
           .all();
 
         const zoneIds = locationZones.map((z) => z.id);
-        if (zoneIds.length === 0) return [];
+        if (zoneIds.length === 0) return pagination ? paginatedResult([], 0, 1, 50) : [];
 
-        // Fetch all instances in one query using inArray
-        return db.query.plantInstances.findMany({
+        const results = await db.query.plantInstances.findMany({
           where: inArray(plantInstances.zoneId, zoneIds),
           with: { plantReference: true, zone: true },
+          ...(pagination && { limit: pagination.limit, offset: pagination.offset }),
         });
+        if (pagination) {
+          const [{ total }] = db.select({ total: count() }).from(plantInstances)
+            .where(inArray(plantInstances.zoneId, zoneIds)).all() as [{ total: number }];
+          return paginatedResult(results, total, pagination.page, pagination.limit);
+        }
+        return results;
       }
 
-      return db.query.plantInstances.findMany({
+      const results = await db.query.plantInstances.findMany({
         with: { plantReference: true },
+        ...(pagination && { limit: pagination.limit, offset: pagination.offset }),
       });
+      if (pagination) {
+        const [{ total }] = db.select({ total: count() }).from(plantInstances).all() as [{ total: number }];
+        return paginatedResult(results, total, pagination.page, pagination.limit);
+      }
+      return results;
     },
   );
 

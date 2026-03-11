@@ -30,7 +30,7 @@ import {
   usePlantSearch,
   useImportPlant,
 } from "../api/hooks";
-import type { PlantType, SafetyLevel } from "../api";
+import type { PlantType, SafetyLevel, PlantReference } from "../api";
 
 const plantTypes: PlantType[] = [
   "flower",
@@ -519,9 +519,9 @@ function CreatePlantModal({
         commonName: commonName.trim(),
         latinName: latinName.trim() || null,
         cultivar: cultivar.trim() || null,
-        plantType,
-        sunRequirement: sunRequirement || null,
-        waterNeeds: waterNeeds || null,
+        plantType: plantType as PlantReference["plantType"],
+        sunRequirement: (sunRequirement || null) as PlantReference["sunRequirement"],
+        waterNeeds: (waterNeeds || null) as PlantReference["waterNeeds"],
         hardinessZoneMin: hardinessZoneMin ? Number(hardinessZoneMin) : null,
         hardinessZoneMax: hardinessZoneMax ? Number(hardinessZoneMax) : null,
         description: description.trim() || null,

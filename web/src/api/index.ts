@@ -44,82 +44,53 @@ function del<T = void>(path: string, body?: unknown): Promise<T> {
   });
 }
 
-// ---------- Types ----------
+// ---------- Types (shared from Drizzle schema) ----------
 
-export interface Location {
-  id: number;
-  name: string;
-  address?: string | null;
-  latitude: number;
-  longitude: number;
-  timezone: string;
-  hardinessZone?: string | null;
-  lastFrostDate?: string | null;
-  firstFrostDate?: string | null;
-  lotBoundary?: { x: number; y: number }[] | null;
-  lotWidth?: number | null;
-  lotDepth?: number | null;
-  compassOrientation?: number | null; // degrees from north
-  sidewalks?: { edge: "north" | "east" | "south" | "west"; width: number; inset: number }[] | null;
-  createdAt: string;
-  updatedAt: string;
+export type {
+  Location,
+  Structure,
+  Zone,
+  PlantReference,
+  PlantPhoto,
+  CareTaskLog,
+  PlantType,
+  SpriteType,
+  PlantStatus,
+  PlantMood,
+  CareTaskType,
+  SafetyLevel,
+  PlantInstanceWithRelations as PlantInstance,
+  CareTaskWithRelations as CareTask,
+} from "server/types";
+
+export type {
+  NotificationChannel,
+  NotificationPreference,
+  WeatherCacheEntry as Weather,
+  ShoppingListItem,
+} from "server/types";
+
+import type { PlantType, SpriteType } from "server/types";
+import type { ShoppingListItem } from "server/types";
+import type {
+  Location,
+  Structure,
+  Zone,
+  PlantReference,
+  PlantPhoto,
+  CareTaskLog,
+  PlantInstanceWithRelations as PlantInstance,
+  CareTaskWithRelations as CareTask,
+  NotificationChannel,
+  NotificationPreference,
+  WeatherCacheEntry as Weather,
+  PlantStatus,
+} from "server/types";
+
+/** Shopping item with optional joined plant reference */
+export interface ShoppingItem extends ShoppingListItem {
+  plantReference?: PlantReference;
 }
-
-export interface Structure {
-  id: number;
-  locationId: number;
-  name: string;
-  posX: number;
-  posY: number;
-  width: number;
-  depth: number;
-  height: number;
-  stories: number;
-  roofType: "flat" | "gable" | "hip" | "shed" | "gambrel" | "pergola" | "gazebo" | "open" | "canopy";
-  createdAt: string;
-}
-
-export interface Zone {
-  id: number;
-  locationId: number;
-  name: string;
-  description?: string | null;
-  posX: number;
-  posY: number;
-  width: number;
-  depth: number;
-  sunExposure?: string | null;
-  soilType?: string | null;
-  moistureLevel?: string | null;
-  windExposure?: string | null;
-  isIndoor: boolean;
-  zoneType?: string | null;
-  climbingStructure?: string | null;
-  hasPatio: boolean;
-  notes?: string | null;
-  color?: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type PlantType =
-  | "flower"
-  | "shrub"
-  | "tree"
-  | "herb"
-  | "fern"
-  | "succulent"
-  | "cactus"
-  | "vine"
-  | "grass"
-  | "bulb"
-  | "vegetable"
-  | "fruit"
-  | "houseplant"
-  | "groundcover"
-  | "aquatic";
-
-export type SpriteType = PlantType;
 
 /** Map plant types that lack dedicated sprites to a fallback sprite type */
 export function getSpriteType(plantType: string | null | undefined): PlantType {
@@ -152,191 +123,6 @@ export function getInstanceSpriteType(
   if (instance.spriteOverride) return instance.spriteOverride as PlantType;
   if (reference?.spriteType) return reference.spriteType as PlantType;
   return getSpriteType(reference?.plantType);
-}
-
-export type SafetyLevel = "safe" | "caution" | "toxic" | "highly_toxic";
-
-export interface PlantReference {
-  id: number;
-  commonName: string;
-  latinName?: string | null;
-  cultivar?: string | null;
-  family?: string | null;
-  plantType?: string | null;
-  sunRequirement?: string | null;
-  waterNeeds?: string | null;
-  soilPreference?: string | null;
-  hardinessZoneMin?: number | null;
-  hardinessZoneMax?: number | null;
-  matureHeight?: string | null;
-  matureSpread?: string | null;
-  growthRate?: string | null;
-  bloomTime?: string | null;
-  bloomColor?: string | null;
-  foliageType?: string | null;
-  toxicityDogs?: SafetyLevel | null;
-  toxicityCats?: SafetyLevel | null;
-  toxicityChildren?: SafetyLevel | null;
-  toxicityNotes?: string | null;
-  spriteType?: SpriteType | null;
-  source?: string | null;
-  externalId?: string | null;
-  description?: string | null;
-  careNotes?: string | null;
-  // Extended fields
-  lifecycle?: "annual" | "biennial" | "perennial" | "tender_perennial" | null;
-  plantingNotes?: string | null;
-  pruningNotes?: string | null;
-  overwinteringNotes?: string | null;
-  nativeRegion?: string | null;
-  deerResistant?: boolean | null;
-  droughtTolerant?: boolean | null;
-  containerSuitable?: boolean | null;
-  attractsPollinators?: boolean | null;
-  attractsBirds?: boolean | null;
-  attractsButterflies?: boolean | null;
-  companionPlants?: string | null;
-  minTempF?: number | null;
-  maxTempF?: number | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type PlantStatus =
-  | "planned"
-  | "planted"
-  | "established"
-  | "struggling"
-  | "dormant"
-  | "dead"
-  | "removed";
-
-export type PlantMood =
-  | "happy"
-  | "thirsty"
-  | "cold"
-  | "hot"
-  | "wilting"
-  | "sleeping"
-  | "new";
-
-export interface PlantInstance {
-  id: number;
-  plantReferenceId: number;
-  zoneId?: number | null;
-  nickname?: string | null;
-  status: PlantStatus;
-  isContainer: boolean;
-  containerDescription?: string | null;
-  datePlanted?: string | null;
-  dateRemoved?: string | null;
-  notes?: string | null;
-  spriteOverride?: SpriteType | null;
-  mood: PlantMood;
-  plantReference?: PlantReference;
-  zone?: Zone;
-  photos?: PlantPhoto[];
-  careTasks?: CareTask[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface PlantPhoto {
-  id: number;
-  plantInstanceId: number;
-  filename: string;
-  caption?: string | null;
-  takenAt: string;
-  createdAt: string;
-}
-
-export type CareTaskType =
-  | "water"
-  | "fertilize"
-  | "prune"
-  | "mulch"
-  | "harvest"
-  | "protect"
-  | "move"
-  | "repot"
-  | "inspect"
-  | "custom";
-
-export interface CareTask {
-  id: number;
-  plantInstanceId?: number | null;
-  zoneId?: number | null;
-  locationId?: number | null;
-  taskType: CareTaskType;
-  title: string;
-  description?: string | null;
-  dueDate?: string | null;
-  isRecurring: boolean;
-  intervalDays?: number | null;
-  activeMonths?: number[] | null;
-  sendNotification: boolean;
-  plantMessage?: string | null;
-  plantInstance?: PlantInstance;
-  zone?: Zone;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CareTaskLog {
-  id: number;
-  careTaskId: number;
-  action: "completed" | "skipped" | "deferred";
-  notes?: string | null;
-  photoId?: number | null;
-  completedAt: string;
-}
-
-export interface NotificationPreference {
-  id: number;
-  taskType: string;
-  enabled: boolean;
-  digestTime: string;
-  frequency: "immediate" | "daily_digest" | "weekly_digest";
-}
-
-export interface ShoppingItem {
-  id: number;
-  name: string;
-  quantity: number;
-  isChecked: boolean;
-  notes?: string | null;
-  plantReferenceId?: number | null;
-  plantReference?: PlantReference;
-  createdAt: string;
-}
-
-export interface Weather {
-  id: number;
-  locationId: number;
-  temperature?: number | null;
-  temperatureHigh?: number | null;
-  temperatureLow?: number | null;
-  humidity?: number | null;
-  precipitation?: number | null;
-  windSpeed?: number | null;
-  conditions?: string | null;
-  forecastJson?: unknown;
-  uvIndex?: number | null;
-  precipitationProbability?: number | null;
-  soilTemperature?: number | null;
-  windGust?: number | null;
-  fetchedAt: string;
-}
-
-export interface NotificationChannel {
-  id: number;
-  name: string;
-  type: "slack" | "discord" | "email" | "pushover" | "ntfy" | "homeassistant";
-  config: Record<string, string>;
-  enabled: boolean;
-  quietHoursStart?: string | null;
-  quietHoursEnd?: string | null;
-  createdAt: string;
 }
 
 // ---------- Locations ----------
@@ -736,6 +522,25 @@ export interface AlertsResponse {
 
 export function getAlerts(locationId: number) {
   return request<AlertsResponse>(`/alerts/${locationId}`);
+}
+
+// ---------- Dashboard Aggregate ----------
+
+export interface DashboardData {
+  locations: Location[];
+  plants: PlantInstance[];
+  upcomingTasks: CareTask[];
+  settings: Record<string, unknown>;
+  perLocation: Record<number, {
+    weather: Weather | null;
+    sunData: SunData | null;
+    sunPosition: SunPosition | null;
+    alerts: AlertsResponse;
+  }>;
+}
+
+export function getDashboardData(locationId: number) {
+  return request<DashboardData>(`/locations/${locationId}/dashboard`);
 }
 
 // ---------- Mood Refresh ----------

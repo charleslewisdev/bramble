@@ -1354,12 +1354,12 @@ export default function LocationDetail() {
           onSubmit={(e) => {
             e.preventDefault();
             if (!locationId) return;
-            const zoneData = {
+            const zoneData: Partial<Zone> = {
               name: zoneForm.name,
-              sunExposure: zoneForm.sunExposure || undefined,
-              soilType: zoneForm.soilType || undefined,
-              moistureLevel: zoneForm.moistureLevel || undefined,
-              windExposure: zoneForm.windExposure || undefined,
+              sunExposure: (zoneForm.sunExposure || undefined) as Zone["sunExposure"],
+              soilType: (zoneForm.soilType || undefined) as Zone["soilType"],
+              moistureLevel: (zoneForm.moistureLevel || undefined) as Zone["moistureLevel"],
+              windExposure: (zoneForm.windExposure || undefined) as Zone["windExposure"],
               isIndoor: zoneForm.isIndoor,
               width: Number(zoneForm.width) || 10,
               depth: Number(zoneForm.depth) || 10,
@@ -1367,8 +1367,8 @@ export default function LocationDetail() {
               posY: Number(zoneForm.posY) || 0,
               color: zoneForm.color || "#4ade80",
               notes: zoneForm.notes || undefined,
-              zoneType: zoneForm.zoneType || "bed",
-              climbingStructure: zoneForm.climbingStructure || null,
+              zoneType: (zoneForm.zoneType || "bed") as Zone["zoneType"],
+              climbingStructure: (zoneForm.climbingStructure || null) as Zone["climbingStructure"],
               hasPatio: zoneForm.hasPatio,
             };
             const resetZoneForm = () => {

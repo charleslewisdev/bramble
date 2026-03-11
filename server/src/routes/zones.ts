@@ -1,9 +1,9 @@
 import { FastifyInstance } from "fastify";
 import { db } from "../db/index.js";
 import { zones } from "../db/schema.js";
-import { eq } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 import { z } from "zod";
-import { idParamSchema } from "../lib/validation.js";
+import { idParamSchema, parsePagination, paginatedResult } from "../lib/validation.js";
 
 const sunExposureEnum = z.enum(["full_sun", "partial_sun", "partial_shade", "full_shade"]);
 const soilTypeEnum = z.enum(["clay", "sandy", "loamy", "silty", "peaty", "chalky", "mixed"]);
@@ -35,21 +35,33 @@ const createZoneSchema = z.object({
 const updateZoneSchema = createZoneSchema.omit({ locationId: true }).partial();
 
 export async function zoneRoutes(app: FastifyInstance) {
-  // GET / - list all zones (optionally filtered by locationId)
-  app.get<{ Querystring: { locationId?: string } }>(
+  // GET / - list all zones (optionally filtered by locationId; supports ?page=&limit= pagination)
+  app.get<{ Querystring: { locationId?: string; page?: string; limit?: string } }>(
     "/",
     async (request) => {
       const { locationId } = request.query;
+      const pagination = parsePagination(request.query);
 
-      if (locationId) {
-        const num = Number(locationId);
-        if (isNaN(num)) return [];
-        return db.query.zones.findMany({
-          where: eq(zones.locationId, num),
-        });
+      const condition = locationId && !isNaN(Number(locationId))
+        ? eq(zones.locationId, Number(locationId))
+        : undefined;
+
+      if (locationId && isNaN(Number(locationId))) {
+        return pagination ? paginatedResult([], 0, 1, 50) : [];
       }
 
-      return db.query.zones.findMany();
+      const results = await db.query.zones.findMany({
+        where: condition,
+        ...(pagination && { limit: pagination.limit, offset: pagination.offset }),
+      });
+
+      if (pagination) {
+        const [{ total }] = db.select({ total: count() }).from(zones)
+          .where(condition).all() as [{ total: number }];
+        return paginatedResult(results, total, pagination.page, pagination.limit);
+      }
+
+      return results;
     },
   );
 

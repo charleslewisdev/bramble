@@ -1,9 +1,9 @@
 import { FastifyInstance } from "fastify";
 import { db } from "../db/index.js";
 import { shoppingListItems } from "../db/schema.js";
-import { eq, asc, desc } from "drizzle-orm";
+import { eq, asc, desc, count } from "drizzle-orm";
 import { z } from "zod";
-import { idParamSchema } from "../lib/validation.js";
+import { idParamSchema, parsePagination, paginatedResult } from "../lib/validation.js";
 
 const categoryEnum = z.enum(["plant", "soil", "fertilizer", "tool", "container", "other"]);
 
@@ -31,8 +31,27 @@ const updateItemSchema = z.object({
 });
 
 export async function shoppingListRoutes(app: FastifyInstance) {
-  // GET / - list all items (unchecked first, then checked)
-  app.get("/", async () => {
+  // GET / - list all items (unchecked first, then checked; supports ?page=&limit= pagination)
+  app.get<{ Querystring: { page?: string; limit?: string } }>("/", async (request) => {
+    const pagination = parsePagination(request.query);
+
+    if (pagination) {
+      const [{ total }] = db
+        .select({ total: count() })
+        .from(shoppingListItems)
+        .all() as [{ total: number }];
+
+      const data = db
+        .select()
+        .from(shoppingListItems)
+        .orderBy(asc(shoppingListItems.isChecked), desc(shoppingListItems.createdAt))
+        .limit(pagination.limit)
+        .offset(pagination.offset)
+        .all();
+
+      return paginatedResult(data, total, pagination.page, pagination.limit);
+    }
+
     return db
       .select()
       .from(shoppingListItems)

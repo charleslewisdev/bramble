@@ -25,6 +25,7 @@ import type {
   WildlifeResponse,
   PlantSearchResponse,
   AlertsResponse,
+  DashboardData,
 } from "./index";
 
 // ---------- Locations ----------
@@ -625,6 +626,17 @@ export function useAlerts(locationId: number | undefined) {
     queryFn: () => api.getAlerts(locationId!),
     enabled: locationId !== undefined,
     refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
+  });
+}
+
+// ---------- Dashboard Aggregate ----------
+
+export function useDashboardData(locationId: number | undefined) {
+  return useQuery<DashboardData>({
+    queryKey: ["dashboard", locationId],
+    queryFn: () => api.getDashboardData(locationId!),
+    enabled: locationId !== undefined,
+    staleTime: 2 * 60 * 1000, // 2 minutes
   });
 }
 

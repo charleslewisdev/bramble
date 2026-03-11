@@ -1,10 +1,10 @@
 import { FastifyInstance } from "fastify";
 import { db } from "../db/index.js";
 import { careTasks, careTaskLogs, plantInstances } from "../db/schema.js";
-import { eq, and, sql, inArray } from "drizzle-orm";
+import { eq, and, sql, inArray, count } from "drizzle-orm";
 import { z } from "zod";
 import { generateDefaultCareTasks } from "../services/care-tasks.js";
-import { idParamSchema } from "../lib/validation.js";
+import { idParamSchema, parsePagination, paginatedResult } from "../lib/validation.js";
 
 const taskTypeEnum = z.enum([
   "water", "fertilize", "prune", "mulch", "harvest",
@@ -36,16 +36,19 @@ const logActionSchema = z.object({
 });
 
 export async function careTaskRoutes(app: FastifyInstance) {
-  // GET / - list care tasks with filters
+  // GET / - list care tasks with filters (supports ?page=&limit= pagination)
   app.get<{
     Querystring: {
       plantInstanceId?: string;
       zoneId?: string;
       locationId?: string;
       upcoming?: string;
+      page?: string;
+      limit?: string;
     };
   }>("/", async (request) => {
     const { plantInstanceId, zoneId, locationId, upcoming } = request.query;
+    const pagination = parsePagination(request.query);
 
     const conditions = [];
 
@@ -67,15 +70,27 @@ export async function careTaskRoutes(app: FastifyInstance) {
       );
     }
 
-    if (conditions.length > 0) {
-      return db
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+    if (pagination) {
+      const [{ total }] = db
+        .select({ total: count() })
+        .from(careTasks)
+        .where(where)
+        .all() as [{ total: number }];
+
+      const data = db
         .select()
         .from(careTasks)
-        .where(and(...conditions))
+        .where(where)
+        .limit(pagination.limit)
+        .offset(pagination.offset)
         .all();
+
+      return paginatedResult(data, total, pagination.page, pagination.limit);
     }
 
-    return db.select().from(careTasks).all();
+    return db.select().from(careTasks).where(where).all();
   });
 
   // GET /:id - get task with completion logs

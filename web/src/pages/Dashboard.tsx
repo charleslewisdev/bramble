@@ -6,7 +6,6 @@ import {
   CloudSun,
   ArrowRight,
   Plus,
-  Sun,
   Sunrise,
   Sunset,
   Clock,
@@ -22,24 +21,16 @@ import PlantSprite, {
 } from "../components/sprites/PlantSprite";
 import StatusBadge from "../components/ui/StatusBadge";
 import {
-  usePlantInstances,
-  useCareTasks,
   useLocations,
-  useWeather,
-  useSunData,
-  useSunPosition,
   useWildlife,
-  useAlerts,
-  useSettings,
+  useDashboardData,
 } from "../api/hooks";
-import type { PlantMood, PlantType, Location, Weather, WeatherAlert } from "../api";
+import type { PlantType, Location, Weather, WeatherAlert, SunData, SunPosition } from "../api";
 import { getSeasonalSummary, getCurrentSeason } from "../utils/mood";
 import { getWeatherEmoji, formatTemperature, formatTempShort } from "../utils/weather";
 import { formatDate } from "../utils/format";
 
-function WeatherCard({ location, tempUnit }: { location: Location; tempUnit: string }) {
-  const { data: weather } = useWeather(location.id);
-
+function WeatherCard({ location, weather, tempUnit }: { location: Location; weather: Weather | null; tempUnit: string }) {
   return (
     <Card className="min-w-0">
       <div className="flex items-center gap-2 mb-2">
@@ -84,10 +75,7 @@ function WeatherCard({ location, tempUnit }: { location: Location; tempUnit: str
   );
 }
 
-function SunWidget({ locationId, locationName }: { locationId: number; locationName?: string }) {
-  const { data: sunData } = useSunData(locationId);
-  const { data: sunPosition } = useSunPosition(locationId);
-
+function SunWidget({ sunData, sunPosition, locationName }: { sunData: SunData | null; sunPosition: SunPosition | null; locationName?: string }) {
   if (!sunData) return null;
 
   const now = new Date();
@@ -250,16 +238,23 @@ function WildlifeWidget({ locationId, locationName }: { locationId: number; loca
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { data: plants, isLoading: plantsLoading } = usePlantInstances();
-  const { data: tasks, isLoading: tasksLoading } = useCareTasks({
-    upcoming: true,
-  });
-  const { data: locations } = useLocations();
-  const { data: settings } = useSettings();
-  const tempUnit = (settings?.temperatureUnit as string) ?? "F";
+  // Lightweight call to get locations list (needed to determine first location ID for aggregate)
+  const { data: locationsData } = useLocations();
+  const firstLocation = locationsData?.[0];
 
-  const firstLocation = locations?.[0];
-  const { data: alertsData } = useAlerts(firstLocation?.id);
+  // Single aggregate call for all dashboard data
+  const { data: dashboard, isLoading: dashboardLoading } = useDashboardData(firstLocation?.id);
+
+  // Extract data from aggregate response, falling back to locations-only data
+  const locations = dashboard?.locations ?? locationsData;
+  const plants = dashboard?.plants;
+  const tasks = dashboard?.upcomingTasks;
+  const settingsData = dashboard?.settings;
+  const tempUnit = (settingsData?.temperatureUnit as string) ?? "F";
+
+  const alertsData = firstLocation && dashboard?.perLocation
+    ? dashboard.perLocation[firstLocation.id]?.alerts
+    : undefined;
 
   const needsAttention =
     plants?.filter(
@@ -284,6 +279,9 @@ export default function Dashboard() {
   const thisWeekTasks = upcomingTasks.filter(
     (t) => t.dueDate && t.dueDate > todayStr && t.dueDate <= thisWeekStr
   );
+
+  const plantsLoading = dashboardLoading;
+  const tasksLoading = dashboardLoading;
 
   function getWelcomeMessage(): string {
     if (totalPlants === 0 && totalLocations === 0) return "Welcome to Bramble! Let's start your garden.";
@@ -477,14 +475,19 @@ export default function Dashboard() {
           </div>
 
           {/* Multi-location weather */}
-          {locations && locations.length > 0 && (
+          {locations && locations.length > 0 && dashboard?.perLocation && (
             <div className="space-y-4">
               <h2 className="text-lg font-semibold font-display text-stone-200">
                 Weather
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {locations.map((loc) => (
-                  <WeatherCard key={loc.id} location={loc} tempUnit={tempUnit} />
+                  <WeatherCard
+                    key={loc.id}
+                    location={loc}
+                    weather={dashboard.perLocation[loc.id]?.weather ?? null}
+                    tempUnit={tempUnit}
+                  />
                 ))}
               </div>
             </div>
@@ -495,7 +498,11 @@ export default function Dashboard() {
             <div className="space-y-4">
               {locations.map((loc) => (
                 <div key={loc.id} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <SunWidget locationId={loc.id} locationName={locations.length > 1 ? loc.name : undefined} />
+                  <SunWidget
+                    sunData={dashboard?.perLocation?.[loc.id]?.sunData ?? null}
+                    sunPosition={dashboard?.perLocation?.[loc.id]?.sunPosition ?? null}
+                    locationName={locations.length > 1 ? loc.name : undefined}
+                  />
                   <WildlifeWidget locationId={loc.id} locationName={locations.length > 1 ? loc.name : undefined} />
                 </div>
               ))}

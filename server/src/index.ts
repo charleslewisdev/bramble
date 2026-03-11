@@ -18,6 +18,7 @@ import { notificationRoutes } from "./routes/notifications.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { wildlifeRoutes } from "./routes/wildlife.js";
 import { alertRoutes } from "./routes/alerts.js";
+import dashboardRoutes from "./routes/dashboard.js";
 import { startScheduler } from "./services/scheduler.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -60,6 +61,7 @@ await app.register(notificationRoutes, { prefix: "/api/notifications" });
 await app.register(settingsRoutes, { prefix: "/api/settings" });
 await app.register(wildlifeRoutes, { prefix: "/api/wildlife" });
 await app.register(alertRoutes, { prefix: "/api/alerts" });
+await app.register(dashboardRoutes, { prefix: "/api/locations" });
 
 // Health check
 app.get("/api/health", async () => ({
