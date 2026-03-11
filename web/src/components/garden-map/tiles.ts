@@ -47,16 +47,16 @@ export enum TileType {
 
 // Warm, Stardew Valley-inspired color palette
 const COLORS = {
-  // Grass — rich greens with yellow-green highlights
-  grass1: "#3a7d2a",
-  grass2: "#4a9535",
-  grass3: "#2d6b1e",
-  grassHighlight: "#5aad45",
+  // Grass — matched to PixelLab Wang tileset grass palette
+  grass1: "#50c009",
+  grass2: "#61c717",
+  grass3: "#45a805",
+  grassHighlight: "#70d025",
   grassFlower1: "#e8c744",
   grassFlower2: "#d4a0d0",
   grassFlower3: "#7ec8e3",
-  cloverBase: "#48a838",
-  cloverLight: "#5cb84a",
+  cloverBase: "#55b810",
+  cloverLight: "#65c520",
   cloverSpotWhite: "#e8e8d0",
   cloverSpotYellow: "#d8d060",
 
@@ -88,13 +88,13 @@ const COLORS = {
   // Paths — earthy tones
   pathDirt1: "#a09080",
   pathDirt2: "#8a7868",
-  pathDirtEdge: "#6a8a4a",
+  pathDirtEdge: "#55b810",
   pathGravel1: "#9a9088",
   pathGravel2: "#8a8078",
   pathGravel3: "#7a7068",
   pathStone1: "#8a8278",
   pathStone2: "#7a7268",
-  pathStoneGap: "#5a6a3a",
+  pathStoneGap: "#45a805",
 
   // Sidewalk
   sidewalk1: "#b0a89a",
@@ -569,11 +569,14 @@ export const WANG_TILESET_MAP: Partial<Record<TileType, string>> = {
   [TileType.SOIL]: "grass-dirt",
   [TileType.SOIL_TILLED]: "grass-dirt",
   [TileType.SOIL_MULCH]: "grass-dirt",
-  [TileType.PATH_STONE]: "grass-cobble",
-  [TileType.STONE_PAVER]: "grass-cobble",
-  [TileType.STONE_PAVER_LIGHT]: "grass-cobble",
+  [TileType.PATH_STONE]: "grass-pavers",
+  [TileType.STONE_PAVER]: "grass-cement",
+  [TileType.STONE_PAVER_LIGHT]: "grass-pavers",
   [TileType.PATH_GRAVEL]: "grass-gravel",
   [TileType.PATH_DIRT]: "grass-gravel",
+  [TileType.SIDEWALK]: "grass-sidewalk",
+  [TileType.WATER]: "grass-water",
+  [TileType.RAISED_BED_WOOD]: "grass-wood",
 };
 
 // ---- Loading --------------------------------------------------------------
@@ -691,4 +694,94 @@ export function getWangTileCanvas(
 
   tileCanvasCache.set(key, canvas);
   return canvas;
+}
+
+// ---- Corner detection -----------------------------------------------------
+
+/** Minimal tile info needed for corner detection (avoids circular import) */
+interface TileCellLike {
+  type: TileType;
+  zoneId?: number;
+}
+
+/**
+ * Determine whether a grid position has a Wang-mapped tile type.
+ * Returns false for out-of-bounds or non-Wang tiles.
+ */
+function isWangTile(grid: TileCellLike[][], x: number, y: number, tilesetName: string): boolean {
+  const cell = grid[y]?.[x];
+  if (!cell) return false;
+  return WANG_TILESET_MAP[cell.type] === tilesetName;
+}
+
+/**
+ * Compute Wang corners for a tile at (x, y) within the grid.
+ * Each corner checks the 3 adjacent tiles in that diagonal direction:
+ *   NW = upper if (x-1,y), (x,y-1), and (x-1,y-1) are all the same Wang terrain
+ *   NE = upper if (x+1,y), (x,y-1), and (x+1,y-1) are all the same Wang terrain
+ *   SW = upper if (x-1,y), (x,y+1), and (x-1,y+1) are all the same Wang terrain
+ *   SE = upper if (x+1,y), (x,y+1), and (x+1,y+1) are all the same Wang terrain
+ *
+ * "upper" = zone terrain (dirt/cobble/gravel), "lower" = grass base
+ */
+export function computeWangCorners(
+  grid: TileCellLike[][],
+  x: number,
+  y: number,
+  tilesetName: string,
+): WangCorners {
+  const nw: WangTerrain =
+    isWangTile(grid, x - 1, y, tilesetName) &&
+    isWangTile(grid, x, y - 1, tilesetName) &&
+    isWangTile(grid, x - 1, y - 1, tilesetName)
+      ? "upper"
+      : "lower";
+
+  const ne: WangTerrain =
+    isWangTile(grid, x + 1, y, tilesetName) &&
+    isWangTile(grid, x, y - 1, tilesetName) &&
+    isWangTile(grid, x + 1, y - 1, tilesetName)
+      ? "upper"
+      : "lower";
+
+  const sw: WangTerrain =
+    isWangTile(grid, x - 1, y, tilesetName) &&
+    isWangTile(grid, x, y + 1, tilesetName) &&
+    isWangTile(grid, x - 1, y + 1, tilesetName)
+      ? "upper"
+      : "lower";
+
+  const se: WangTerrain =
+    isWangTile(grid, x + 1, y, tilesetName) &&
+    isWangTile(grid, x, y + 1, tilesetName) &&
+    isWangTile(grid, x + 1, y + 1, tilesetName)
+      ? "upper"
+      : "lower";
+
+  return { NW: nw, NE: ne, SW: sw, SE: se };
+}
+
+// ---- Preloading -----------------------------------------------------------
+
+/**
+ * Preload all Wang tilesets that are mapped in WANG_TILESET_MAP.
+ * Call before rendering to avoid per-tile async delays.
+ */
+export async function preloadWangTilesets(): Promise<Map<string, LoadedWangTileset>> {
+  const names = new Set(Object.values(WANG_TILESET_MAP));
+  const entries = await Promise.all(
+    [...names].map(async (name) => {
+      const tileset = await loadWangTileset(name);
+      return [name, tileset] as const;
+    }),
+  );
+  return new Map(entries);
+}
+
+/**
+ * Clear all Wang tileset caches (for cleanup).
+ */
+export function clearWangTilesetCache(): void {
+  tilesetCache.clear();
+  tileCanvasCache.clear();
 }

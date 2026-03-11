@@ -607,6 +607,64 @@ export function generateHouseTexture(
   return texture;
 }
 
+// ---- PNG-based house loading ----
+
+const HOUSE_SPRITE_BASE = "/sprites/structures/";
+
+/** Available house sprite variants — randomly selected per location */
+const HOUSE_VARIANTS = ["house-hip", "house-gable", "house-cottage", "house-modern"];
+
+/** Structure types that have dedicated PNG sprites */
+const STRUCTURE_SPRITES: Record<string, string> = {
+  pergola: "pergola",
+  gazebo: "gazebo",
+};
+
+/**
+ * Pick a deterministic house variant based on a seed (structure ID or location).
+ * Uses the structure's numeric ID to ensure the same location always gets the
+ * same house style across renders.
+ */
+function pickHouseVariant(structure: Structure): string {
+  // Use structure ID as seed for deterministic selection
+  const seed = structure.id ?? 0;
+  const index = Math.abs(seed) % HOUSE_VARIANTS.length;
+  return HOUSE_VARIANTS[index]!;
+}
+
+/**
+ * Load a house texture, preferring a PNG asset if available.
+ * For standard houses, randomly selects one of 4 Stardew Valley-style variants.
+ * For pergola/gazebo, loads the matching sprite.
+ * Falls back to procedural generation if PNG fails to load.
+ */
+export async function loadHouseTexture(
+  tileWidth: number,
+  tileHeight: number,
+  structure: Structure,
+): Promise<Texture> {
+  const key = cacheKey(tileWidth, tileHeight, structure.roofType, structure.stories);
+  const cached = houseTextureCache.get(key);
+  if (cached) return cached;
+
+  // Determine which sprite to load
+  const structureSprite = STRUCTURE_SPRITES[structure.roofType];
+  const spriteName = structureSprite ?? pickHouseVariant(structure);
+
+  try {
+    const { Assets } = await import("pixi.js");
+    const url = `${HOUSE_SPRITE_BASE}${spriteName}.png`;
+    const texture = await Assets.load(url);
+    texture.source.scaleMode = "nearest";
+    houseTextureCache.set(key, texture);
+    return texture;
+  } catch {
+    // PNG not found — fall through to procedural
+  }
+
+  return generateHouseTexture(tileWidth, tileHeight, structure);
+}
+
 /**
  * Clear all cached house textures.
  */

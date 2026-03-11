@@ -610,15 +610,15 @@ export function generateMap(
     tiles.push(row);
   }
 
-  // Paint house
+  // Mark house area tiles as grass (the house PNG sprite overlays on top,
+  // so the underlying tiles should be normal grass — not a gray slab)
   for (let dy = 0; dy < houseH; dy++) {
     for (let dx = 0; dx < houseW; dx++) {
       const x = houseX + dx;
       const y = houseY + dy;
       if (tiles[y]?.[x]) {
-        const isEdge = dx === 0 || dx === houseW - 1 || dy === 0 || dy === houseH - 1;
         tiles[y]![x] = {
-          type: isEdge ? TileType.STRUCTURE_WALL : TileType.STRUCTURE_ROOF,
+          type: TileType.GRASS,
           seed: hashCoord(x, y),
         };
       }
@@ -645,8 +645,9 @@ export function generateMap(
   for (const pt of pathTiles) {
     if (tiles[pt.y]?.[pt.x]) {
       const cell = tiles[pt.y]![pt.x]!;
-      // Don't overwrite zone tiles, structures, or existing paths
-      if (!cell.zoneId && cell.type !== TileType.STRUCTURE_ROOF && cell.type !== TileType.STRUCTURE_WALL) {
+      // Don't overwrite zone tiles or house area grass
+      const inHouse = pt.x >= houseX && pt.x < houseX + houseW && pt.y >= houseY && pt.y < houseY + houseH;
+      if (!cell.zoneId && !inHouse) {
         const seed = hashCoord(pt.x, pt.y);
         tiles[pt.y]![pt.x] = {
           type: pseudoRandom(seed + 999) > 0.7 ? TileType.PATH_STONE : TileType.PATH_DIRT,
