@@ -46,7 +46,7 @@ export default function SafetyBadge({ level, for: forTarget }: SafetyBadgeProps)
   return (
     <span
       className={clsx(
-        "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium font-[family-name:var(--font-display)]",
+        "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium font-display",
         bg,
         text
       )}

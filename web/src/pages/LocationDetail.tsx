@@ -315,13 +315,13 @@ export default function LocationDetail() {
       <div>
         <button
           onClick={() => navigate("/locations")}
-          className="flex items-center gap-1 text-sm text-stone-400 hover:text-stone-200 font-[family-name:var(--font-display)] mb-3 transition-colors"
+          className="flex items-center gap-1 text-sm text-stone-400 hover:text-stone-200 font-display mb-3 transition-colors"
         >
           <ArrowLeft size={14} /> Back to Locations
         </button>
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold font-[family-name:var(--font-display)] text-stone-100">
+            <h1 className="text-2xl font-bold font-display text-stone-100">
               {location.name}
             </h1>
             {location.address && (
@@ -331,7 +331,7 @@ export default function LocationDetail() {
             )}
           </div>
           {location.hardinessZone && (
-            <span className="px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm font-[family-name:var(--font-mono)]">
+            <span className="px-3 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm font-mono">
               Zone {location.hardinessZone}
             </span>
           )}
@@ -348,7 +348,7 @@ export default function LocationDetail() {
             <Gamepad2 size={24} className="text-emerald-400" />
           </div>
           <div>
-            <h3 className="text-sm font-bold font-[family-name:var(--font-display)] text-emerald-400">
+            <h3 className="text-sm font-bold font-display text-emerald-400">
               Garden Map
             </h3>
             <p className="text-xs text-stone-400">
@@ -361,7 +361,7 @@ export default function LocationDetail() {
       {/* Weather Card */}
       <Card>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-300 uppercase tracking-wider">
+          <h2 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider">
             Weather
           </h2>
           <Button
@@ -378,28 +378,28 @@ export default function LocationDetail() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div className="text-center">
               <p className="text-3xl mb-1">{getWeatherEmoji(weather.conditions)}</p>
-              <p className="text-xl font-bold font-[family-name:var(--font-mono)] text-stone-100">
+              <p className="text-xl font-bold font-mono text-stone-100">
                 {formatTemperature(weather.temperature, tempUnit)}
               </p>
               <p className="text-xs text-stone-400">{weather.conditions ?? "--"}</p>
             </div>
             <div>
-              <p className="text-stone-500 font-[family-name:var(--font-display)]">High / Low</p>
-              <p className="text-stone-200 font-[family-name:var(--font-mono)]">
+              <p className="text-stone-500 font-display">High / Low</p>
+              <p className="text-stone-200 font-mono">
                 {weather.temperatureHigh != null ? formatTempShort(weather.temperatureHigh, tempUnit) : "--"}
                 {" / "}
                 {weather.temperatureLow != null ? formatTempShort(weather.temperatureLow, tempUnit) : "--"}
               </p>
             </div>
             <div>
-              <p className="text-stone-500 font-[family-name:var(--font-display)]">Humidity</p>
-              <p className="text-stone-200 font-[family-name:var(--font-mono)]">
+              <p className="text-stone-500 font-display">Humidity</p>
+              <p className="text-stone-200 font-mono">
                 {weather.humidity != null ? `${Math.round(weather.humidity)}%` : "--"}
               </p>
             </div>
             <div>
-              <p className="text-stone-500 font-[family-name:var(--font-display)]">Wind</p>
-              <p className="text-stone-200 font-[family-name:var(--font-mono)]">
+              <p className="text-stone-500 font-display">Wind</p>
+              <p className="text-stone-200 font-mono">
                 {weather.windSpeed != null ? `${Math.round(weather.windSpeed)} mph` : "--"}
               </p>
             </div>
@@ -408,8 +408,8 @@ export default function LocationDetail() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mt-3 pt-3 border-t border-stone-800">
             {weather.uvIndex != null && (
               <div>
-                <p className="text-stone-500 font-[family-name:var(--font-display)]">UV Index</p>
-                <p className="text-stone-200 font-[family-name:var(--font-mono)]">
+                <p className="text-stone-500 font-display">UV Index</p>
+                <p className="text-stone-200 font-mono">
                   {weather.uvIndex}
                   <span className="text-stone-500 text-xs ml-1">
                     {weather.uvIndex <= 2 ? "low" : weather.uvIndex <= 5 ? "mod" : weather.uvIndex <= 7 ? "high" : "v.high"}
@@ -419,24 +419,24 @@ export default function LocationDetail() {
             )}
             {weather.precipitationProbability != null && (
               <div>
-                <p className="text-stone-500 font-[family-name:var(--font-display)]">Rain Chance</p>
-                <p className="text-stone-200 font-[family-name:var(--font-mono)]">
+                <p className="text-stone-500 font-display">Rain Chance</p>
+                <p className="text-stone-200 font-mono">
                   {Math.round(weather.precipitationProbability)}%
                 </p>
               </div>
             )}
             {weather.soilTemperature != null && (
               <div>
-                <p className="text-stone-500 font-[family-name:var(--font-display)]">Soil Temp</p>
-                <p className="text-stone-200 font-[family-name:var(--font-mono)]">
+                <p className="text-stone-500 font-display">Soil Temp</p>
+                <p className="text-stone-200 font-mono">
                   {formatTemperature(weather.soilTemperature, tempUnit)}
                 </p>
               </div>
             )}
             {weather.windGust != null && (
               <div>
-                <p className="text-stone-500 font-[family-name:var(--font-display)]">Wind Gust</p>
-                <p className="text-stone-200 font-[family-name:var(--font-mono)]">
+                <p className="text-stone-500 font-display">Wind Gust</p>
+                <p className="text-stone-200 font-mono">
                   {Math.round(weather.windGust)} mph
                 </p>
               </div>
@@ -446,7 +446,7 @@ export default function LocationDetail() {
         ) : (
           <div className="flex items-center gap-3 text-stone-500">
             <CloudSun size={20} />
-            <p className="text-sm font-[family-name:var(--font-display)]">
+            <p className="text-sm font-display">
               No weather data. Click Refresh to fetch current conditions.
             </p>
           </div>
@@ -456,7 +456,7 @@ export default function LocationDetail() {
       {/* Frost Dates */}
       {(location.lastFrostDate || location.firstFrostDate) && (
         <Card>
-          <h2 className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-300 uppercase tracking-wider mb-3">
+          <h2 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider mb-3">
             Frost Dates
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -464,18 +464,18 @@ export default function LocationDetail() {
               <div>
                 <div className="flex items-center gap-1.5 mb-1">
                   <Snowflake size={14} className="text-sky-400" />
-                  <p className="text-stone-500 font-[family-name:var(--font-display)]">Last Frost</p>
+                  <p className="text-stone-500 font-display">Last Frost</p>
                 </div>
-                <p className="text-stone-200 font-[family-name:var(--font-mono)]">
+                <p className="text-stone-200 font-mono">
                   {new Date(location.lastFrostDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                 </p>
                 {frostInfo.daysSinceLastFrost != null && frostInfo.daysSinceLastFrost > 0 && (
-                  <p className="text-xs text-emerald-400 font-[family-name:var(--font-mono)] mt-0.5">
+                  <p className="text-xs text-emerald-400 font-mono mt-0.5">
                     {frostInfo.daysSinceLastFrost} days ago
                   </p>
                 )}
                 {frostInfo.daysSinceLastFrost != null && frostInfo.daysSinceLastFrost < 0 && (
-                  <p className="text-xs text-sky-400 font-[family-name:var(--font-mono)] mt-0.5">
+                  <p className="text-xs text-sky-400 font-mono mt-0.5">
                     in {Math.abs(frostInfo.daysSinceLastFrost)} days
                   </p>
                 )}
@@ -485,26 +485,26 @@ export default function LocationDetail() {
               <div>
                 <div className="flex items-center gap-1.5 mb-1">
                   <Thermometer size={14} className="text-amber-400" />
-                  <p className="text-stone-500 font-[family-name:var(--font-display)]">First Frost</p>
+                  <p className="text-stone-500 font-display">First Frost</p>
                 </div>
-                <p className="text-stone-200 font-[family-name:var(--font-mono)]">
+                <p className="text-stone-200 font-mono">
                   {new Date(location.firstFrostDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                 </p>
                 {frostInfo.daysUntilFirstFrost != null && frostInfo.daysUntilFirstFrost > 0 && (
-                  <p className="text-xs text-amber-400 font-[family-name:var(--font-mono)] mt-0.5">
+                  <p className="text-xs text-amber-400 font-mono mt-0.5">
                     in {frostInfo.daysUntilFirstFrost} days
                   </p>
                 )}
                 {frostInfo.daysUntilFirstFrost != null && frostInfo.daysUntilFirstFrost < 0 && (
-                  <p className="text-xs text-sky-400 font-[family-name:var(--font-mono)] mt-0.5">
+                  <p className="text-xs text-sky-400 font-mono mt-0.5">
                     {Math.abs(frostInfo.daysUntilFirstFrost)} days ago
                   </p>
                 )}
               </div>
             )}
             <div className="col-span-2">
-              <p className="text-stone-500 font-[family-name:var(--font-display)]">Growing Season</p>
-              <p className="text-stone-200 font-[family-name:var(--font-mono)]">
+              <p className="text-stone-500 font-display">Growing Season</p>
+              <p className="text-stone-200 font-mono">
                 {frostInfo.frostStatus === "growing-season" && (
                   <span className="text-emerald-400">Active growing season</span>
                 )}
@@ -526,7 +526,7 @@ export default function LocationDetail() {
       {/* Property Info */}
       <Card>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-300 uppercase tracking-wider">
+          <h2 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider">
             Property Info
           </h2>
           <button
@@ -546,38 +546,38 @@ export default function LocationDetail() {
         </div>
         {location.lotWidth && location.lotDepth ? (
           <>
-            <p className="text-stone-300 text-sm mb-3 font-[family-name:var(--font-display)]">
+            <p className="text-stone-300 text-sm mb-3 font-display">
               {location.lotWidth}&prime; frontage &times; {location.lotDepth}&prime; deep
               {location.compassOrientation != null && (
                 <>, front faces {compassLabel(location.compassOrientation)}</>
               )}
               {" — "}
-              <span className="font-[family-name:var(--font-mono)] text-stone-400">
+              <span className="font-mono text-stone-400">
                 {Math.round(location.lotWidth * location.lotDepth).toLocaleString()} sqft
               </span>
             </p>
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
-                <p className="text-stone-500 font-[family-name:var(--font-display)]">
+                <p className="text-stone-500 font-display">
                   Frontage
                 </p>
-                <p className="text-stone-200 font-[family-name:var(--font-mono)]">
+                <p className="text-stone-200 font-mono">
                   {location.lotWidth} ft
                 </p>
               </div>
               <div>
-                <p className="text-stone-500 font-[family-name:var(--font-display)]">
+                <p className="text-stone-500 font-display">
                   Depth
                 </p>
-                <p className="text-stone-200 font-[family-name:var(--font-mono)]">
+                <p className="text-stone-200 font-mono">
                   {location.lotDepth} ft
                 </p>
               </div>
               <div>
-                <p className="text-stone-500 font-[family-name:var(--font-display)]">
+                <p className="text-stone-500 font-display">
                   Orientation
                 </p>
-                <p className="text-stone-200 font-[family-name:var(--font-mono)]">
+                <p className="text-stone-200 font-mono">
                   {location.compassOrientation != null
                     ? `${location.compassOrientation}° (${compassLabel(location.compassOrientation)})`
                     : "--"}
@@ -614,7 +614,7 @@ export default function LocationDetail() {
       {lotW > 0 && lotD > 0 && (
         <Card>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-300 uppercase tracking-wider">
+            <h2 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider">
               Lot Preview
             </h2>
             <div className="flex gap-2">
@@ -671,7 +671,7 @@ export default function LocationDetail() {
               {location.compassOrientation != null && (
                 <div className="absolute -top-8 right-0 flex items-center gap-1">
                   <Compass size={14} className="text-stone-500" />
-                  <span className="text-xs text-stone-500 font-[family-name:var(--font-mono)]">
+                  <span className="text-xs text-stone-500 font-mono">
                     {compassLabel(location.compassOrientation)}
                   </span>
                 </div>
@@ -728,11 +728,11 @@ export default function LocationDetail() {
                 }}
               >
                 {/* Width label (top) */}
-                <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-stone-500 font-[family-name:var(--font-mono)]">
+                <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-stone-500 font-mono">
                   {lotW}ft
                 </span>
                 {/* Depth label (right) */}
-                <span className="absolute -right-12 top-1/2 -translate-y-1/2 text-xs text-stone-500 font-[family-name:var(--font-mono)] rotate-90">
+                <span className="absolute -right-12 top-1/2 -translate-y-1/2 text-xs text-stone-500 font-mono rotate-90">
                   {lotD}ft
                 </span>
                 {/* Street indicator on the side matching compass orientation */}
@@ -741,7 +741,7 @@ export default function LocationDetail() {
                     : normAngle >= 45 && normAngle < 135 ? "right"
                     : normAngle >= 135 && normAngle < 225 ? "bottom"
                     : "left";
-                  const streetClasses = "absolute text-[10px] text-sky-400/70 font-[family-name:var(--font-display)] tracking-wider uppercase";
+                  const streetClasses = "absolute text-[10px] text-sky-400/70 font-display tracking-wider uppercase";
                   if (streetSide === "top") return <span className={`${streetClasses} -top-5 left-2`}>street</span>;
                   if (streetSide === "bottom") return <span className={`${streetClasses} -bottom-5 left-2`}>street</span>;
                   if (streetSide === "right") return <span className={`${streetClasses} top-1 -right-14 rotate-90`}>street</span>;
@@ -778,7 +778,7 @@ export default function LocationDetail() {
                       style={style}
                       title={`Sidewalk (${sw.edge} edge) — ${sw.width}ft wide, ${sw.inset}ft from property line`}
                     >
-                      <span className="absolute inset-0 flex items-center justify-center text-[8px] text-stone-500 font-[family-name:var(--font-mono)]">
+                      <span className="absolute inset-0 flex items-center justify-center text-[8px] text-stone-500 font-mono">
                         sidewalk
                       </span>
                     </div>
@@ -860,7 +860,7 @@ export default function LocationDetail() {
                 })}
 
                 {editMode && (
-                  <div className="absolute bottom-1 left-1 text-[9px] text-emerald-400/60 font-[family-name:var(--font-mono)]">
+                  <div className="absolute bottom-1 left-1 text-[9px] text-emerald-400/60 font-mono">
                     Drag to reposition
                   </div>
                 )}
@@ -870,7 +870,7 @@ export default function LocationDetail() {
 
           {/* Sun info bar */}
           {showSunOverlay && sunData && (
-            <div className="flex items-center justify-center gap-6 text-xs text-stone-400 font-[family-name:var(--font-mono)] mt-2 pt-2 border-t border-stone-800">
+            <div className="flex items-center justify-center gap-6 text-xs text-stone-400 font-mono mt-2 pt-2 border-t border-stone-800">
               <span>Sunrise: {new Date(sunData.sunrise).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</span>
               <span>Solar Noon: {new Date(sunData.solarNoon).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</span>
               <span>Sunset: {new Date(sunData.sunset).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</span>
@@ -884,7 +884,7 @@ export default function LocationDetail() {
           {selectedZone && !editMode && !showSunMap && (
             <div className="mt-3 p-4 rounded-xl bg-stone-900 border border-stone-700">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-200">
+                <h3 className="text-sm font-semibold font-display text-stone-200">
                   {selectedZone.name}
                 </h3>
                 <button
@@ -897,25 +897,25 @@ export default function LocationDetail() {
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs mb-3">
                 <div>
-                  <p className="text-stone-500 font-[family-name:var(--font-display)]">Size</p>
-                  <p className="text-stone-300 font-[family-name:var(--font-mono)]">{selectedZone.width}x{selectedZone.depth}ft</p>
+                  <p className="text-stone-500 font-display">Size</p>
+                  <p className="text-stone-300 font-mono">{selectedZone.width}x{selectedZone.depth}ft</p>
                 </div>
                 {selectedZone.sunExposure && (
                   <div>
-                    <p className="text-stone-500 font-[family-name:var(--font-display)]">Sun</p>
-                    <p className="text-stone-300 font-[family-name:var(--font-mono)]">{selectedZone.sunExposure.replace("_", " ")}</p>
+                    <p className="text-stone-500 font-display">Sun</p>
+                    <p className="text-stone-300 font-mono">{selectedZone.sunExposure.replace("_", " ")}</p>
                   </div>
                 )}
                 {selectedZone.soilType && (
                   <div>
-                    <p className="text-stone-500 font-[family-name:var(--font-display)]">Soil</p>
-                    <p className="text-stone-300 font-[family-name:var(--font-mono)]">{selectedZone.soilType}</p>
+                    <p className="text-stone-500 font-display">Soil</p>
+                    <p className="text-stone-300 font-mono">{selectedZone.soilType}</p>
                   </div>
                 )}
                 {selectedZone.moistureLevel && (
                   <div>
-                    <p className="text-stone-500 font-[family-name:var(--font-display)]">Moisture</p>
-                    <p className="text-stone-300 font-[family-name:var(--font-mono)]">{selectedZone.moistureLevel}</p>
+                    <p className="text-stone-500 font-display">Moisture</p>
+                    <p className="text-stone-300 font-mono">{selectedZone.moistureLevel}</p>
                   </div>
                 )}
               </div>
@@ -923,7 +923,7 @@ export default function LocationDetail() {
               {/* Mini plant grid */}
               {selectedZonePlants && selectedZonePlants.length > 0 ? (
                 <div className="mb-3">
-                  <p className="text-xs text-stone-500 font-[family-name:var(--font-display)] mb-2">
+                  <p className="text-xs text-stone-500 font-display mb-2">
                     {selectedZonePlants.length} plant{selectedZonePlants.length !== 1 ? "s" : ""}
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -957,7 +957,7 @@ export default function LocationDetail() {
 
               <button
                 onClick={() => navigate(`/zones/${selectedZone.id}`)}
-                className="text-xs text-emerald-400 hover:text-emerald-300 font-[family-name:var(--font-display)] transition-colors"
+                className="text-xs text-emerald-400 hover:text-emerald-300 font-display transition-colors"
               >
                 View Full Zone &rarr;
               </button>
@@ -969,7 +969,7 @@ export default function LocationDetail() {
       {/* Structures */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold font-[family-name:var(--font-display)] text-stone-200">
+          <h2 className="text-lg font-semibold font-display text-stone-200">
             Structures
           </h2>
           <Button size="sm" variant="secondary" onClick={() => {
@@ -987,10 +987,10 @@ export default function LocationDetail() {
                   <div className="flex items-center gap-3">
                     <Home size={18} className="text-stone-500" />
                     <div>
-                      <p className="text-sm font-medium text-stone-200 font-[family-name:var(--font-display)]">
+                      <p className="text-sm font-medium text-stone-200 font-display">
                         {s.name}
                       </p>
-                      <p className="text-xs text-stone-500 font-[family-name:var(--font-mono)]">
+                      <p className="text-xs text-stone-500 font-mono">
                         {s.width}x{s.depth}ft · {s.stories} story · {s.roofType}
                       </p>
                     </div>
@@ -1017,7 +1017,7 @@ export default function LocationDetail() {
           <Card>
             <div className="flex items-center gap-3 text-stone-500">
               <Home size={20} />
-              <p className="text-sm font-[family-name:var(--font-display)]">
+              <p className="text-sm font-display">
                 Structures help map your property layout (house, garage, shed,
                 etc.)
               </p>
@@ -1029,7 +1029,7 @@ export default function LocationDetail() {
       {/* Zones */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold font-[family-name:var(--font-display)] text-stone-200">
+          <h2 className="text-lg font-semibold font-display text-stone-200">
             Zones
           </h2>
           <Button size="sm" onClick={() => setShowAddZone(true)}>
@@ -1050,10 +1050,10 @@ export default function LocationDetail() {
                       <Grid3X3 size={18} style={{ color: zone.color ?? "#4ade80" }} />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-stone-200 font-[family-name:var(--font-display)]">
+                      <h3 className="font-semibold text-stone-200 font-display">
                         {zone.name}
                       </h3>
-                      <p className="text-xs text-stone-500 font-[family-name:var(--font-mono)] mt-0.5">
+                      <p className="text-xs text-stone-500 font-mono mt-0.5">
                         {zone.width}x{zone.depth}ft
                         {zone.sunExposure ? ` · ${zone.sunExposure.replace("_", " ")}` : ""}
                         {zone.isIndoor ? " · indoor" : ""}
@@ -1087,7 +1087,7 @@ export default function LocationDetail() {
         ) : (
           <Card className="text-center py-8">
             <Grid3X3 className="mx-auto text-stone-600 mb-2" size={32} />
-            <p className="text-stone-400 text-sm font-[family-name:var(--font-display)]">
+            <p className="text-stone-400 text-sm font-display">
               No zones yet. Add garden beds, side yards, containers, etc.
             </p>
           </Card>
@@ -1164,7 +1164,7 @@ export default function LocationDetail() {
           {propForm.lotWidth && propForm.lotDepth && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-stone-800/50 border border-stone-700/50">
               <span className="text-xs text-stone-400">Estimated area:</span>
-              <span className="text-sm font-[family-name:var(--font-mono)] text-stone-200">
+              <span className="text-sm font-mono text-stone-200">
                 {Math.round(Number(propForm.lotWidth) * Number(propForm.lotDepth)).toLocaleString()} sqft
               </span>
             </div>
@@ -1218,7 +1218,7 @@ export default function LocationDetail() {
               </div>
             </div>
             {propForm.compassOrientation && (
-              <p className="text-center text-xs text-stone-400 mt-2 font-[family-name:var(--font-mono)]">
+              <p className="text-center text-xs text-stone-400 mt-2 font-mono">
                 {propForm.compassOrientation}° from North
               </p>
             )}
@@ -1268,7 +1268,7 @@ export default function LocationDetail() {
                         });
                       }
                     }}
-                    className={`px-3 py-2 rounded-lg text-sm font-[family-name:var(--font-display)] font-semibold transition-all ${
+                    className={`px-3 py-2 rounded-lg text-sm font-display font-semibold transition-all ${
                       isActive
                         ? "bg-stone-600/40 text-stone-200 border border-stone-500"
                         : "bg-stone-800/50 text-stone-500 border border-stone-700 hover:border-stone-600 hover:text-stone-400"
@@ -1283,7 +1283,7 @@ export default function LocationDetail() {
               <div className="mt-3 space-y-2">
                 {propForm.sidewalks.map((sw) => (
                   <div key={sw.edge} className="flex items-center gap-3 text-sm">
-                    <span className="text-stone-400 w-14 font-[family-name:var(--font-display)] capitalize">{sw.edge}</span>
+                    <span className="text-stone-400 w-14 font-display capitalize">{sw.edge}</span>
                     <label className="flex items-center gap-1 text-stone-500">
                       <span className="text-xs">Width</span>
                       <input
@@ -1296,7 +1296,7 @@ export default function LocationDetail() {
                             s.edge === sw.edge ? { ...s, width: Number(e.target.value) || 0 } : s
                           ),
                         })}
-                        className="w-14 bg-stone-800 border border-stone-700 rounded px-1.5 py-0.5 text-stone-200 text-xs font-[family-name:var(--font-mono)]"
+                        className="w-14 bg-stone-800 border border-stone-700 rounded px-1.5 py-0.5 text-stone-200 text-xs font-mono"
                       />
                       <span className="text-xs">ft</span>
                     </label>
@@ -1312,7 +1312,7 @@ export default function LocationDetail() {
                             s.edge === sw.edge ? { ...s, inset: Number(e.target.value) || 0 } : s
                           ),
                         })}
-                        className="w-14 bg-stone-800 border border-stone-700 rounded px-1.5 py-0.5 text-stone-200 text-xs font-[family-name:var(--font-mono)]"
+                        className="w-14 bg-stone-800 border border-stone-700 rounded px-1.5 py-0.5 text-stone-200 text-xs font-mono"
                       />
                       <span className="text-xs">ft</span>
                     </label>
@@ -1519,7 +1519,7 @@ export default function LocationDetail() {
               onChange={(e) => setZoneForm({ ...zoneForm, isIndoor: e.target.checked })}
               className="rounded border-stone-600 bg-stone-800 text-emerald-500 focus:ring-emerald-500/40"
             />
-            <span className="text-sm text-stone-300 font-[family-name:var(--font-display)]">Indoor zone</span>
+            <span className="text-sm text-stone-300 font-display">Indoor zone</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -1528,10 +1528,10 @@ export default function LocationDetail() {
               onChange={(e) => setZoneForm({ ...zoneForm, hasPatio: e.target.checked })}
               className="rounded border-stone-600 bg-stone-800 text-emerald-500 focus:ring-emerald-500/40"
             />
-            <span className="text-sm text-stone-300 font-[family-name:var(--font-display)]">Has patio furniture</span>
+            <span className="text-sm text-stone-300 font-display">Has patio furniture</span>
           </label>
           <div className="flex items-center gap-3">
-            <label className="text-sm text-stone-400 font-[family-name:var(--font-display)]">Color</label>
+            <label className="text-sm text-stone-400 font-display">Color</label>
             <input
               type="color"
               value={zoneForm.color}
@@ -1684,7 +1684,7 @@ export default function LocationDetail() {
             <label className="block text-sm font-medium text-stone-300 mb-2">
               Roof Type
             </label>
-            <p className="text-xs text-stone-500 mb-1.5 font-[family-name:var(--font-display)]">Solid Roof</p>
+            <p className="text-xs text-stone-500 mb-1.5 font-display">Solid Roof</p>
             <div className="grid grid-cols-5 gap-2">
               {([
                 { value: "flat", label: "Flat", desc: "Level top",
@@ -1722,14 +1722,14 @@ export default function LocationDetail() {
                       {/* Ground line */}
                       <line x1="4" y1="22" x2="44" y2="22" stroke={isSelected ? "#38bdf8" : "#78716c"} strokeWidth={1} opacity={0.4} />
                     </svg>
-                    <span className="text-[10px] font-[family-name:var(--font-display)] font-semibold">
+                    <span className="text-[10px] font-display font-semibold">
                       {roof.label}
                     </span>
                   </button>
                 );
               })}
             </div>
-            <p className="text-xs text-stone-500 mt-3 mb-1.5 font-[family-name:var(--font-display)]">Open Structures</p>
+            <p className="text-xs text-stone-500 mt-3 mb-1.5 font-display">Open Structures</p>
             <div className="grid grid-cols-4 gap-2">
               {([
                 { value: "pergola", label: "Pergola", desc: "Open beam structure with slats",
@@ -1765,7 +1765,7 @@ export default function LocationDetail() {
                       {/* Ground line */}
                       <line x1="4" y1="22" x2="44" y2="22" stroke={isSelected ? "#38bdf8" : "#78716c"} strokeWidth={1} opacity={0.4} />
                     </svg>
-                    <span className="text-[10px] font-[family-name:var(--font-display)] font-semibold">
+                    <span className="text-[10px] font-display font-semibold">
                       {roof.label}
                     </span>
                   </button>

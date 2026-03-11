@@ -133,14 +133,14 @@ export default function ZoneDetail() {
       <div>
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-1 text-sm text-stone-400 hover:text-stone-200 font-[family-name:var(--font-display)] mb-3 transition-colors"
+          className="flex items-center gap-1 text-sm text-stone-400 hover:text-stone-200 font-display mb-3 transition-colors"
         >
           <ArrowLeft size={14} /> Back
         </button>
-        <h1 className="text-2xl font-bold font-[family-name:var(--font-display)] text-stone-100">
+        <h1 className="text-2xl font-bold font-display text-stone-100">
           {zone.name}
         </h1>
-        <p className="text-stone-400 text-sm mt-1 font-[family-name:var(--font-mono)]">
+        <p className="text-stone-400 text-sm mt-1 font-mono">
           {zone.width}x{zone.depth}ft
           {zone.isIndoor ? " · indoor" : ""}
         </p>
@@ -155,11 +155,11 @@ export default function ZoneDetail() {
           <Card key={label}>
             <div className="flex items-center gap-2 mb-1">
               <Icon size={14} className="text-stone-500" />
-              <span className="text-xs text-stone-500 font-[family-name:var(--font-display)]">
+              <span className="text-xs text-stone-500 font-display">
                 {label}
               </span>
             </div>
-            <p className="text-sm text-stone-200 font-[family-name:var(--font-mono)]">
+            <p className="text-sm text-stone-200 font-mono">
               {value ?? "--"}
             </p>
           </Card>
@@ -168,7 +168,7 @@ export default function ZoneDetail() {
 
       {/* Sun Analysis */}
       <Card>
-        <h2 className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-300 uppercase tracking-wider mb-3">
+        <h2 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider mb-3">
           Sun Analysis
         </h2>
         <div className="flex items-start gap-4">
@@ -200,11 +200,11 @@ export default function ZoneDetail() {
             </div>
           )}
           <div className="flex-1">
-            <p className="text-sm text-stone-200 font-[family-name:var(--font-display)]">
+            <p className="text-sm text-stone-200 font-display">
               {sunHoursEstimate(zone.sunExposure)}
             </p>
             {sunData && (
-              <div className="flex gap-4 mt-1.5 text-xs text-stone-500 font-[family-name:var(--font-mono)]">
+              <div className="flex gap-4 mt-1.5 text-xs text-stone-500 font-mono">
                 <span className="flex items-center gap-1">
                   <Sunrise size={10} />
                   {new Date(sunData.sunrise).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
@@ -247,7 +247,7 @@ export default function ZoneDetail() {
       {/* Companion Planting Alerts */}
       {companionPairs.length > 0 && (
         <Card>
-          <h2 className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-300 uppercase tracking-wider mb-3">
+          <h2 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider mb-3">
             Companion Planting
           </h2>
           <div className="space-y-1.5">
@@ -258,14 +258,14 @@ export default function ZoneDetail() {
                 ) : (
                   <X size={12} className="text-red-400 shrink-0" />
                 )}
-                <span className="text-stone-300 font-[family-name:var(--font-display)]">
+                <span className="text-stone-300 font-display">
                   {pair.a.nickname ?? pair.a.plantReference?.commonName ?? "Plant"}
                 </span>
                 <span className="text-stone-600">&amp;</span>
-                <span className="text-stone-300 font-[family-name:var(--font-display)]">
+                <span className="text-stone-300 font-display">
                   {pair.b.nickname ?? pair.b.plantReference?.commonName ?? "Plant"}
                 </span>
-                <span className={`font-[family-name:var(--font-mono)] ${pair.status === "compatible" ? "text-emerald-400/60" : "text-red-400/60"}`}>
+                <span className={`font-mono ${pair.status === "compatible" ? "text-emerald-400/60" : "text-red-400/60"}`}>
                   {pair.status === "compatible" ? "good companions" : "avoid together"}
                 </span>
               </div>
@@ -277,7 +277,7 @@ export default function ZoneDetail() {
       {/* Visual Planting Bed View */}
       {plants && plants.length > 0 && showBedView && (
         <Card>
-          <h2 className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-300 uppercase tracking-wider mb-3">
+          <h2 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider mb-3">
             Bed View
           </h2>
           <div className="flex justify-center p-3">
@@ -313,7 +313,7 @@ export default function ZoneDetail() {
                 ))}
               </div>
               {/* Zone dimensions label */}
-              <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[10px] text-stone-600 font-[family-name:var(--font-mono)]">
+              <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[10px] text-stone-600 font-mono">
                 {zone.width}x{zone.depth}ft
               </span>
             </div>
@@ -324,7 +324,7 @@ export default function ZoneDetail() {
       {/* Plants Grid */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold font-[family-name:var(--font-display)] text-stone-200">
+          <h2 className="text-lg font-semibold font-display text-stone-200">
             Plants in this Zone
           </h2>
           <Button size="sm" onClick={() => setShowAddPlant(true)}>
@@ -347,13 +347,13 @@ export default function ZoneDetail() {
                   mood={plant.mood}
                   size={56}
                 />
-                <p className="text-sm font-medium text-stone-200 mt-2 font-[family-name:var(--font-display)] truncate">
+                <p className="text-sm font-medium text-stone-200 mt-2 font-display truncate">
                   {plant.nickname ??
                     plant.plantReference?.commonName ??
                     "Plant"}
                 </p>
                 <StatusBadge status={plant.status} />
-                <p className="text-xs text-stone-400 mt-1.5 font-[family-name:var(--font-mono)] italic">
+                <p className="text-xs text-stone-400 mt-1.5 font-mono italic">
                   {getMoodMessage(plant.mood, plant.nickname ?? undefined)}
                 </p>
               </Card>
@@ -367,7 +367,7 @@ export default function ZoneDetail() {
               size={48}
               className="mx-auto"
             />
-            <p className="text-stone-400 text-sm mt-3 font-[family-name:var(--font-display)]">
+            <p className="text-stone-400 text-sm mt-3 font-display">
               This zone is empty. Time to plant something!
             </p>
           </Card>
@@ -382,7 +382,7 @@ export default function ZoneDetail() {
         >
           {showNotifSettings ? <ChevronDown size={14} className="text-stone-500" /> : <ChevronRight size={14} className="text-stone-500" />}
           <Bell size={14} className="text-stone-500" />
-          <h2 className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-300 uppercase tracking-wider">
+          <h2 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider">
             Notification Settings
           </h2>
         </button>
@@ -398,7 +398,7 @@ export default function ZoneDetail() {
                 onChange={(e) => setOverrideGlobal(e.target.checked)}
                 className="rounded border-stone-600 bg-stone-800 text-emerald-500 focus:ring-emerald-500/40"
               />
-              <span className="text-sm text-stone-300 font-[family-name:var(--font-display)]">
+              <span className="text-sm text-stone-300 font-display">
                 Override global settings for all plants in this zone
               </span>
             </label>
@@ -407,7 +407,7 @@ export default function ZoneDetail() {
                 {(taskTypes.filter((t) => t !== "custom") as CareTaskType[]).map((tt) => (
                   <div key={tt} className="flex items-center gap-3 py-1.5 px-3 rounded-lg bg-stone-800/50">
                     <span className="text-sm w-5 text-center">{taskTypeIcons[tt]}</span>
-                    <span className="text-xs text-stone-200 font-[family-name:var(--font-display)] flex-1 capitalize">
+                    <span className="text-xs text-stone-200 font-display flex-1 capitalize">
                       {tt.replace("_", " ")}
                     </span>
                     <select
@@ -416,7 +416,7 @@ export default function ZoneDetail() {
                         if (!zoneId) return;
                         showToast(`Zone ${tt} notifications set to: ${e.target.value}`, "success");
                       }}
-                      className="bg-stone-800 border border-stone-700 rounded-lg text-xs text-stone-300 px-2 py-1 font-[family-name:var(--font-mono)] focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+                      className="bg-stone-800 border border-stone-700 rounded-lg text-xs text-stone-300 px-2 py-1 font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
                     >
                       <option value="default">Use global default</option>
                       <option value="on">On</option>
@@ -471,11 +471,11 @@ export default function ZoneDetail() {
                     size={24}
                   />
                   <div>
-                    <span className="font-[family-name:var(--font-display)] font-medium">
+                    <span className="font-display font-medium">
                       {ref.commonName}
                     </span>
                     {ref.latinName && (
-                      <span className="text-xs text-stone-500 ml-2 italic font-[family-name:var(--font-mono)]">
+                      <span className="text-xs text-stone-500 ml-2 italic font-mono">
                         {ref.latinName}
                       </span>
                     )}
@@ -515,7 +515,7 @@ export default function ZoneDetail() {
                   onChange={(e) => setIsContainer(e.target.checked)}
                   className="rounded border-stone-600 bg-stone-800 text-emerald-500 focus:ring-emerald-500/40"
                 />
-                <span className="text-sm text-stone-300 font-[family-name:var(--font-display)]">Container plant</span>
+                <span className="text-sm text-stone-300 font-display">Container plant</span>
               </label>
             </>
           )}

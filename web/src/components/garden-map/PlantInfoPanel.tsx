@@ -82,7 +82,7 @@ export default function PlantInfoPanel({
         <div className="flex items-center gap-3 p-3 border-b border-stone-800">
           <PlantSprite type={spriteType} mood={mood} size={40} />
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold font-[family-name:var(--font-display)] text-stone-100 text-sm truncate">
+            <h3 className="font-bold font-display text-stone-100 text-sm truncate">
               {displayName}
             </h3>
             {ref?.latinName && (
@@ -91,6 +91,7 @@ export default function PlantInfoPanel({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1 rounded-lg hover:bg-stone-800 text-stone-500 hover:text-stone-300 transition-colors"
           >
             <X size={16} />
@@ -99,7 +100,7 @@ export default function PlantInfoPanel({
 
         {/* Mood message */}
         <div className="px-3 py-2 bg-stone-800/50">
-          <p className="text-xs font-[family-name:var(--font-mono)] text-stone-300 flex items-center gap-1.5">
+          <p className="text-xs font-mono text-stone-300 flex items-center gap-1.5">
             {MoodIcon && <MoodIcon size={12} className="text-stone-400" />}
             <span className="italic">"{moodMessage}"</span>
           </p>
@@ -109,7 +110,7 @@ export default function PlantInfoPanel({
         <div className="p-3 space-y-2">
           {/* Status */}
           <div className="flex items-center justify-between">
-            <span className="text-xs text-stone-500 font-[family-name:var(--font-mono)]">status</span>
+            <span className="text-xs text-stone-500 font-mono">status</span>
             <span className={`px-2 py-0.5 rounded-full text-xs font-semibold text-white ${STATUS_COLORS[plant.status] ?? "bg-stone-600"}`}>
               {plant.status}
             </span>
@@ -118,7 +119,7 @@ export default function PlantInfoPanel({
           {/* Zone */}
           {plant.zone && (
             <div className="flex items-center justify-between">
-              <span className="text-xs text-stone-500 font-[family-name:var(--font-mono)]">zone</span>
+              <span className="text-xs text-stone-500 font-mono">zone</span>
               <span className="text-xs text-stone-300">{plant.zone.name}</span>
             </div>
           )}
@@ -126,7 +127,7 @@ export default function PlantInfoPanel({
           {/* Sun requirement */}
           {ref?.sunRequirement && (
             <div className="flex items-center justify-between">
-              <span className="text-xs text-stone-500 font-[family-name:var(--font-mono)]">sun</span>
+              <span className="text-xs text-stone-500 font-mono">sun</span>
               <span className="text-xs text-stone-300">{ref.sunRequirement.replace(/_/g, " ")}</span>
             </div>
           )}
@@ -134,7 +135,7 @@ export default function PlantInfoPanel({
           {/* Water needs */}
           {ref?.waterNeeds && (
             <div className="flex items-center justify-between">
-              <span className="text-xs text-stone-500 font-[family-name:var(--font-mono)]">water</span>
+              <span className="text-xs text-stone-500 font-mono">water</span>
               <span className="text-xs text-stone-300">{ref.waterNeeds}</span>
             </div>
           )}
@@ -142,7 +143,7 @@ export default function PlantInfoPanel({
           {/* Planted date */}
           {plant.datePlanted && (
             <div className="flex items-center justify-between">
-              <span className="text-xs text-stone-500 font-[family-name:var(--font-mono)]">planted</span>
+              <span className="text-xs text-stone-500 font-mono">planted</span>
               <span className="text-xs text-stone-300">
                 {new Date(plant.datePlanted).toLocaleDateString()}
               </span>
@@ -154,7 +155,7 @@ export default function PlantInfoPanel({
         <div className="p-3 border-t border-stone-800">
           <Link
             to={`/my-plants/${plant.id}`}
-            className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 rounded-lg text-xs font-semibold font-[family-name:var(--font-display)] transition-colors"
+            className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 rounded-lg text-xs font-semibold font-display transition-colors"
           >
             <ExternalLink size={12} />
             View Full Details

@@ -113,7 +113,7 @@ export default function PlantDetail() {
       <div>
         <button
           onClick={() => navigate("/plants")}
-          className="flex items-center gap-1 text-sm text-stone-400 hover:text-stone-200 font-[family-name:var(--font-display)] mb-3 transition-colors"
+          className="flex items-center gap-1 text-sm text-stone-400 hover:text-stone-200 font-display mb-3 transition-colors"
         >
           <ArrowLeft size={14} /> Back to Plants
         </button>
@@ -125,11 +125,11 @@ export default function PlantDetail() {
           <PlantSprite type={(plant.plantType as PlantType) ?? "flower"} mood="happy" size={96} />
         </div>
         <div className="flex-1 text-center sm:text-left">
-          <h1 className="text-2xl font-bold font-[family-name:var(--font-display)] text-stone-100">
+          <h1 className="text-2xl font-bold font-display text-stone-100">
             {plant.commonName}
           </h1>
           {plant.latinName && (
-            <p className="text-stone-400 italic font-[family-name:var(--font-mono)] mt-0.5">
+            <p className="text-stone-400 italic font-mono mt-0.5">
               {plant.latinName}
             </p>
           )}
@@ -144,7 +144,7 @@ export default function PlantDetail() {
             </p>
           )}
           <div className="flex items-center gap-2 mt-2">
-            <p className="text-sm text-emerald-400 capitalize font-[family-name:var(--font-display)]">
+            <p className="text-sm text-emerald-400 capitalize font-display">
               {plant.plantType}
             </p>
             {plant.source && (
@@ -188,7 +188,7 @@ export default function PlantDetail() {
 
       {/* Care Requirements */}
       <div>
-        <h2 className="text-lg font-semibold font-[family-name:var(--font-display)] text-stone-200 mb-3">
+        <h2 className="text-lg font-semibold font-display text-stone-200 mb-3">
           Care Requirements
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -196,11 +196,11 @@ export default function PlantDetail() {
             <Card key={label}>
               <div className="flex items-center gap-2 mb-1">
                 <Icon size={14} className="text-stone-500" />
-                <span className="text-xs text-stone-500 font-[family-name:var(--font-display)]">
+                <span className="text-xs text-stone-500 font-display">
                   {label}
                 </span>
               </div>
-              <p className="text-sm text-stone-200 font-[family-name:var(--font-mono)] capitalize">
+              <p className="text-sm text-stone-200 font-mono capitalize">
                 {value ?? "--"}
               </p>
             </Card>
@@ -212,7 +212,7 @@ export default function PlantDetail() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {plant.soilPreference && (
           <Card>
-            <p className="text-xs text-stone-500 mb-1 font-[family-name:var(--font-display)]">
+            <p className="text-xs text-stone-500 mb-1 font-display">
               Soil Preference
             </p>
             <p className="text-sm text-stone-200">{plant.soilPreference}</p>
@@ -220,7 +220,7 @@ export default function PlantDetail() {
         )}
         {plant.bloomColor && (
           <Card>
-            <p className="text-xs text-stone-500 mb-1 font-[family-name:var(--font-display)]">
+            <p className="text-xs text-stone-500 mb-1 font-display">
               Bloom Color
             </p>
             <p className="text-sm text-stone-200">{plant.bloomColor}</p>
@@ -228,17 +228,17 @@ export default function PlantDetail() {
         )}
         {(plant.hardinessZoneMin != null || plant.hardinessZoneMax != null) && (
           <Card>
-            <p className="text-xs text-stone-500 mb-1 font-[family-name:var(--font-display)]">
+            <p className="text-xs text-stone-500 mb-1 font-display">
               Hardiness Zones
             </p>
-            <p className="text-sm text-stone-200 font-[family-name:var(--font-mono)]">
+            <p className="text-sm text-stone-200 font-mono">
               {plant.hardinessZoneMin ?? "?"} — {plant.hardinessZoneMax ?? "?"}
             </p>
           </Card>
         )}
         {plant.foliageType && (
           <Card>
-            <p className="text-xs text-stone-500 mb-1 font-[family-name:var(--font-display)]">
+            <p className="text-xs text-stone-500 mb-1 font-display">
               Foliage Type
             </p>
             <p className="text-sm text-stone-200 capitalize">
@@ -250,7 +250,7 @@ export default function PlantDetail() {
 
       {/* Safety */}
       <div>
-        <h2 className="text-lg font-semibold font-[family-name:var(--font-display)] text-stone-200 mb-3">
+        <h2 className="text-lg font-semibold font-display text-stone-200 mb-3">
           Safety Ratings
         </h2>
         <Card>
@@ -284,7 +284,7 @@ export default function PlantDetail() {
         plant.attractsBirds ||
         plant.attractsButterflies) && (
         <div>
-          <h2 className="text-lg font-semibold font-[family-name:var(--font-display)] text-stone-200 mb-3">
+          <h2 className="text-lg font-semibold font-display text-stone-200 mb-3">
             Plant Traits
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -292,7 +292,7 @@ export default function PlantDetail() {
               <Card>
                 <div className="flex items-center gap-2 mb-1">
                   <Sprout size={14} className="text-stone-500" />
-                  <span className="text-xs text-stone-500 font-[family-name:var(--font-display)]">
+                  <span className="text-xs text-stone-500 font-display">
                     Lifecycle
                   </span>
                 </div>
@@ -305,7 +305,7 @@ export default function PlantDetail() {
               <Card>
                 <div className="flex items-center gap-2 mb-1">
                   <MapPin size={14} className="text-stone-500" />
-                  <span className="text-xs text-stone-500 font-[family-name:var(--font-display)]">
+                  <span className="text-xs text-stone-500 font-display">
                     Native Region
                   </span>
                 </div>
@@ -316,11 +316,11 @@ export default function PlantDetail() {
               <Card>
                 <div className="flex items-center gap-2 mb-1">
                   <Thermometer size={14} className="text-stone-500" />
-                  <span className="text-xs text-stone-500 font-[family-name:var(--font-display)]">
+                  <span className="text-xs text-stone-500 font-display">
                     Temperature Range
                   </span>
                 </div>
-                <p className="text-sm text-stone-200 font-[family-name:var(--font-mono)]">
+                <p className="text-sm text-stone-200 font-mono">
                   {plant.minTempF ?? "?"}°F — {plant.maxTempF ?? "?"}°F
                 </p>
               </Card>
@@ -366,7 +366,7 @@ export default function PlantDetail() {
       {/* Care Notes */}
       {(plant.plantingNotes || plant.pruningNotes || plant.overwinteringNotes || plant.companionPlants) && (
         <div>
-          <h2 className="text-lg font-semibold font-[family-name:var(--font-display)] text-stone-200 mb-3">
+          <h2 className="text-lg font-semibold font-display text-stone-200 mb-3">
             Care Guides
           </h2>
           <div className="space-y-3">
@@ -374,7 +374,7 @@ export default function PlantDetail() {
               <Card>
                 <div className="flex items-center gap-2 mb-2">
                   <Sprout size={14} className="text-emerald-500" />
-                  <span className="text-sm font-semibold text-stone-200 font-[family-name:var(--font-display)]">
+                  <span className="text-sm font-semibold text-stone-200 font-display">
                     Planting Notes
                   </span>
                 </div>
@@ -387,7 +387,7 @@ export default function PlantDetail() {
               <Card>
                 <div className="flex items-center gap-2 mb-2">
                   <Scissors size={14} className="text-amber-500" />
-                  <span className="text-sm font-semibold text-stone-200 font-[family-name:var(--font-display)]">
+                  <span className="text-sm font-semibold text-stone-200 font-display">
                     Pruning Notes
                   </span>
                 </div>
@@ -400,7 +400,7 @@ export default function PlantDetail() {
               <Card>
                 <div className="flex items-center gap-2 mb-2">
                   <Snowflake size={14} className="text-blue-400" />
-                  <span className="text-sm font-semibold text-stone-200 font-[family-name:var(--font-display)]">
+                  <span className="text-sm font-semibold text-stone-200 font-display">
                     Overwintering
                   </span>
                 </div>
@@ -413,7 +413,7 @@ export default function PlantDetail() {
               <Card>
                 <div className="flex items-center gap-2 mb-2">
                   <Leaf size={14} className="text-green-500" />
-                  <span className="text-sm font-semibold text-stone-200 font-[family-name:var(--font-display)]">
+                  <span className="text-sm font-semibold text-stone-200 font-display">
                     Companion Plants
                   </span>
                 </div>
@@ -495,7 +495,7 @@ export default function PlantDetail() {
               onChange={(e) => setIsContainer(e.target.checked)}
               className="rounded border-stone-600 bg-stone-800 text-emerald-500 focus:ring-emerald-500/40"
             />
-            <span className="text-sm text-stone-300 font-[family-name:var(--font-display)]">Container plant</span>
+            <span className="text-sm text-stone-300 font-display">Container plant</span>
           </label>
 
           <div className="flex justify-end gap-3 pt-2">

@@ -20,15 +20,15 @@ function NotFound() {
   return (
     <div className="text-center py-20">
       <PlantSprite type="flower" mood="sleeping" size={96} className="mx-auto" />
-      <h1 className="text-3xl font-bold font-[family-name:var(--font-display)] text-stone-100 mt-6">
+      <h1 className="text-3xl font-bold font-display text-stone-100 mt-6">
         404 - Page Not Found
       </h1>
-      <p className="text-stone-400 mt-2 font-[family-name:var(--font-display)]">
+      <p className="text-stone-400 mt-2 font-display">
         This page has gone dormant. It might not exist, or it wandered off.
       </p>
       <Link
         to="/"
-        className="inline-block mt-6 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-semibold font-[family-name:var(--font-display)] text-white transition-colors"
+        className="inline-block mt-6 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-semibold font-display text-white transition-colors"
       >
         Back to Dashboard
       </Link>

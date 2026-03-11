@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef } from "react";
+import { type ReactNode, useEffect, useRef, useCallback } from "react";
 import { X } from "lucide-react";
 
 interface ModalProps {
@@ -9,6 +9,9 @@ interface ModalProps {
   wide?: boolean;
 }
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export default function Modal({
   open,
   onClose,
@@ -17,19 +20,63 @@ export default function Modal({
   wide = false,
 }: ModalProps) {
   const backdropRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      if (e.key === "Tab") {
+        const dialog = dialogRef.current;
+        if (!dialog) return;
+
+        const focusable = Array.from(
+          dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+        );
+        if (focusable.length === 0) return;
+
+        const first = focusable[0]!;
+        const last = focusable[focusable.length - 1]!;
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    },
+    [onClose],
+  );
 
   useEffect(() => {
     if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handler);
+
+    document.addEventListener("keydown", handleKeyDown);
     document.body.style.overflow = "hidden";
+
+    // Focus first focusable element inside the dialog
+    const dialog = dialogRef.current;
+    if (dialog) {
+      const focusable = dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+      if (focusable.length > 0) {
+        focusable[0]!.focus();
+      }
+    }
+
     return () => {
-      document.removeEventListener("keydown", handler);
+      document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "";
     };
-  }, [open, onClose]);
+  }, [open, handleKeyDown]);
 
   if (!open) return null;
 
@@ -42,16 +89,24 @@ export default function Modal({
       }}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
         className={`bg-stone-900 border border-stone-800 rounded-xl shadow-2xl w-full ${
           wide ? "max-w-2xl" : "max-w-md"
         } max-h-[90vh] overflow-y-auto`}
       >
         <div className="flex items-center justify-between p-5 border-b border-stone-800">
-          <h2 className="text-lg font-semibold font-[family-name:var(--font-display)] text-stone-100">
+          <h2
+            id="modal-title"
+            className="text-lg font-semibold font-display text-stone-100"
+          >
             {title}
           </h2>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1 rounded-lg text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors"
           >
             <X size={20} />

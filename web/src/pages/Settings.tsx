@@ -178,7 +178,7 @@ export default function Settings() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold font-[family-name:var(--font-display)] text-stone-100">
+        <h1 className="text-2xl font-bold font-display text-stone-100">
           Settings
         </h1>
         <p className="text-stone-400 text-sm mt-1">
@@ -188,19 +188,19 @@ export default function Settings() {
 
       {/* Preferences */}
       <Card>
-        <h2 className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-300 uppercase tracking-wider mb-4">
+        <h2 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider mb-4">
           Preferences
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Thermometer size={14} className="text-stone-500" />
-              <span className="text-sm text-stone-400 font-[family-name:var(--font-display)]">Temperature Unit</span>
+              <span className="text-sm text-stone-400 font-display">Temperature Unit</span>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={() => handleTempUnitChange("F")}
-                className={`px-3 py-1.5 rounded-lg text-sm font-[family-name:var(--font-mono)] transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-sm font-mono transition-colors ${
                   tempUnit === "F"
                     ? "bg-emerald-600 text-white"
                     : "bg-stone-800 text-stone-400 hover:bg-stone-700"
@@ -210,7 +210,7 @@ export default function Settings() {
               </button>
               <button
                 onClick={() => handleTempUnitChange("C")}
-                className={`px-3 py-1.5 rounded-lg text-sm font-[family-name:var(--font-mono)] transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-sm font-mono transition-colors ${
                   tempUnit === "C"
                     ? "bg-emerald-600 text-white"
                     : "bg-stone-800 text-stone-400 hover:bg-stone-700"
@@ -223,16 +223,16 @@ export default function Settings() {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Moon size={14} className="text-stone-500" />
-              <span className="text-sm text-stone-400 font-[family-name:var(--font-display)]">Theme</span>
+              <span className="text-sm text-stone-400 font-display">Theme</span>
             </div>
             <div className="flex gap-2">
               <button
-                className="px-3 py-1.5 rounded-lg text-sm font-[family-name:var(--font-display)] bg-emerald-600 text-white"
+                className="px-3 py-1.5 rounded-lg text-sm font-display bg-emerald-600 text-white"
               >
                 Dark
               </button>
               <button
-                className="px-3 py-1.5 rounded-lg text-sm font-[family-name:var(--font-display)] bg-stone-800 text-stone-500 cursor-not-allowed"
+                className="px-3 py-1.5 rounded-lg text-sm font-display bg-stone-800 text-stone-500 cursor-not-allowed"
                 disabled
               >
                 Light (coming soon)
@@ -244,7 +244,7 @@ export default function Settings() {
 
       {/* Care Reminders */}
       <Card>
-        <h2 className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-300 uppercase tracking-wider mb-1">
+        <h2 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider mb-1">
           Care Reminders
         </h2>
         <p className="text-xs text-stone-500 mb-4">
@@ -267,7 +267,7 @@ export default function Settings() {
                 return (
                   <div key={tt} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-stone-800/50">
                     <span className="text-base w-6 text-center">{taskTypeIcons[tt]}</span>
-                    <span className="text-sm text-stone-200 font-[family-name:var(--font-display)] flex-1 capitalize">
+                    <span className="text-sm text-stone-200 font-display flex-1 capitalize">
                       {tt.replace("_", " ")}
                     </span>
                     <button
@@ -299,7 +299,7 @@ export default function Settings() {
                           }
                         )
                       }
-                      className="bg-stone-800 border border-stone-700 rounded-lg text-xs text-stone-300 px-2 py-1 font-[family-name:var(--font-mono)] focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+                      className="bg-stone-800 border border-stone-700 rounded-lg text-xs text-stone-300 px-2 py-1 font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
                     >
                       <option value="immediate">Immediate</option>
                       <option value="daily_digest">Daily digest</option>
@@ -312,7 +312,7 @@ export default function Settings() {
 
             <div className="mt-4 flex items-end gap-4">
               <div className="flex-1">
-                <label className="block text-xs text-stone-400 font-[family-name:var(--font-display)] mb-1">
+                <label className="block text-xs text-stone-400 font-display mb-1">
                   Digest Time
                 </label>
                 <input
@@ -330,7 +330,7 @@ export default function Settings() {
                       );
                     });
                   }}
-                  className="bg-stone-800 border border-stone-700 rounded-lg text-sm text-stone-300 px-3 py-1.5 font-[family-name:var(--font-mono)] focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+                  className="bg-stone-800 border border-stone-700 rounded-lg text-sm text-stone-300 px-3 py-1.5 font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
                 />
               </div>
               <Button
@@ -354,7 +354,7 @@ export default function Settings() {
       {/* Notification Channels */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold font-[family-name:var(--font-display)] text-stone-200">
+          <h2 className="text-lg font-semibold font-display text-stone-200">
             Notification Channels
           </h2>
           <Button size="sm" onClick={() => { resetForm(); setShowAdd(true); }}>
@@ -380,10 +380,10 @@ export default function Settings() {
                     <div className="flex items-center gap-3">
                       <span className="text-lg">{typeInfo?.icon ?? "🔔"}</span>
                       <div>
-                        <p className="text-sm font-medium text-stone-200 font-[family-name:var(--font-display)]">
+                        <p className="text-sm font-medium text-stone-200 font-display">
                           {ch.name}
                         </p>
-                        <p className="text-xs text-stone-500 font-[family-name:var(--font-mono)]">
+                        <p className="text-xs text-stone-500 font-mono">
                           {typeInfo?.label ?? ch.type}
                           {!ch.enabled && " · disabled"}
                           {ch.quietHoursStart && ch.quietHoursEnd && ` · quiet ${ch.quietHoursStart}-${ch.quietHoursEnd}`}
@@ -420,7 +420,7 @@ export default function Settings() {
         ) : (
           <Card className="text-center py-8">
             <Bell className="mx-auto text-stone-600 mb-2" size={32} />
-            <p className="text-stone-400 text-sm font-[family-name:var(--font-display)]">
+            <p className="text-stone-400 text-sm font-display">
               No notification channels configured. Add one to get care reminders!
             </p>
           </Card>
@@ -476,7 +476,7 @@ export default function Settings() {
               onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
               className="rounded border-stone-600 bg-stone-800 text-emerald-500 focus:ring-emerald-500/40"
             />
-            <span className="text-sm text-stone-300 font-[family-name:var(--font-display)]">Enabled</span>
+            <span className="text-sm text-stone-300 font-display">Enabled</span>
           </label>
 
           <div className="grid grid-cols-2 gap-3">

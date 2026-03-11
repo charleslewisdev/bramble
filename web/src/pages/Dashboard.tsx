@@ -44,7 +44,7 @@ function WeatherCard({ location, tempUnit }: { location: Location; tempUnit: str
     <Card className="min-w-0">
       <div className="flex items-center gap-2 mb-2">
         <MapPin size={12} className="text-stone-500 shrink-0" />
-        <p className="text-xs text-stone-400 font-[family-name:var(--font-display)] truncate">
+        <p className="text-xs text-stone-400 font-display truncate">
           {location.name}
         </p>
       </div>
@@ -52,22 +52,22 @@ function WeatherCard({ location, tempUnit }: { location: Location; tempUnit: str
         <div className="flex items-center gap-3">
           <div className="text-center">
             <p className="text-2xl">{getWeatherEmoji(weather.conditions)}</p>
-            <p className="text-lg font-bold font-[family-name:var(--font-mono)] text-stone-100">
+            <p className="text-lg font-bold font-mono text-stone-100">
               {formatTemperature(weather.temperature, tempUnit)}
             </p>
           </div>
           <div className="flex-1 min-w-0 text-xs space-y-0.5">
             <p className="text-stone-400 truncate">{weather.conditions ?? "--"}</p>
-            <p className="text-stone-500 font-[family-name:var(--font-mono)]">
+            <p className="text-stone-500 font-mono">
               H:{weather.temperatureHigh != null ? formatTempShort(weather.temperatureHigh, tempUnit) : "--"}
               {" "}L:{weather.temperatureLow != null ? formatTempShort(weather.temperatureLow, tempUnit) : "--"}
             </p>
-            <p className="text-stone-500 font-[family-name:var(--font-mono)]">
+            <p className="text-stone-500 font-mono">
               {weather.humidity != null ? `${Math.round(weather.humidity)}% hum` : ""}
               {weather.windSpeed != null ? ` \u{00b7} ${Math.round(weather.windSpeed)}mph` : ""}
             </p>
             {(weather.uvIndex != null || weather.precipitationProbability != null) && (
-              <p className="text-stone-500 font-[family-name:var(--font-mono)]">
+              <p className="text-stone-500 font-mono">
                 {weather.uvIndex != null ? `UV ${weather.uvIndex}` : ""}
                 {weather.precipitationProbability != null ? ` \u{00b7} ${Math.round(weather.precipitationProbability)}% rain` : ""}
               </p>
@@ -103,7 +103,7 @@ function SunWidget({ locationId, locationName }: { locationId: number; locationN
 
   return (
     <Card>
-      <h3 className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-300 uppercase tracking-wider mb-3">
+      <h3 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider mb-3">
         Sun &amp; Daylight{locationName ? ` \u{2014} ${locationName}` : ""}
       </h3>
 
@@ -144,21 +144,21 @@ function SunWidget({ locationId, locationName }: { locationId: number; locationN
       <div className="grid grid-cols-3 gap-3 text-xs">
         <div className="text-center">
           <Sunrise size={14} className="mx-auto text-amber-400 mb-1" />
-          <p className="text-stone-300 font-[family-name:var(--font-mono)]">
+          <p className="text-stone-300 font-mono">
             {sunrise.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
           </p>
           <p className="text-stone-500">Sunrise</p>
         </div>
         <div className="text-center">
           <Clock size={14} className="mx-auto text-yellow-400 mb-1" />
-          <p className="text-stone-300 font-[family-name:var(--font-mono)]">
+          <p className="text-stone-300 font-mono">
             {hours}h {minutes}m
           </p>
           <p className="text-stone-500">Daylight</p>
         </div>
         <div className="text-center">
           <Sunset size={14} className="mx-auto text-orange-400 mb-1" />
-          <p className="text-stone-300 font-[family-name:var(--font-mono)]">
+          <p className="text-stone-300 font-mono">
             {sunset.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
           </p>
           <p className="text-stone-500">Sunset</p>
@@ -167,7 +167,7 @@ function SunWidget({ locationId, locationName }: { locationId: number; locationN
 
       {sunData.goldenHour && (
         <div className="mt-2 pt-2 border-t border-stone-800 text-center">
-          <p className="text-xs text-amber-400/80 font-[family-name:var(--font-mono)]">
+          <p className="text-xs text-amber-400/80 font-mono">
             Golden hour: {new Date(sunData.goldenHour.start).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
           </p>
         </div>
@@ -215,7 +215,7 @@ function WildlifeWidget({ locationId, locationName }: { locationId: number; loca
 
   return (
     <Card>
-      <h3 className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-300 uppercase tracking-wider mb-3">
+      <h3 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider mb-3">
         Garden Visitors{locationName ? ` \u{2014} ${locationName}` : ""}
       </h3>
       <div className="space-y-3">
@@ -225,7 +225,7 @@ function WildlifeWidget({ locationId, locationName }: { locationId: number; loca
             <div key={category}>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <Icon size={12} className="text-emerald-400" />
-                <p className="text-xs font-semibold text-stone-400 font-[family-name:var(--font-display)]">
+                <p className="text-xs font-semibold text-stone-400 font-display">
                   {categoryLabels[category] ?? category}
                 </p>
               </div>
@@ -300,10 +300,10 @@ export default function Dashboard() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold font-[family-name:var(--font-display)] text-stone-100">
+        <h1 className="text-3xl font-bold font-display text-stone-100">
           {getWelcomeMessage()}
         </h1>
-        <p className="text-stone-400 mt-1 font-[family-name:var(--font-display)]">
+        <p className="text-stone-400 mt-1 font-display">
           Here's what's happening in your garden
         </p>
       </div>
@@ -311,7 +311,7 @@ export default function Dashboard() {
       {showOnboarding ? (
         <Card className="text-center py-12">
           <PlantSprite type="flower" mood="new" size={80} className="mx-auto" />
-          <h2 className="text-xl font-semibold font-[family-name:var(--font-display)] text-stone-200 mt-6">
+          <h2 className="text-xl font-semibold font-display text-stone-200 mt-6">
             Let's get growing!
           </h2>
           <p className="text-stone-400 mt-2 max-w-md mx-auto">
@@ -319,20 +319,20 @@ export default function Dashboard() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
             <div className="flex flex-col items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-emerald-600/20 flex items-center justify-center text-emerald-400 font-bold font-[family-name:var(--font-mono)]">1</div>
-              <p className="text-sm text-stone-300 font-[family-name:var(--font-display)]">Add a location</p>
+              <div className="w-10 h-10 rounded-full bg-emerald-600/20 flex items-center justify-center text-emerald-400 font-bold font-mono">1</div>
+              <p className="text-sm text-stone-300 font-display">Add a location</p>
               <Button size="sm" onClick={() => navigate("/locations")}>
                 <MapPin size={14} /> Add Location
               </Button>
             </div>
             <div className="flex flex-col items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-sky-600/20 flex items-center justify-center text-sky-400 font-bold font-[family-name:var(--font-mono)]">2</div>
-              <p className="text-sm text-stone-300 font-[family-name:var(--font-display)]">Create zones</p>
+              <div className="w-10 h-10 rounded-full bg-sky-600/20 flex items-center justify-center text-sky-400 font-bold font-mono">2</div>
+              <p className="text-sm text-stone-300 font-display">Create zones</p>
               <p className="text-xs text-stone-500">(beds, yards, containers)</p>
             </div>
             <div className="flex flex-col items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-amber-600/20 flex items-center justify-center text-amber-400 font-bold font-[family-name:var(--font-mono)]">3</div>
-              <p className="text-sm text-stone-300 font-[family-name:var(--font-display)]">Add plants</p>
+              <div className="w-10 h-10 rounded-full bg-amber-600/20 flex items-center justify-center text-amber-400 font-bold font-mono">3</div>
+              <p className="text-sm text-stone-300 font-display">Add plants</p>
               <Button size="sm" variant="secondary" onClick={() => navigate("/plants")}>
                 <Sprout size={14} /> Browse Plants
               </Button>
@@ -371,14 +371,14 @@ export default function Dashboard() {
                         <AlertTriangle size={16} className={iconColor} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-semibold font-[family-name:var(--font-display)] ${iconColor}`}>
+                        <p className={`text-sm font-semibold font-display ${iconColor}`}>
                           {alert.title}
                         </p>
                         <p className="text-xs text-stone-400 mt-0.5">
                           {alert.message}
                         </p>
                         {alert.affectedPlants.length > 0 && (
-                          <p className="text-xs text-stone-500 mt-1 font-[family-name:var(--font-mono)]">
+                          <p className="text-xs text-stone-500 mt-1 font-mono">
                             {alert.affectedPlants.length} plant{alert.affectedPlants.length > 1 ? "s" : ""} affected
                           </p>
                         )}
@@ -397,7 +397,7 @@ export default function Dashboard() {
                 <Sprout size={20} className="text-emerald-400" />
               </div>
               <div>
-                <p className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-200">
+                <p className="text-sm font-semibold font-display text-stone-200">
                   {seasonLabel} {new Date().getFullYear()}
                 </p>
                 <p className="text-xs text-stone-400 mt-0.5">
@@ -415,10 +415,10 @@ export default function Dashboard() {
               onClick={() => navigate("/my-plants")}
             >
               <Sprout className="mx-auto text-emerald-400 mb-2" size={24} />
-              <p className="text-2xl font-bold font-[family-name:var(--font-mono)] text-stone-100">
+              <p className="text-2xl font-bold font-mono text-stone-100">
                 {totalPlants}
               </p>
-              <p className="text-xs text-stone-400 font-[family-name:var(--font-display)]">
+              <p className="text-xs text-stone-400 font-display">
                 Plants
               </p>
             </Card>
@@ -429,10 +429,10 @@ export default function Dashboard() {
               onClick={() => navigate("/locations")}
             >
               <MapPin className="mx-auto text-sky-400 mb-2" size={24} />
-              <p className="text-2xl font-bold font-[family-name:var(--font-mono)] text-stone-100">
+              <p className="text-2xl font-bold font-mono text-stone-100">
                 {totalLocations}
               </p>
-              <p className="text-xs text-stone-400 font-[family-name:var(--font-display)]">
+              <p className="text-xs text-stone-400 font-display">
                 Locations
               </p>
             </Card>
@@ -443,10 +443,10 @@ export default function Dashboard() {
               onClick={() => navigate("/care")}
             >
               <CalendarCheck className="mx-auto text-amber-400 mb-2" size={24} />
-              <p className="text-2xl font-bold font-[family-name:var(--font-mono)] text-stone-100">
+              <p className="text-2xl font-bold font-mono text-stone-100">
                 {tasksDueToday.length}
               </p>
-              <p className="text-xs text-stone-400 font-[family-name:var(--font-display)]">
+              <p className="text-xs text-stone-400 font-display">
                 Tasks Today
               </p>
             </Card>
@@ -455,20 +455,20 @@ export default function Dashboard() {
               {overdueTasks.length > 0 ? (
                 <>
                   <AlertTriangle className="mx-auto text-red-400 mb-2" size={24} />
-                  <p className="text-2xl font-bold font-[family-name:var(--font-mono)] text-red-400">
+                  <p className="text-2xl font-bold font-mono text-red-400">
                     {overdueTasks.length}
                   </p>
-                  <p className="text-xs text-red-400/80 font-[family-name:var(--font-display)]">
+                  <p className="text-xs text-red-400/80 font-display">
                     Overdue
                   </p>
                 </>
               ) : (
                 <>
                   <CalendarCheck className="mx-auto text-emerald-400 mb-2" size={24} />
-                  <p className="text-2xl font-bold font-[family-name:var(--font-mono)] text-stone-100">
+                  <p className="text-2xl font-bold font-mono text-stone-100">
                     0
                   </p>
-                  <p className="text-xs text-stone-400 font-[family-name:var(--font-display)]">
+                  <p className="text-xs text-stone-400 font-display">
                     Overdue
                   </p>
                 </>
@@ -479,7 +479,7 @@ export default function Dashboard() {
           {/* Multi-location weather */}
           {locations && locations.length > 0 && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold font-[family-name:var(--font-display)] text-stone-200">
+              <h2 className="text-lg font-semibold font-display text-stone-200">
                 Weather
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -515,7 +515,7 @@ export default function Dashboard() {
           {/* Plants needing attention */}
           {needsAttention.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold font-[family-name:var(--font-display)] text-stone-200 mb-3">
+              <h2 className="text-lg font-semibold font-display text-stone-200 mb-3">
                 Needs Attention
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -533,10 +533,10 @@ export default function Dashboard() {
                       mood={plant.mood}
                       size={48}
                     />
-                    <p className="text-sm font-medium text-stone-200 mt-2 font-[family-name:var(--font-display)] truncate">
+                    <p className="text-sm font-medium text-stone-200 mt-2 font-display truncate">
                       {plant.nickname ?? plant.plantReference?.commonName ?? "Plant"}
                     </p>
-                    <p className="text-xs text-stone-400 mt-1 font-[family-name:var(--font-mono)] italic">
+                    <p className="text-xs text-stone-400 mt-1 font-mono italic">
                       {getMoodMessage(plant.mood, plant.nickname ?? undefined)}
                     </p>
                   </Card>
@@ -559,12 +559,12 @@ export default function Dashboard() {
           ) : plants && plants.length > 0 ? (
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-semibold font-[family-name:var(--font-display)] text-stone-200">
+                <h2 className="text-lg font-semibold font-display text-stone-200">
                   Your Garden
                 </h2>
                 <button
                   onClick={() => navigate("/my-plants")}
-                  className="text-sm text-emerald-400 hover:text-emerald-300 font-[family-name:var(--font-display)] flex items-center gap-1"
+                  className="text-sm text-emerald-400 hover:text-emerald-300 font-display flex items-center gap-1"
                 >
                   View all <ArrowRight size={14} />
                 </button>
@@ -584,7 +584,7 @@ export default function Dashboard() {
                       mood={plant.mood}
                       size={40}
                     />
-                    <p className="text-xs text-stone-300 mt-1 truncate font-[family-name:var(--font-display)]">
+                    <p className="text-xs text-stone-300 mt-1 truncate font-display">
                       {plant.nickname ??
                         plant.plantReference?.commonName ??
                         "Plant"}
@@ -596,7 +596,7 @@ export default function Dashboard() {
           ) : (
             <Card className="text-center py-12">
               <PlantSprite type="flower" mood="new" size={64} className="mx-auto" />
-              <p className="text-lg font-semibold font-[family-name:var(--font-display)] text-stone-200 mt-4">
+              <p className="text-lg font-semibold font-display text-stone-200 mt-4">
                 No plants yet? Let's fix that!
               </p>
               <p className="text-stone-400 text-sm mt-1">
@@ -604,7 +604,7 @@ export default function Dashboard() {
               </p>
               <button
                 onClick={() => navigate("/plants")}
-                className="mt-4 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-semibold font-[family-name:var(--font-display)] text-white transition-colors"
+                className="mt-4 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-semibold font-display text-white transition-colors"
               >
                 Browse Plants
               </button>
@@ -614,13 +614,13 @@ export default function Dashboard() {
           {/* Today's Tasks - grouped by urgency */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold font-[family-name:var(--font-display)] text-stone-200">
+              <h2 className="text-lg font-semibold font-display text-stone-200">
                 Tasks
               </h2>
               {upcomingTasks.length > 0 && (
                 <button
                   onClick={() => navigate("/care")}
-                  className="text-sm text-emerald-400 hover:text-emerald-300 font-[family-name:var(--font-display)] flex items-center gap-1"
+                  className="text-sm text-emerald-400 hover:text-emerald-300 font-display flex items-center gap-1"
                 >
                   View all <ArrowRight size={14} />
                 </button>
@@ -645,7 +645,7 @@ export default function Dashboard() {
                 {/* Overdue */}
                 {overdueTasks.length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-red-400 font-[family-name:var(--font-mono)] mb-1.5 uppercase flex items-center gap-1">
+                    <p className="text-xs font-semibold text-red-400 font-mono mb-1.5 uppercase flex items-center gap-1">
                       <AlertTriangle size={10} /> Overdue ({overdueTasks.length})
                     </p>
                     <div className="space-y-2">
@@ -663,10 +663,10 @@ export default function Dashboard() {
                                 />
                               )}
                               <div>
-                                <p className="text-sm font-medium text-stone-200 font-[family-name:var(--font-display)]">
+                                <p className="text-sm font-medium text-stone-200 font-display">
                                   {task.title}
                                 </p>
-                                <p className="text-xs text-red-400/80 font-[family-name:var(--font-mono)]">
+                                <p className="text-xs text-red-400/80 font-mono">
                                   Due: {task.dueDate}
                                   {task.plantInstance &&
                                     ` \u{00b7} ${task.plantInstance.nickname ?? task.plantInstance.plantReference?.commonName ?? ""}`}
@@ -684,7 +684,7 @@ export default function Dashboard() {
                 {/* Today */}
                 {tasksDueToday.length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-amber-400 font-[family-name:var(--font-mono)] mb-1.5 uppercase">
+                    <p className="text-xs font-semibold text-amber-400 font-mono mb-1.5 uppercase">
                       Today ({tasksDueToday.length})
                     </p>
                     <div className="space-y-2">
@@ -700,10 +700,10 @@ export default function Dashboard() {
                                 />
                               )}
                               <div>
-                                <p className="text-sm font-medium text-stone-200 font-[family-name:var(--font-display)]">
+                                <p className="text-sm font-medium text-stone-200 font-display">
                                   {task.title}
                                 </p>
-                                <p className="text-xs text-stone-500 font-[family-name:var(--font-mono)]">
+                                <p className="text-xs text-stone-500 font-mono">
                                   {task.taskType.replace("_", " ")}
                                   {task.plantInstance &&
                                     ` \u{00b7} ${task.plantInstance.nickname ?? task.plantInstance.plantReference?.commonName ?? ""}`}
@@ -721,7 +721,7 @@ export default function Dashboard() {
                 {/* This Week */}
                 {thisWeekTasks.length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-stone-500 font-[family-name:var(--font-mono)] mb-1.5 uppercase">
+                    <p className="text-xs font-semibold text-stone-500 font-mono mb-1.5 uppercase">
                       This Week ({thisWeekTasks.length})
                     </p>
                     <div className="space-y-2">
@@ -737,10 +737,10 @@ export default function Dashboard() {
                                 />
                               )}
                               <div>
-                                <p className="text-sm font-medium text-stone-200 font-[family-name:var(--font-display)]">
+                                <p className="text-sm font-medium text-stone-200 font-display">
                                   {task.title}
                                 </p>
-                                <p className="text-xs text-stone-500 font-[family-name:var(--font-mono)]">
+                                <p className="text-xs text-stone-500 font-mono">
                                   {formatDate(task.dueDate ?? "")}
                                   {task.plantInstance &&
                                     ` \u{00b7} ${task.plantInstance.nickname ?? task.plantInstance.plantReference?.commonName ?? ""}`}
@@ -761,7 +761,7 @@ export default function Dashboard() {
                   className="mx-auto text-stone-600 mb-2"
                   size={32}
                 />
-                <p className="text-stone-400 text-sm font-[family-name:var(--font-display)]">
+                <p className="text-stone-400 text-sm font-display">
                   No upcoming tasks. Your plants are on autopilot!
                 </p>
               </Card>

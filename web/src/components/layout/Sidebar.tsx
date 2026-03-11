@@ -53,6 +53,7 @@ export default function Sidebar() {
       <button
         className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-stone-900 border border-stone-800 text-stone-300 md:hidden"
         onClick={() => setMobileOpen(!mobileOpen)}
+        aria-label={mobileOpen ? "Close menu" : "Open menu"}
       >
         {mobileOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
@@ -73,7 +74,7 @@ export default function Sidebar() {
         )}
       >
         {/* Logo */}
-        <div className="p-5 border-b border-stone-800">
+        <header className="p-5 border-b border-stone-800">
           <div className="flex items-center gap-3">
             {/* Pixel leaf icon */}
             <svg
@@ -95,17 +96,17 @@ export default function Sidebar() {
               <rect x={14} y={20} width={4} height={4} fill="#92400e" />
               <rect x={14} y={24} width={4} height={4} fill="#78350f" />
             </svg>
-            <span className="text-xl font-bold font-[family-name:var(--font-display)] text-stone-100">
+            <span className="text-xl font-bold font-display text-stone-100">
               Bramble
             </span>
           </div>
-          <p className="text-xs text-stone-500 mt-1 font-[family-name:var(--font-mono)]">
+          <p className="text-xs text-stone-500 mt-1 font-mono">
             garden management
           </p>
-        </div>
+        </header>
 
         {/* Navigation */}
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        <nav aria-label="Main navigation" className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
@@ -114,7 +115,7 @@ export default function Sidebar() {
               onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
                 clsx(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium font-[family-name:var(--font-display)] transition-colors",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium font-display transition-colors",
                   isActive
                     ? "bg-emerald-600/20 text-emerald-400 border-l-2 border-emerald-400"
                     : "text-stone-400 hover:text-stone-200 hover:bg-stone-900 border-l-2 border-transparent"
@@ -129,7 +130,7 @@ export default function Sidebar() {
 
         {/* Mood garden widget */}
         <div className="p-4 border-t border-stone-800">
-          <p className="text-xs text-stone-500 font-[family-name:var(--font-mono)] mb-2">
+          <p className="text-xs text-stone-500 font-mono mb-2">
             garden mood
           </p>
           <div className="flex items-end gap-1 justify-center">

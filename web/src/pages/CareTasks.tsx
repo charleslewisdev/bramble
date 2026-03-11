@@ -235,7 +235,7 @@ export default function CareTasks() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold font-[family-name:var(--font-display)] text-stone-100">
+          <h1 className="text-2xl font-bold font-display text-stone-100">
             Care Tasks
           </h1>
           <p className="text-stone-400 text-sm mt-1">
@@ -261,7 +261,7 @@ export default function CareTasks() {
       {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (
         <div className="sticky top-0 z-10 bg-stone-800 border border-stone-700 rounded-lg px-4 py-3 flex items-center justify-between gap-4">
-          <span className="text-sm font-medium text-stone-200 font-[family-name:var(--font-display)]">
+          <span className="text-sm font-medium text-stone-200 font-display">
             {selectedIds.size} selected
           </span>
           <div className="flex items-center gap-2">
@@ -317,7 +317,7 @@ export default function CareTasks() {
         <div className="space-y-6">
           {sortedDates.map((date) => (
             <div key={date}>
-              <h3 className="text-sm font-semibold font-[family-name:var(--font-mono)] text-stone-400 mb-2">
+              <h3 className="text-sm font-semibold font-mono text-stone-400 mb-2">
                 {date === "unscheduled" ? "Unscheduled" : formatDate(date)}
               </h3>
               <div className="space-y-2">
@@ -329,6 +329,7 @@ export default function CareTasks() {
                           type="checkbox"
                           checked={selectedIds.has(task.id)}
                           onChange={() => toggleSelect(task.id)}
+                          aria-label={`Select task: ${task.title}`}
                           className="w-4 h-4 shrink-0 rounded border-stone-600 bg-stone-800 text-emerald-500 focus:ring-emerald-500/40 cursor-pointer accent-emerald-500"
                         />
                         <span className="text-lg">
@@ -345,10 +346,10 @@ export default function CareTasks() {
                           />
                         )}
                         <div>
-                          <p className="text-sm font-medium text-stone-200 font-[family-name:var(--font-display)]">
+                          <p className="text-sm font-medium text-stone-200 font-display">
                             {task.title}
                           </p>
-                          <p className="text-xs text-stone-500 font-[family-name:var(--font-mono)]">
+                          <p className="text-xs text-stone-500 font-mono">
                             {task.taskType.replace("_", " ")}
                             {task.plantInstance &&
                               ` \u{00b7} ${task.plantInstance.nickname ?? task.plantInstance.plantReference?.commonName ?? ""}`}
@@ -367,7 +368,7 @@ export default function CareTasks() {
                           {task.activeMonths && task.activeMonths.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
                               {task.activeMonths.map((m) => (
-                                <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-stone-800 text-stone-400 font-[family-name:var(--font-mono)]">
+                                <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-stone-800 text-stone-400 font-mono">
                                   {monthNames[m - 1]}
                                 </span>
                               ))}
@@ -378,6 +379,7 @@ export default function CareTasks() {
                       <div className="flex gap-1.5 shrink-0">
                         <Button
                           size="sm"
+                          aria-label="Complete task"
                           onClick={() =>
                             logTask.mutate(
                               { id: task.id, action: "completed" },
@@ -393,6 +395,7 @@ export default function CareTasks() {
                         <Button
                           size="sm"
                           variant="ghost"
+                          aria-label="Skip task"
                           onClick={() =>
                             logTask.mutate({
                               id: task.id,
@@ -406,6 +409,7 @@ export default function CareTasks() {
                           onClick={() => openEditTask(task)}
                           className="p-1.5 rounded-lg text-stone-600 hover:text-stone-200 hover:bg-stone-800 transition-colors"
                           title="Edit task"
+                          aria-label="Edit task"
                         >
                           <Pencil size={14} />
                         </button>
@@ -413,6 +417,7 @@ export default function CareTasks() {
                           onClick={() => setConfirmDeleteTask(task.id)}
                           className="p-1.5 rounded-lg text-stone-600 hover:text-red-400 hover:bg-stone-800 transition-colors"
                           title="Delete task"
+                          aria-label="Delete task"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -427,7 +432,7 @@ export default function CareTasks() {
       ) : (
         <Card className="text-center py-12">
           <PlantSprite type="herb" mood="happy" size={64} className="mx-auto" />
-          <p className="text-lg font-semibold text-stone-200 font-[family-name:var(--font-display)] mt-4">
+          <p className="text-lg font-semibold text-stone-200 font-display mt-4">
             Nothing to do! Your plants are taking care of themselves... or are they?
           </p>
           <p className="text-stone-400 text-sm mt-1">
@@ -532,7 +537,7 @@ export default function CareTasks() {
                 }
                 className="rounded border-stone-600 bg-stone-800 text-emerald-500 focus:ring-emerald-500/40"
               />
-              <span className="text-sm text-stone-300 font-[family-name:var(--font-display)]">
+              <span className="text-sm text-stone-300 font-display">
                 Recurring
               </span>
             </label>
@@ -547,14 +552,14 @@ export default function CareTasks() {
                   }
                 />
                 <div>
-                  <p className="text-sm text-stone-400 font-[family-name:var(--font-display)] mb-2">Active Months</p>
+                  <p className="text-sm text-stone-400 font-display mb-2">Active Months</p>
                   <div className="flex flex-wrap gap-2">
                     {monthNames.map((name, i) => (
                       <button
                         key={i}
                         type="button"
                         onClick={() => toggleMonth(i + 1)}
-                        className={`px-2.5 py-1 rounded text-xs font-[family-name:var(--font-mono)] transition-colors ${
+                        className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
                           form.activeMonths.includes(i + 1)
                             ? "bg-emerald-600 text-white"
                             : "bg-stone-800 text-stone-400 hover:bg-stone-700"
@@ -577,7 +582,7 @@ export default function CareTasks() {
               }
               className="rounded border-stone-600 bg-stone-800 text-emerald-500 focus:ring-emerald-500/40"
             />
-            <span className="text-sm text-stone-300 font-[family-name:var(--font-display)]">
+            <span className="text-sm text-stone-300 font-display">
               Send notification when due
             </span>
           </label>

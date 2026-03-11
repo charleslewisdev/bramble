@@ -307,7 +307,7 @@ export default function SunMap({
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-stone-800 border border-stone-700 rounded-lg px-3 py-1.5 text-sm text-stone-200 font-[family-name:var(--font-mono)] focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+              className="bg-stone-800 border border-stone-700 rounded-lg px-3 py-1.5 text-sm text-stone-200 font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
             />
           </div>
           <div className="flex gap-1.5 flex-wrap">
@@ -316,7 +316,7 @@ export default function SunMap({
                 <button
                   key={preset}
                   onClick={() => handleDatePreset(preset)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-[family-name:var(--font-display)] transition-colors ${
+                  className={`px-2.5 py-1 rounded-md text-xs font-display transition-colors ${
                     (preset === "Today" && selectedDate === todayStr()) ||
                     (preset !== "Today" &&
                       selectedDate === getSeasonDate(preset))
@@ -344,7 +344,7 @@ export default function SunMap({
               onChange={(e) => setSliderMinutes(Number(e.target.value))}
               className="w-full h-2 bg-stone-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
             />
-            <div className="flex justify-between text-[10px] text-stone-500 font-[family-name:var(--font-mono)]">
+            <div className="flex justify-between text-[10px] text-stone-500 font-mono">
               <span>{dateSunData ? formatTime(dateSunData.sunrise) : "--"}</span>
               <span className="text-stone-300 text-xs font-medium">
                 {sliderMinutes != null
@@ -365,7 +365,7 @@ export default function SunMap({
 
         {/* Day info */}
         {dateSunData && (
-          <div className="flex flex-wrap items-center gap-4 text-xs text-stone-400 font-[family-name:var(--font-mono)] pt-2 border-t border-stone-800">
+          <div className="flex flex-wrap items-center gap-4 text-xs text-stone-400 font-mono pt-2 border-t border-stone-800">
             <span>
               Sunrise: {formatTime(dateSunData.sunrise)}
             </span>
@@ -391,7 +391,7 @@ export default function SunMap({
         )}
 
         {sunDataError && (
-          <p className="text-xs text-red-400 font-[family-name:var(--font-mono)]">
+          <p className="text-xs text-red-400 font-mono">
             Sun data unavailable for this date.
           </p>
         )}
@@ -590,11 +590,11 @@ export default function SunMap({
           </svg>
 
           {/* Width label */}
-          <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-stone-500 font-[family-name:var(--font-mono)]">
+          <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-stone-500 font-mono">
             {lotW}ft
           </span>
           {/* Depth label */}
-          <span className="absolute -right-12 top-1/2 -translate-y-1/2 text-xs text-stone-500 font-[family-name:var(--font-mono)] rotate-90">
+          <span className="absolute -right-12 top-1/2 -translate-y-1/2 text-xs text-stone-500 font-mono rotate-90">
             {lotD}ft
           </span>
         </div>
@@ -602,7 +602,7 @@ export default function SunMap({
 
       {shadowsError && (
         <div className="text-center py-3">
-          <p className="text-xs text-stone-500 font-[family-name:var(--font-mono)]">
+          <p className="text-xs text-stone-500 font-mono">
             Shadow data unavailable -- showing lot map without shadow overlay
           </p>
         </div>
@@ -611,10 +611,10 @@ export default function SunMap({
       {/* Zone Sun Exposure Analysis */}
       {zones.length > 0 && displayShadows && displayShadows.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-300 uppercase tracking-wider mb-3">
+          <h3 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider mb-3">
             Zone Shadow Status
           </h3>
-          <p className="text-xs text-stone-500 font-[family-name:var(--font-mono)] mb-3">
+          <p className="text-xs text-stone-500 font-mono mb-3">
             At {sliderMinutes != null ? formatTimeFromMinutes(sliderMinutes) : "--"} on{" "}
             {new Date(selectedDate + "T00:00:00").toLocaleDateString("en-US", {
               month: "short",
@@ -636,18 +636,18 @@ export default function SunMap({
                         }}
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-stone-200 font-[family-name:var(--font-display)] truncate">
+                        <p className="text-sm font-medium text-stone-200 font-display truncate">
                           {zone.name}
                         </p>
                         <p
-                          className={`text-xs font-[family-name:var(--font-mono)] mt-0.5 ${
+                          className={`text-xs font-mono mt-0.5 ${
                             inShadow ? "text-stone-400" : "text-yellow-400"
                           }`}
                         >
                           {inShadow ? "In Shadow" : "In Sun"}
                         </p>
                         {zone.sunExposure && (
-                          <p className="text-[10px] text-stone-500 font-[family-name:var(--font-mono)] mt-1">
+                          <p className="text-[10px] text-stone-500 font-mono mt-1">
                             Manual:{" "}
                             {zone.sunExposure.replace("_", " ")}
                           </p>
@@ -669,7 +669,7 @@ export default function SunMap({
 
       {/* Seasonal Comparison */}
       <div>
-        <h3 className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-300 uppercase tracking-wider mb-3">
+        <h3 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider mb-3">
           Seasonal Comparison
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -741,20 +741,20 @@ function SeasonCard({
                 : "\uD83C\uDF42"}
         </span>
         <span
-          className={`text-xs font-semibold font-[family-name:var(--font-display)] ${
+          className={`text-xs font-semibold font-display ${
             isCurrent ? "text-emerald-400" : "text-stone-300"
           }`}
         >
           {shortLabel}
         </span>
         {isCurrent && (
-          <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-[family-name:var(--font-mono)]">
+          <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono">
             NOW
           </span>
         )}
       </div>
       {sunData ? (
-        <div className="space-y-0.5 text-[10px] font-[family-name:var(--font-mono)]">
+        <div className="space-y-0.5 text-[10px] font-mono">
           <p className="text-stone-400">
             Rise: {formatTime(sunData.sunrise)}
           </p>

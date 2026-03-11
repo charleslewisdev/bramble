@@ -35,7 +35,7 @@ export default function Button({
   return (
     <button
       className={clsx(
-        "rounded-lg font-[family-name:var(--font-display)] font-semibold",
+        "rounded-lg font-display font-semibold",
         "transition-colors duration-150",
         "inline-flex items-center justify-center gap-2",
         "disabled:opacity-50 disabled:cursor-not-allowed",

@@ -70,17 +70,17 @@ export default function MapHUD({
           <div className="flex items-center gap-3 pointer-events-auto">
             <Link
               to={`/locations/${location.id}`}
-              className="flex items-center gap-2 px-3 py-2 bg-stone-900/90 border border-stone-700 rounded-lg text-stone-300 hover:text-stone-100 text-sm font-[family-name:var(--font-display)] transition-colors backdrop-blur-sm"
+              className="flex items-center gap-2 px-3 py-2 bg-stone-900/90 border border-stone-700 rounded-lg text-stone-300 hover:text-stone-100 text-sm font-display transition-colors backdrop-blur-sm"
             >
               <ArrowLeft size={16} />
               Back
             </Link>
             <div className="px-3 py-2 bg-stone-900/90 border border-stone-700 rounded-lg backdrop-blur-sm">
-              <h1 className="text-sm font-bold font-[family-name:var(--font-display)] text-stone-100">
+              <h1 className="text-sm font-bold font-display text-stone-100">
                 {location.name}
               </h1>
               {location.address && (
-                <p className="text-xs text-stone-500 font-[family-name:var(--font-mono)]">
+                <p className="text-xs text-stone-500 font-mono">
                   {location.address}
                 </p>
               )}
@@ -92,19 +92,19 @@ export default function MapHUD({
             <div className="flex items-center gap-2 px-3 py-2 bg-stone-900/90 border border-stone-700 rounded-lg backdrop-blur-sm pointer-events-auto">
               <span className="text-lg">{getWeatherEmoji(weather.conditions ?? "")}</span>
               {weather.temperature != null && (
-                <span className="flex items-center gap-1 text-sm text-stone-200 font-[family-name:var(--font-mono)]">
+                <span className="flex items-center gap-1 text-sm text-stone-200 font-mono">
                   <Thermometer size={12} className="text-stone-400" />
                   {Math.round(weather.temperature)}°
                 </span>
               )}
               {weather.humidity != null && (
-                <span className="flex items-center gap-1 text-sm text-stone-400 font-[family-name:var(--font-mono)]">
+                <span className="flex items-center gap-1 text-sm text-stone-400 font-mono">
                   <Droplets size={12} />
                   {weather.humidity}%
                 </span>
               )}
               {weather.windSpeed != null && (
-                <span className="flex items-center gap-1 text-sm text-stone-400 font-[family-name:var(--font-mono)]">
+                <span className="flex items-center gap-1 text-sm text-stone-400 font-mono">
                   <Wind size={12} />
                   {Math.round(weather.windSpeed)}mph
                 </span>
@@ -120,6 +120,7 @@ export default function MapHUD({
           onClick={onZoomIn}
           className="p-2 bg-stone-900/90 border border-stone-700 rounded-lg text-stone-300 hover:text-stone-100 hover:bg-stone-800/90 transition-colors backdrop-blur-sm"
           title="Zoom in"
+          aria-label="Zoom in"
         >
           <ZoomIn size={18} />
         </button>
@@ -127,6 +128,7 @@ export default function MapHUD({
           onClick={onZoomOut}
           className="p-2 bg-stone-900/90 border border-stone-700 rounded-lg text-stone-300 hover:text-stone-100 hover:bg-stone-800/90 transition-colors backdrop-blur-sm"
           title="Zoom out"
+          aria-label="Zoom out"
         >
           <ZoomOut size={18} />
         </button>
@@ -134,6 +136,7 @@ export default function MapHUD({
           onClick={onFitView}
           className="p-2 bg-stone-900/90 border border-stone-700 rounded-lg text-stone-300 hover:text-stone-100 hover:bg-stone-800/90 transition-colors backdrop-blur-sm"
           title="Fit to view"
+          aria-label="Fit to view"
         >
           <Maximize2 size={18} />
         </button>
@@ -142,6 +145,7 @@ export default function MapHUD({
           onClick={onToggleLabels}
           className="p-2 bg-stone-900/90 border border-stone-700 rounded-lg text-stone-300 hover:text-stone-100 hover:bg-stone-800/90 transition-colors backdrop-blur-sm"
           title={showLabels ? "Hide labels" : "Show labels"}
+          aria-label={showLabels ? "Hide labels" : "Show labels"}
         >
           {showLabels ? <Eye size={18} /> : <EyeOff size={18} />}
         </button>
@@ -154,7 +158,7 @@ export default function MapHUD({
           <div className="flex items-center gap-3 pointer-events-auto">
             <div className="flex items-center gap-2 px-3 py-2 bg-stone-900/90 border border-stone-700 rounded-lg backdrop-blur-sm">
               <Sprout size={16} className="text-emerald-400" />
-              <span className="text-sm font-[family-name:var(--font-mono)] text-stone-200">
+              <span className="text-sm font-mono text-stone-200">
                 {plants.length} plants
               </span>
               {needsAttention > 0 && (
@@ -172,7 +176,7 @@ export default function MapHUD({
                 return (
                   <span
                     key={mood}
-                    className={`text-xs font-[family-name:var(--font-mono)] ${info.color}`}
+                    className={`text-xs font-mono ${info.color}`}
                   >
                     {count} {info.label}
                   </span>
@@ -183,7 +187,7 @@ export default function MapHUD({
 
           {/* Keyboard hints */}
           <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-stone-900/90 border border-stone-700 rounded-lg backdrop-blur-sm pointer-events-auto">
-            <span className="text-xs text-stone-500 font-[family-name:var(--font-mono)]">
+            <span className="text-xs text-stone-500 font-mono">
               scroll to zoom · drag to pan · click plants for details
             </span>
           </div>

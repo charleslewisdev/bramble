@@ -24,7 +24,7 @@ export default function Chip({ children, color = "stone", className }: ChipProps
   return (
     <span
       className={clsx(
-        "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium font-[family-name:var(--font-display)]",
+        "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium font-display",
         colorStyles[color],
         className
       )}

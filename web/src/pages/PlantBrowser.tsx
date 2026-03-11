@@ -100,7 +100,7 @@ export default function PlantBrowser() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold font-[family-name:var(--font-display)] text-stone-100">
+        <h1 className="text-2xl font-bold font-display text-stone-100">
           Plant Browser
         </h1>
         <p className="text-stone-400 text-sm mt-1">
@@ -122,7 +122,7 @@ export default function PlantBrowser() {
               className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500"
             />
             <input
-              className="w-full bg-stone-800 border border-stone-700 rounded-lg pl-9 pr-3 py-2 text-stone-100 placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 transition-colors font-[family-name:var(--font-display)]"
+              className="w-full bg-stone-800 border border-stone-700 rounded-lg pl-9 pr-3 py-2 text-stone-100 placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 transition-colors font-display"
               placeholder="Search plants (local + online)..."
               value={search}
               onChange={(e) => {
@@ -228,11 +228,11 @@ export default function PlantBrowser() {
                     showOverlay={false}
                   />
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-stone-200 font-[family-name:var(--font-display)] truncate">
+                    <h3 className="font-semibold text-stone-200 font-display truncate">
                       {plant.commonName}
                     </h3>
                     {plant.latinName && (
-                      <p className="text-xs text-stone-500 italic font-[family-name:var(--font-mono)] truncate">
+                      <p className="text-xs text-stone-500 italic font-mono truncate">
                         {plant.latinName}
                       </p>
                     )}
@@ -303,7 +303,7 @@ export default function PlantBrowser() {
                         quantity: 1,
                       });
                     }}
-                    className="text-xs text-stone-400 hover:text-emerald-400 font-[family-name:var(--font-display)] flex items-center gap-1 transition-colors"
+                    className="text-xs text-stone-400 hover:text-emerald-400 font-display flex items-center gap-1 transition-colors"
                   >
                     <ShoppingCart size={12} /> Add to Shopping List
                   </button>
@@ -320,7 +320,7 @@ export default function PlantBrowser() {
             size={64}
             className="mx-auto"
           />
-          <p className="text-lg font-semibold text-stone-200 font-[family-name:var(--font-display)] mt-4">
+          <p className="text-lg font-semibold text-stone-200 font-display mt-4">
             Browse the plant database
           </p>
           <p className="text-stone-400 text-sm mt-1">
@@ -368,11 +368,11 @@ export default function PlantBrowser() {
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-stone-200 font-[family-name:var(--font-display)] truncate">
+                    <h3 className="font-semibold text-stone-200 font-display truncate">
                       {result.commonName}
                     </h3>
                     {result.latinName && (
-                      <p className="text-xs text-stone-500 italic font-[family-name:var(--font-mono)] truncate">
+                      <p className="text-xs text-stone-500 italic font-mono truncate">
                         {result.latinName}
                       </p>
                     )}
@@ -394,7 +394,7 @@ export default function PlantBrowser() {
                   <button
                     onClick={() => handleImport(result.perenualId!)}
                     disabled={importingIds.has(result.perenualId!)}
-                    className="text-xs text-emerald-400 hover:text-emerald-300 font-[family-name:var(--font-display)] flex items-center gap-1 transition-colors disabled:opacity-50"
+                    className="text-xs text-emerald-400 hover:text-emerald-300 font-display flex items-center gap-1 transition-colors disabled:opacity-50"
                   >
                     <Download size={12} />
                     {importingIds.has(result.perenualId!)
@@ -429,7 +429,7 @@ export default function PlantBrowser() {
               size={64}
               className="mx-auto"
             />
-            <p className="text-lg font-semibold text-stone-200 font-[family-name:var(--font-display)] mt-4">
+            <p className="text-lg font-semibold text-stone-200 font-display mt-4">
               No plants found for "{search}"
             </p>
             <p className="text-stone-400 text-sm mt-1">

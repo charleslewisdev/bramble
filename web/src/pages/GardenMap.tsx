@@ -67,7 +67,7 @@ export default function GardenMap() {
           <div className="animate-pulse">
             <MapPin size={48} className="text-emerald-500 mx-auto" />
           </div>
-          <p className="mt-4 text-stone-400 font-[family-name:var(--font-display)]">
+          <p className="mt-4 text-stone-400 font-display">
             Loading garden map...
           </p>
         </div>
@@ -80,7 +80,7 @@ export default function GardenMap() {
     return (
       <div className="fixed inset-0 z-50 bg-stone-950 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold font-[family-name:var(--font-display)] text-stone-100">
+          <h1 className="text-2xl font-bold font-display text-stone-100">
             Location not found
           </h1>
           <Link
@@ -100,7 +100,7 @@ export default function GardenMap() {
       <div className="fixed inset-0 z-50 bg-stone-950 flex items-center justify-center">
         <div className="text-center max-w-md">
           <MapPin size={48} className="text-stone-500 mx-auto" />
-          <h1 className="mt-4 text-xl font-bold font-[family-name:var(--font-display)] text-stone-100">
+          <h1 className="mt-4 text-xl font-bold font-display text-stone-100">
             Set up your property first
           </h1>
           <p className="mt-2 text-stone-400 text-sm">

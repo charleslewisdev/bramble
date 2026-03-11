@@ -76,7 +76,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: () => void }) 
     <div
       className={`flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg backdrop-blur-sm animate-in slide-in-from-right ${bgColor}`}
     >
-      <p className={`text-sm font-[family-name:var(--font-display)] flex-1 ${textColor}`}>
+      <p className={`text-sm font-display flex-1 ${textColor}`}>
         {toast.message}
       </p>
       <button

@@ -124,7 +124,7 @@ export default function LocationList() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold font-[family-name:var(--font-display)] text-stone-100">
+          <h1 className="text-2xl font-bold font-display text-stone-100">
             Locations
           </h1>
           <p className="text-stone-400 text-sm mt-1">
@@ -162,7 +162,7 @@ export default function LocationList() {
                     <MapPin size={20} className="text-sky-400" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-stone-200 font-[family-name:var(--font-display)]">
+                    <h3 className="font-semibold text-stone-200 font-display">
                       {loc.name}
                     </h3>
                     {loc.address && (
@@ -170,7 +170,7 @@ export default function LocationList() {
                         {loc.address}
                       </p>
                     )}
-                    <div className="flex gap-4 mt-2 text-xs text-stone-500 font-[family-name:var(--font-mono)]">
+                    <div className="flex gap-4 mt-2 text-xs text-stone-500 font-mono">
                       {loc.hardinessZone && (
                         <span>Zone {loc.hardinessZone}</span>
                       )}
@@ -212,7 +212,7 @@ export default function LocationList() {
       ) : (
         <Card className="text-center py-12">
           <PlantSprite type="tree" mood="new" size={64} className="mx-auto" />
-          <p className="text-lg font-semibold text-stone-200 font-[family-name:var(--font-display)] mt-4">
+          <p className="text-lg font-semibold text-stone-200 font-display mt-4">
             No locations yet. Where does your garden grow?
           </p>
           <p className="text-stone-400 text-sm mt-1">
@@ -283,13 +283,13 @@ export default function LocationList() {
 
             {/* Geocode status indicator */}
             {geocodeStatus === "success" && (
-              <div className="flex items-center gap-2 text-emerald-400 text-xs font-[family-name:var(--font-mono)]">
+              <div className="flex items-center gap-2 text-emerald-400 text-xs font-mono">
                 <CheckCircle size={14} />
                 Coordinates found ({Number(form.latitude).toFixed(4)}, {Number(form.longitude).toFixed(4)})
               </div>
             )}
             {geocodeStatus === "error" && (
-              <div className="flex items-center gap-2 text-red-400 text-xs font-[family-name:var(--font-mono)]">
+              <div className="flex items-center gap-2 text-red-400 text-xs font-mono">
                 <XCircle size={14} />
                 Could not find coordinates for this address. Try adding city/state/zip, or enter coordinates manually.
               </div>
@@ -298,7 +298,7 @@ export default function LocationList() {
             {/* Multiple results picker */}
             {geocodeResults && geocodeResults.length > 1 && (
               <div className="border border-stone-700 rounded-lg p-2 space-y-1 bg-stone-900">
-                <p className="text-xs text-stone-400 font-[family-name:var(--font-display)] mb-1">
+                <p className="text-xs text-stone-400 font-display mb-1">
                   Multiple matches found — select one:
                 </p>
                 {geocodeResults.map((r, i) => (
@@ -308,10 +308,10 @@ export default function LocationList() {
                     className="w-full text-left px-3 py-2 rounded-lg text-sm text-stone-300 hover:bg-stone-800 transition-colors"
                     onClick={() => selectGeoResult(r)}
                   >
-                    <span className="font-[family-name:var(--font-display)]">
+                    <span className="font-display">
                       {r.displayName}
                     </span>
-                    <span className="text-xs text-stone-500 font-[family-name:var(--font-mono)] ml-2">
+                    <span className="text-xs text-stone-500 font-mono ml-2">
                       ({r.lat.toFixed(4)}, {r.lng.toFixed(4)})
                     </span>
                   </button>
@@ -365,19 +365,19 @@ export default function LocationList() {
             </div>
 
             {hardinessStatus === "loading" && (
-              <div className="flex items-center gap-2 text-stone-400 text-xs font-[family-name:var(--font-mono)]">
+              <div className="flex items-center gap-2 text-stone-400 text-xs font-mono">
                 <Loader2 size={14} className="animate-spin" />
                 Looking up hardiness zone...
               </div>
             )}
             {hardinessStatus === "success" && form.hardinessZone && (
-              <div className="flex items-center gap-2 text-emerald-400 text-xs font-[family-name:var(--font-mono)]">
+              <div className="flex items-center gap-2 text-emerald-400 text-xs font-mono">
                 <CheckCircle size={14} />
                 Zone {form.hardinessZone} detected (via ZIP code — adjust if your area differs)
               </div>
             )}
             {hardinessStatus === "error" && (
-              <div className="flex items-center gap-2 text-amber-400 text-xs font-[family-name:var(--font-mono)]">
+              <div className="flex items-center gap-2 text-amber-400 text-xs font-mono">
                 <XCircle size={14} />
                 Could not auto-detect zone. You can enter it manually.
               </div>

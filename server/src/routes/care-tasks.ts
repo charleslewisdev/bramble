@@ -13,18 +13,18 @@ const taskTypeEnum = z.enum([
 const actionEnum = z.enum(["completed", "skipped", "deferred"]);
 
 const createTaskSchema = z.object({
-  plantInstanceId: z.number().int().positive().optional(),
-  zoneId: z.number().int().positive().optional(),
-  locationId: z.number().int().positive().optional(),
+  plantInstanceId: z.number().int().positive().nullable().optional(),
+  zoneId: z.number().int().positive().nullable().optional(),
+  locationId: z.number().int().positive().nullable().optional(),
   taskType: taskTypeEnum,
   title: z.string().min(1),
-  description: z.string().optional(),
-  dueDate: z.string().optional(),
+  description: z.string().nullable().optional(),
+  dueDate: z.string().nullable().optional(),
   isRecurring: z.boolean().optional(),
-  intervalDays: z.number().int().positive().optional(),
-  activeMonths: z.array(z.number().int().min(1).max(12)).optional(),
+  intervalDays: z.number().int().positive().nullable().optional(),
+  activeMonths: z.array(z.number().int().min(1).max(12)).nullable().optional(),
   sendNotification: z.boolean().optional(),
-  plantMessage: z.string().optional(),
+  plantMessage: z.string().nullable().optional(),
 });
 
 const updateTaskSchema = createTaskSchema.partial();
@@ -112,7 +112,7 @@ export async function careTaskRoutes(app: FastifyInstance) {
 
     const result = db
       .insert(careTasks)
-      .values(parsed.data as typeof careTasks.$inferInsert)
+      .values(parsed.data)
       .returning()
       .get();
 
@@ -143,7 +143,7 @@ export async function careTaskRoutes(app: FastifyInstance) {
     const result = db
       .update(careTasks)
       .set({
-        ...(bodyParsed.data as Partial<typeof careTasks.$inferInsert>),
+        ...bodyParsed.data,
         updatedAt: new Date().toISOString(),
       })
       .where(eq(careTasks.id, id))

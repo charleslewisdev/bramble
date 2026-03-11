@@ -44,57 +44,57 @@ const moodEnum = z.enum(["happy", "thirsty", "cold", "hot", "wilting", "sleeping
 
 const createReferenceSchema = z.object({
   commonName: z.string().min(1),
-  latinName: z.string().optional(),
-  cultivar: z.string().optional(),
-  family: z.string().optional(),
-  plantType: plantTypeEnum.optional(),
-  sunRequirement: sunRequirementEnum.optional(),
-  waterNeeds: waterNeedsEnum.optional(),
-  soilPreference: z.string().optional(),
-  hardinessZoneMin: z.number().int().optional(),
-  hardinessZoneMax: z.number().int().optional(),
-  matureHeight: z.string().optional(),
-  matureSpread: z.string().optional(),
-  growthRate: growthRateEnum.optional(),
-  bloomTime: z.string().optional(),
-  bloomColor: z.string().optional(),
-  foliageType: foliageTypeEnum.optional(),
-  toxicityDogs: toxicityEnum.optional(),
-  toxicityCats: toxicityEnum.optional(),
-  toxicityChildren: toxicityEnum.optional(),
-  toxicityNotes: z.string().optional(),
-  spriteType: spriteTypeEnum.optional(),
-  source: z.string().optional(),
-  externalId: z.string().optional(),
-  description: z.string().optional(),
-  careNotes: z.string().optional(),
-  lifecycle: lifecycleEnum.optional(),
-  plantingNotes: z.string().optional(),
-  pruningNotes: z.string().optional(),
-  overwinteringNotes: z.string().optional(),
-  nativeRegion: z.string().optional(),
-  deerResistant: z.number().int().optional(),
-  droughtTolerant: z.number().int().optional(),
-  containerSuitable: z.number().int().optional(),
-  attractsPollinators: z.number().int().optional(),
-  attractsBirds: z.number().int().optional(),
-  attractsButterflies: z.number().int().optional(),
-  companionPlants: z.string().optional(),
-  minTempF: z.number().int().optional(),
-  maxTempF: z.number().int().optional(),
+  latinName: z.string().nullable().optional(),
+  cultivar: z.string().nullable().optional(),
+  family: z.string().nullable().optional(),
+  plantType: plantTypeEnum.nullable().optional(),
+  sunRequirement: sunRequirementEnum.nullable().optional(),
+  waterNeeds: waterNeedsEnum.nullable().optional(),
+  soilPreference: z.string().nullable().optional(),
+  hardinessZoneMin: z.number().int().nullable().optional(),
+  hardinessZoneMax: z.number().int().nullable().optional(),
+  matureHeight: z.string().nullable().optional(),
+  matureSpread: z.string().nullable().optional(),
+  growthRate: growthRateEnum.nullable().optional(),
+  bloomTime: z.string().nullable().optional(),
+  bloomColor: z.string().nullable().optional(),
+  foliageType: foliageTypeEnum.nullable().optional(),
+  toxicityDogs: toxicityEnum.nullable().optional(),
+  toxicityCats: toxicityEnum.nullable().optional(),
+  toxicityChildren: toxicityEnum.nullable().optional(),
+  toxicityNotes: z.string().nullable().optional(),
+  spriteType: spriteTypeEnum.nullable().optional(),
+  source: z.string().nullable().optional(),
+  externalId: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  careNotes: z.string().nullable().optional(),
+  lifecycle: lifecycleEnum.nullable().optional(),
+  plantingNotes: z.string().nullable().optional(),
+  pruningNotes: z.string().nullable().optional(),
+  overwinteringNotes: z.string().nullable().optional(),
+  nativeRegion: z.string().nullable().optional(),
+  deerResistant: z.boolean().nullable().optional(),
+  droughtTolerant: z.boolean().nullable().optional(),
+  containerSuitable: z.boolean().nullable().optional(),
+  attractsPollinators: z.boolean().nullable().optional(),
+  attractsBirds: z.boolean().nullable().optional(),
+  attractsButterflies: z.boolean().nullable().optional(),
+  companionPlants: z.string().nullable().optional(),
+  minTempF: z.number().int().nullable().optional(),
+  maxTempF: z.number().int().nullable().optional(),
 });
 
 const updateReferenceSchema = createReferenceSchema.partial();
 
 const createInstanceSchema = z.object({
   plantReferenceId: z.number().int().positive(),
-  zoneId: z.number().int().positive().optional(),
-  nickname: z.string().optional(),
+  zoneId: z.number().int().positive().nullable().optional(),
+  nickname: z.string().nullable().optional(),
   status: statusEnum.optional(),
   isContainer: z.boolean().optional(),
-  containerDescription: z.string().optional(),
-  datePlanted: z.string().optional(),
-  notes: z.string().optional(),
+  containerDescription: z.string().nullable().optional(),
+  datePlanted: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
   mood: moodEnum.optional(),
 });
 
@@ -111,6 +111,24 @@ const updateInstanceSchema = z.object({
   mood: moodEnum.optional(),
   spriteOverride: spriteTypeEnum.nullable().optional(),
 });
+
+// ─── Perenual API rate counter (100/day free tier) ────────────────────────
+const perenualCounter = {
+  date: "",
+  count: 0,
+  check(): boolean {
+    const today = new Date().toISOString().split("T")[0]!;
+    if (this.date !== today) {
+      this.date = today;
+      this.count = 0;
+    }
+    return this.count < 100;
+  },
+  increment(): void {
+    this.check(); // ensure date is current
+    this.count++;
+  },
+};
 
 export async function plantRoutes(app: FastifyInstance) {
   // ─── Plant References (encyclopedia) ────────────────────────────────────────
@@ -170,7 +188,7 @@ export async function plantRoutes(app: FastifyInstance) {
 
     const result = db
       .insert(plantReferences)
-      .values(parsed.data as typeof plantReferences.$inferInsert)
+      .values(parsed.data)
       .returning()
       .get();
 
@@ -201,7 +219,7 @@ export async function plantRoutes(app: FastifyInstance) {
     const result = db
       .update(plantReferences)
       .set({
-        ...(bodyParsed.data as Partial<typeof plantReferences.$inferInsert>),
+        ...bodyParsed.data,
         updatedAt: new Date().toISOString(),
       })
       .where(eq(plantReferences.id, id))
@@ -275,12 +293,17 @@ export async function plantRoutes(app: FastifyInstance) {
         plantType: r.plantType,
       }));
 
-      // Perenual API search (if API key configured)
+      // Perenual API search (if API key configured and under rate limit)
       let api: PlantSearchResult[] = [];
       let apiTotal = 0;
       let apiAvailable = false;
 
+      if (!perenualCounter.check()) {
+        return { local, api, apiAvailable: false, apiTotal: 0, rateLimited: true };
+      }
+
       try {
+        perenualCounter.increment();
         const apiResult = await searchPerenualPlants(
           q,
           Number(page) || 1,
@@ -317,7 +340,12 @@ export async function plantRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: "Invalid Perenual ID" });
       }
 
+      if (!perenualCounter.check()) {
+        return reply.status(429).send({ error: "Perenual API daily limit reached (100/day)" });
+      }
+
       try {
+        perenualCounter.increment();
         const result = await getPerenualPlantDetail(perenualId);
         if (!result) {
           return reply.status(503).send({
@@ -413,7 +441,7 @@ export async function plantRoutes(app: FastifyInstance) {
 
     const result = db
       .insert(plantInstances)
-      .values(parsed.data as typeof plantInstances.$inferInsert)
+      .values(parsed.data)
       .returning()
       .get();
 
@@ -460,7 +488,7 @@ export async function plantRoutes(app: FastifyInstance) {
     const result = db
       .update(plantInstances)
       .set({
-        ...(bodyParsed.data as Partial<typeof plantInstances.$inferInsert>),
+        ...bodyParsed.data,
         updatedAt: new Date().toISOString(),
       })
       .where(eq(plantInstances.id, id))

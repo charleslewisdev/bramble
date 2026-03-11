@@ -247,7 +247,7 @@ export default function MyPlantDetail() {
       <div>
         <button
           onClick={() => navigate("/my-plants")}
-          className="flex items-center gap-1 text-sm text-stone-400 hover:text-stone-200 font-[family-name:var(--font-display)] mb-3 transition-colors"
+          className="flex items-center gap-1 text-sm text-stone-400 hover:text-stone-200 font-display mb-3 transition-colors"
         >
           <ArrowLeft size={14} /> Back to My Plants
         </button>
@@ -271,7 +271,7 @@ export default function MyPlantDetail() {
         </button>
         <div className="flex-1 text-center sm:text-left">
           <div className="flex items-center gap-2 justify-center sm:justify-start">
-            <h1 className="text-2xl font-bold font-[family-name:var(--font-display)] text-stone-100">
+            <h1 className="text-2xl font-bold font-display text-stone-100">
               {plant.nickname ?? ref?.commonName ?? "Plant"}
             </h1>
             <button
@@ -290,7 +290,7 @@ export default function MyPlantDetail() {
             </p>
           )}
           {ref?.latinName && (
-            <p className="text-stone-500 text-sm italic font-[family-name:var(--font-mono)]">
+            <p className="text-stone-500 text-sm italic font-mono">
               {ref.latinName}
             </p>
           )}
@@ -313,7 +313,7 @@ export default function MyPlantDetail() {
 
           {/* Mood message */}
           <div className="mt-4 p-3 rounded-lg bg-stone-800/50 border border-stone-800">
-            <p className="text-sm text-stone-200 italic font-[family-name:var(--font-mono)]">
+            <p className="text-sm text-stone-200 italic font-mono">
               "{getMoodMessage(plant.mood, plant.nickname ?? undefined)}"
             </p>
           </div>
@@ -321,7 +321,7 @@ export default function MyPlantDetail() {
           {ref && (
             <Link
               to={`/plants/${ref.id}`}
-              className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 mt-3 transition-colors font-[family-name:var(--font-display)]"
+              className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 mt-3 transition-colors font-display"
             >
               View reference data <ExternalLink size={12} />
             </Link>
@@ -331,7 +331,7 @@ export default function MyPlantDetail() {
 
       {/* Status Controls */}
       <Card>
-        <h2 className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-300 uppercase tracking-wider mb-3">
+        <h2 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider mb-3">
           Update Status
         </h2>
         <div className="flex flex-wrap gap-2">
@@ -339,7 +339,7 @@ export default function MyPlantDetail() {
             <button
               key={s}
               onClick={() => handleStatusChange(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium font-[family-name:var(--font-display)] transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium font-display transition-colors ${
                 plant.status === s
                   ? "bg-emerald-600 text-white"
                   : "bg-stone-800 text-stone-400 hover:text-stone-200 hover:bg-stone-700"
@@ -354,7 +354,7 @@ export default function MyPlantDetail() {
       {/* Container Description (UX-012) */}
       {plant.isContainer && (
         <Card>
-          <h2 className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-300 uppercase tracking-wider mb-3">
+          <h2 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider mb-3">
             Container
           </h2>
           <p className="text-sm text-stone-300">
@@ -369,8 +369,8 @@ export default function MyPlantDetail() {
       {plant.status === "removed" && plant.dateRemoved && (
         <Card>
           <p className="text-sm text-stone-400">
-            <span className="text-stone-500 font-[family-name:var(--font-display)]">Removed:</span>{" "}
-            <span className="font-[family-name:var(--font-mono)]">
+            <span className="text-stone-500 font-display">Removed:</span>{" "}
+            <span className="font-mono">
               {new Date(plant.dateRemoved + "T00:00:00").toLocaleDateString("en-US", {
                 month: "long", day: "numeric", year: "numeric",
               })}
@@ -383,7 +383,7 @@ export default function MyPlantDetail() {
       {ref &&
         (ref.toxicityDogs || ref.toxicityCats || ref.toxicityChildren) && (
           <Card>
-            <h2 className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-300 uppercase tracking-wider mb-3">
+            <h2 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider mb-3">
               Safety
             </h2>
             <div className="flex flex-wrap gap-2">
@@ -406,7 +406,7 @@ export default function MyPlantDetail() {
       {/* Photo Gallery */}
       <Card>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-300 uppercase tracking-wider">
+          <h2 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider">
             Photos {allPhotos.length > 0 && <span className="text-stone-500">({allPhotos.length})</span>}
           </h2>
           <div className="flex items-center gap-2">
@@ -453,7 +453,7 @@ export default function MyPlantDetail() {
                   {photo.caption && (
                     <p className="text-xs text-white truncate">{photo.caption}</p>
                   )}
-                  <p className="text-[10px] text-stone-300 font-[family-name:var(--font-mono)]">
+                  <p className="text-[10px] text-stone-300 font-mono">
                     {new Date(photo.takenAt ?? photo.createdAt).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
@@ -476,7 +476,7 @@ export default function MyPlantDetail() {
         ) : (
           <div className="text-center py-4">
             <Camera className="mx-auto text-stone-600 mb-2" size={24} />
-            <p className="text-stone-500 text-sm font-[family-name:var(--font-display)]">
+            <p className="text-stone-500 text-sm font-display">
               No photos yet. Snap a pic of your plant!
             </p>
           </div>
@@ -506,7 +506,7 @@ export default function MyPlantDetail() {
             {viewingPhoto.caption && (
               <p className="text-sm text-stone-300">{viewingPhoto.caption}</p>
             )}
-            <p className="text-xs text-stone-500 font-[family-name:var(--font-mono)]">
+            <p className="text-xs text-stone-500 font-mono">
               {new Date(viewingPhoto.takenAt ?? viewingPhoto.createdAt).toLocaleDateString("en-US", {
                 weekday: "long",
                 month: "long",
@@ -535,7 +535,7 @@ export default function MyPlantDetail() {
       {/* Notes */}
       <Card>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-300 uppercase tracking-wider">
+          <h2 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider">
             Notes
           </h2>
           <button
@@ -560,7 +560,7 @@ export default function MyPlantDetail() {
       {/* Care Tasks */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold font-[family-name:var(--font-display)] text-stone-200">
+          <h2 className="text-lg font-semibold font-display text-stone-200">
             Care Tasks
           </h2>
           <div className="flex gap-2">
@@ -606,10 +606,10 @@ export default function MyPlantDetail() {
                       {taskTypeIcons[task.taskType] ?? "\u{1f4cb}"}
                     </span>
                     <div>
-                      <p className="text-sm font-medium text-stone-200 font-[family-name:var(--font-display)]">
+                      <p className="text-sm font-medium text-stone-200 font-display">
                         {task.title}
                       </p>
-                      <p className="text-xs text-stone-500 font-[family-name:var(--font-mono)]">
+                      <p className="text-xs text-stone-500 font-mono">
                         {task.dueDate ? `Due: ${task.dueDate}` : "No due date"}
                         {task.isRecurring && ` \u{00b7} every ${task.intervalDays ?? "?"}d`}
                       </p>
@@ -619,7 +619,7 @@ export default function MyPlantDetail() {
                       {task.activeMonths && task.activeMonths.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {task.activeMonths.map((m) => (
-                            <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-stone-800 text-stone-400 font-[family-name:var(--font-mono)]">
+                            <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-stone-800 text-stone-400 font-mono">
                               {monthNames[m - 1]}
                             </span>
                           ))}
@@ -685,7 +685,7 @@ export default function MyPlantDetail() {
               className="mx-auto text-stone-600 mb-2"
               size={24}
             />
-            <p className="text-stone-400 text-sm font-[family-name:var(--font-display)]">
+            <p className="text-stone-400 text-sm font-display">
               No upcoming care tasks
             </p>
           </Card>
@@ -700,7 +700,7 @@ export default function MyPlantDetail() {
         >
           {showNotifications ? <ChevronDown size={14} className="text-stone-500" /> : <ChevronRight size={14} className="text-stone-500" />}
           <Bell size={14} className="text-stone-500" />
-          <h2 className="text-sm font-semibold font-[family-name:var(--font-display)] text-stone-300 uppercase tracking-wider">
+          <h2 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider">
             Notifications
           </h2>
         </button>
@@ -715,7 +715,7 @@ export default function MyPlantDetail() {
               return (
                 <div key={tt} className="flex items-center gap-3 py-1.5 px-3 rounded-lg bg-stone-800/50">
                   <span className="text-sm w-5 text-center">{taskTypeIcons[tt]}</span>
-                  <span className="text-xs text-stone-200 font-[family-name:var(--font-display)] flex-1 capitalize">
+                  <span className="text-xs text-stone-200 font-display flex-1 capitalize">
                     {tt.replace("_", " ")}
                   </span>
                   <select
@@ -724,7 +724,7 @@ export default function MyPlantDetail() {
                       // Placeholder: would save to plant instance notification override fields
                       showToast(`${tt} notifications set to: ${e.target.value}`, "success");
                     }}
-                    className="bg-stone-800 border border-stone-700 rounded-lg text-xs text-stone-300 px-2 py-1 font-[family-name:var(--font-mono)] focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+                    className="bg-stone-800 border border-stone-700 rounded-lg text-xs text-stone-300 px-2 py-1 font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
                   >
                     <option value="default">Use zone/global default</option>
                     <option value="on">On</option>
@@ -739,7 +739,7 @@ export default function MyPlantDetail() {
 
       {/* Danger Zone */}
       <Card className="border border-red-900/30">
-        <h2 className="text-sm font-semibold font-[family-name:var(--font-display)] text-red-400 uppercase tracking-wider mb-3">
+        <h2 className="text-sm font-semibold font-display text-red-400 uppercase tracking-wider mb-3">
           Danger Zone
         </h2>
         <p className="text-sm text-stone-400 mb-3">
@@ -881,7 +881,7 @@ export default function MyPlantDetail() {
               onChange={(e) => setTaskForm({ ...taskForm, isRecurring: e.target.checked })}
               className="rounded border-stone-600 bg-stone-800 text-emerald-500 focus:ring-emerald-500/40"
             />
-            <span className="text-sm text-stone-300 font-[family-name:var(--font-display)]">Recurring</span>
+            <span className="text-sm text-stone-300 font-display">Recurring</span>
           </label>
           {taskForm.isRecurring && (
             <Input
@@ -898,7 +898,7 @@ export default function MyPlantDetail() {
               onChange={(e) => setTaskForm({ ...taskForm, sendNotification: e.target.checked })}
               className="rounded border-stone-600 bg-stone-800 text-emerald-500 focus:ring-emerald-500/40"
             />
-            <span className="text-sm text-stone-300 font-[family-name:var(--font-display)]">Send notification when due</span>
+            <span className="text-sm text-stone-300 font-display">Send notification when due</span>
           </label>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="secondary" type="button" onClick={() => { setShowAddTask(false); setEditingTask(null); }}>
@@ -984,7 +984,7 @@ export default function MyPlantDetail() {
             rows={3}
           />
           <div>
-            <label className="block text-xs text-stone-400 font-[family-name:var(--font-display)] mb-1">
+            <label className="block text-xs text-stone-400 font-display mb-1">
               Photo (optional)
             </label>
             {healthCheckPhoto ? (
@@ -1104,7 +1104,7 @@ export default function MyPlantDetail() {
                   }`}
                 >
                   <PlantSprite type={spriteType as PlantType} mood="happy" size={48} showOverlay={false} />
-                  <span className="text-[10px] text-stone-400 font-[family-name:var(--font-mono)] capitalize">
+                  <span className="text-[10px] text-stone-400 font-mono capitalize">
                     {spriteType}
                   </span>
                 </button>

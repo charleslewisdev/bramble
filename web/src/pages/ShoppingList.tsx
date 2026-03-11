@@ -56,7 +56,7 @@ export default function ShoppingList() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold font-[family-name:var(--font-display)] text-stone-100">
+          <h1 className="text-2xl font-bold font-display text-stone-100">
             Shopping List
           </h1>
           <p className="text-stone-400 text-sm mt-1">
@@ -166,10 +166,10 @@ export default function ShoppingList() {
                 />
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-stone-200 font-[family-name:var(--font-display)]">
+                <p className="text-sm text-stone-200 font-display">
                   {item.name}
                   {item.quantity > 1 && (
-                    <span className="text-stone-500 font-[family-name:var(--font-mono)] ml-2">
+                    <span className="text-stone-500 font-mono ml-2">
                       x{item.quantity}
                     </span>
                   )}
@@ -192,7 +192,7 @@ export default function ShoppingList() {
           {/* Checked items */}
           {checked.length > 0 && (
             <div className="pt-3">
-              <p className="text-xs text-stone-600 font-[family-name:var(--font-display)] mb-2 uppercase tracking-wider">
+              <p className="text-xs text-stone-600 font-display mb-2 uppercase tracking-wider">
                 Done
               </p>
               {checked.map((item) => (
@@ -220,7 +220,7 @@ export default function ShoppingList() {
                       />
                     </svg>
                   </button>
-                  <p className="text-sm text-stone-500 line-through font-[family-name:var(--font-display)] flex-1">
+                  <p className="text-sm text-stone-500 line-through font-display flex-1">
                     {item.name}
                     {item.quantity > 1 && (
                       <span className="ml-2">x{item.quantity}</span>
@@ -240,7 +240,7 @@ export default function ShoppingList() {
       ) : (
         <Card className="text-center py-12">
           <PlantSprite type="succulent" mood="happy" size={64} className="mx-auto" />
-          <p className="text-lg font-semibold text-stone-200 font-[family-name:var(--font-display)] mt-4">
+          <p className="text-lg font-semibold text-stone-200 font-display mt-4">
             List is empty. Your garden has everything it needs!
           </p>
           <p className="text-stone-400 text-sm mt-1">

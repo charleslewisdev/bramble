@@ -70,7 +70,7 @@ export default function MyPlants() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold font-[family-name:var(--font-display)] text-stone-100">
+          <h1 className="text-2xl font-bold font-display text-stone-100">
             My Plants
           </h1>
           <p className="text-stone-400 text-sm mt-1">
@@ -152,7 +152,7 @@ export default function MyPlants() {
                 mood={plant.mood}
                 size={56}
               />
-              <p className="text-sm font-medium text-stone-200 mt-2 font-[family-name:var(--font-display)] truncate px-1">
+              <p className="text-sm font-medium text-stone-200 mt-2 font-display truncate px-1">
                 {plant.nickname ??
                   plant.plantReference?.commonName ??
                   "Plant"}
@@ -161,11 +161,11 @@ export default function MyPlants() {
                 <StatusBadge status={plant.status} />
               </div>
               {plant.zone && (
-                <p className="text-xs text-stone-500 mt-1 font-[family-name:var(--font-mono)]">
+                <p className="text-xs text-stone-500 mt-1 font-mono">
                   {plant.zone.name}
                 </p>
               )}
-              <p className="text-xs text-stone-400 mt-1.5 font-[family-name:var(--font-mono)] italic px-2">
+              <p className="text-xs text-stone-400 mt-1.5 font-mono italic px-2">
                 {getMoodMessage(plant.mood, plant.nickname ?? undefined)}
               </p>
             </Card>
@@ -174,7 +174,7 @@ export default function MyPlants() {
       ) : (
         <Card className="text-center py-12">
           <PlantSprite type="flower" mood="new" size={64} className="mx-auto" />
-          <p className="text-lg font-semibold text-stone-200 font-[family-name:var(--font-display)] mt-4">
+          <p className="text-lg font-semibold text-stone-200 font-display mt-4">
             Your garden is empty! Time to get planting.
           </p>
           <p className="text-stone-400 text-sm mt-1">
