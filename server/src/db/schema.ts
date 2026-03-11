@@ -275,6 +275,13 @@ export const plantInstances = sqliteTable("plant_instances", {
   notifyRepot: integer("notify_repot", { mode: "boolean" }),
   notifyInspect: integer("notify_inspect", { mode: "boolean" }),
   notifyProtect: integer("notify_protect", { mode: "boolean" }),
+  // Sprite override (user-selected sprite, overrides auto-match from plant type)
+  spriteOverride: text("sprite_override", {
+    enum: [
+      "flower", "shrub", "tree", "herb", "fern", "succulent",
+      "cactus", "vine", "grass", "bulb", "vegetable", "fruit",
+    ],
+  }),
   // Current mood for sprite display
   mood: text("mood", {
     enum: ["happy", "thirsty", "cold", "hot", "wilting", "sleeping", "new"],

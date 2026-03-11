@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { db } from "../db/index.js";
 import { careTasks, careTaskLogs, plantInstances } from "../db/schema.js";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { generateDefaultCareTasks } from "../services/care-tasks.js";
 
@@ -230,6 +230,86 @@ export async function careTaskRoutes(app: FastifyInstance) {
     }
 
     return reply.status(201).send(log);
+  });
+
+  // POST /bulk/log - bulk complete or skip tasks
+  const bulkLogSchema = z.object({
+    ids: z.array(z.number().int().positive()).min(1),
+    action: z.enum(["completed", "skipped"]),
+  });
+
+  app.post("/bulk/log", async (request, reply) => {
+    const parsed = bulkLogSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid request body" });
+    }
+
+    const { ids, action } = parsed.data;
+
+    // Fetch all matching tasks
+    const tasks = await db
+      .select()
+      .from(careTasks)
+      .where(inArray(careTasks.id, ids))
+      .all();
+
+    if (tasks.length === 0) {
+      return reply.status(404).send({ error: "No matching care tasks found" });
+    }
+
+    // Insert log entries and advance recurring tasks in a transaction
+    db.transaction((tx) => {
+      for (const task of tasks) {
+        tx.insert(careTaskLogs)
+          .values({
+            careTaskId: task.id,
+            action,
+          })
+          .run();
+
+        // If recurring and completed, advance the due date
+        if (
+          action === "completed" &&
+          task.isRecurring &&
+          task.intervalDays &&
+          task.dueDate
+        ) {
+          const baseDate = new Date(task.dueDate) < new Date() ? new Date() : new Date(task.dueDate);
+          const nextDue = new Date(baseDate);
+          nextDue.setDate(nextDue.getDate() + task.intervalDays);
+          tx.update(careTasks)
+            .set({
+              dueDate: nextDue.toISOString().split("T")[0],
+              updatedAt: new Date().toISOString(),
+            })
+            .where(eq(careTasks.id, task.id))
+            .run();
+        }
+      }
+    });
+
+    return { count: tasks.length };
+  });
+
+  // DELETE /bulk - bulk delete tasks
+  const bulkDeleteSchema = z.object({
+    ids: z.array(z.number().int().positive()).min(1),
+  });
+
+  app.delete("/bulk", async (request, reply) => {
+    const parsed = bulkDeleteSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid request body" });
+    }
+
+    const { ids } = parsed.data;
+
+    const result = db
+      .delete(careTasks)
+      .where(inArray(careTasks.id, ids))
+      .run();
+
+    return { count: result.changes };
   });
 
   // POST /generate/:plantInstanceId - generate default care tasks for a plant

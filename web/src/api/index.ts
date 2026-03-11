@@ -30,8 +30,11 @@ function patch<T>(path: string, body: unknown): Promise<T> {
   return request<T>(path, { method: "PATCH", body: JSON.stringify(body) });
 }
 
-function del<T = void>(path: string): Promise<T> {
-  return request<T>(path, { method: "DELETE" });
+function del<T = void>(path: string, body?: unknown): Promise<T> {
+  return request<T>(path, {
+    method: "DELETE",
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  });
 }
 
 // ---------- Types ----------
@@ -134,6 +137,16 @@ export function getSpriteType(plantType: string | null | undefined): PlantType {
   }
 }
 
+/** Resolve the sprite type for a plant instance, checking overrides first */
+export function getInstanceSpriteType(
+  instance: { spriteOverride?: SpriteType | null },
+  reference?: { spriteType?: SpriteType | null; plantType?: string | null } | null,
+): PlantType {
+  if (instance.spriteOverride) return instance.spriteOverride as PlantType;
+  if (reference?.spriteType) return reference.spriteType as PlantType;
+  return getSpriteType(reference?.plantType);
+}
+
 export type SafetyLevel = "safe" | "caution" | "toxic" | "highly_toxic";
 
 export interface PlantReference {
@@ -211,6 +224,7 @@ export interface PlantInstance {
   datePlanted?: string | null;
   dateRemoved?: string | null;
   notes?: string | null;
+  spriteOverride?: SpriteType | null;
   mood: PlantMood;
   plantReference?: PlantReference;
   zone?: Zone;
@@ -518,6 +532,14 @@ export function logCareTask(id: number, action: "completed" | "skipped" | "defer
 
 export function generatePlantTasks(plantInstanceId: number) {
   return post<CareTask[]>(`/care-tasks/generate/${plantInstanceId}`, {});
+}
+
+export function bulkLogCareTasks(data: { ids: number[]; action: "completed" | "skipped" }): Promise<{ count: number }> {
+  return post<{ count: number }>("/care-tasks/bulk/log", data);
+}
+
+export function bulkDeleteCareTasks(ids: number[]): Promise<{ count: number }> {
+  return del<{ count: number }>("/care-tasks/bulk", { ids });
 }
 
 // ---------- Shopping List ----------

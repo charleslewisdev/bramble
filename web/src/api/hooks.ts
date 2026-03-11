@@ -374,6 +374,23 @@ export function useLogCareTask() {
   });
 }
 
+export function useBulkLogCareTasks() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { ids: number[]; action: "completed" | "skipped" }) =>
+      api.bulkLogCareTasks(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["careTasks"] }),
+  });
+}
+
+export function useBulkDeleteCareTasks() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: number[]) => api.bulkDeleteCareTasks(ids),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["careTasks"] }),
+  });
+}
+
 // ---------- Shopping List ----------
 
 export function useShoppingList() {

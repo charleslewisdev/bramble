@@ -114,6 +114,7 @@ const updateInstanceSchema = z.object({
   dateRemoved: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   mood: moodEnum.optional(),
+  spriteOverride: spriteTypeEnum.nullable().optional(),
 });
 
 export async function plantRoutes(app: FastifyInstance) {

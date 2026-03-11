@@ -42,7 +42,8 @@ import {
   usePhotos,
   useGeneratePlantTasks,
 } from "../api/hooks";
-import type { PlantType, PlantStatus, PlantMood, CareTaskType, CareTask } from "../api";
+import type { PlantType, PlantStatus, PlantMood, CareTaskType, CareTask, SpriteType } from "../api";
+import { getInstanceSpriteType } from "../api";
 import { statusOptions, taskTypes, taskTypeIcons, monthNames } from "../utils/constants";
 
 export default function MyPlantDetail() {
@@ -84,6 +85,7 @@ export default function MyPlantDetail() {
   const [healthCheckPhoto, setHealthCheckPhoto] = useState<string | null>(null);
   const [healthCheckSubmitting, setHealthCheckSubmitting] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showSpritePicker, setShowSpritePicker] = useState(false);
   const [taskForm, setTaskForm] = useState({
     title: "",
     taskType: "water" as CareTaskType,
@@ -253,13 +255,20 @@ export default function MyPlantDetail() {
 
       {/* Hero */}
       <Card className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-        <div className="shrink-0">
+        <button
+          className="shrink-0 relative group cursor-pointer rounded-xl p-1 hover:bg-stone-800/50 transition-colors"
+          onClick={() => setShowSpritePicker(true)}
+          title="Change sprite"
+        >
           <PlantSprite
-            type={(ref?.plantType as PlantType) ?? "flower"}
+            type={getInstanceSpriteType(plant, ref) as PlantType}
             mood={plant.mood}
             size={96}
           />
-        </div>
+          <span className="absolute bottom-0 right-0 p-1 rounded-full bg-stone-800 border border-stone-700 text-stone-400 group-hover:text-emerald-400 transition-colors opacity-0 group-hover:opacity-100">
+            <Pencil size={10} />
+          </span>
+        </button>
         <div className="flex-1 text-center sm:text-left">
           <div className="flex items-center gap-2 justify-center sm:justify-start">
             <h1 className="text-2xl font-bold font-[family-name:var(--font-display)] text-stone-100">
@@ -1052,6 +1061,79 @@ export default function MyPlantDetail() {
               }}
             >
               {healthCheckSubmitting ? "Saving..." : "Save Check"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Sprite Picker Modal */}
+      <Modal
+        open={showSpritePicker}
+        onClose={() => setShowSpritePicker(false)}
+        title="Choose Sprite"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-stone-500">
+            Pick a pixel art sprite for this plant, or reset to auto-detect from plant type.
+          </p>
+          <div className="grid grid-cols-4 gap-3">
+            {(["flower", "shrub", "tree", "herb", "fern", "succulent", "cactus", "vine", "grass", "bulb", "vegetable", "fruit"] as const).map((spriteType) => {
+              const isActive = plant.spriteOverride
+                ? plant.spriteOverride === spriteType
+                : getInstanceSpriteType(plant, ref) === spriteType && !plant.spriteOverride;
+              return (
+                <button
+                  key={spriteType}
+                  onClick={() => {
+                    if (!plantId) return;
+                    updatePlant.mutate(
+                      { id: plantId, data: { spriteOverride: spriteType as SpriteType } },
+                      {
+                        onSuccess: () => {
+                          setShowSpritePicker(false);
+                          showToast(`Sprite set to ${spriteType}!`, "success");
+                        },
+                        onError: (err) => showToast(`Failed: ${(err as Error).message}`, "error"),
+                      }
+                    );
+                  }}
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-colors ${
+                    isActive
+                      ? "border-emerald-500 bg-emerald-500/10"
+                      : "border-stone-700 bg-stone-800/50 hover:border-stone-600 hover:bg-stone-800"
+                  }`}
+                >
+                  <PlantSprite type={spriteType as PlantType} mood="happy" size={48} showOverlay={false} />
+                  <span className="text-[10px] text-stone-400 font-[family-name:var(--font-mono)] capitalize">
+                    {spriteType}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex justify-between items-center pt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (!plantId) return;
+                updatePlant.mutate(
+                  { id: plantId, data: { spriteOverride: null } },
+                  {
+                    onSuccess: () => {
+                      setShowSpritePicker(false);
+                      showToast("Sprite reset to auto-detect", "success");
+                    },
+                    onError: (err) => showToast(`Failed: ${(err as Error).message}`, "error"),
+                  }
+                );
+              }}
+              disabled={!plant.spriteOverride}
+            >
+              Reset to auto
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setShowSpritePicker(false)}>
+              Cancel
             </Button>
           </div>
         </div>

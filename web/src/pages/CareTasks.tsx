@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   CalendarCheck,
   Plus,
@@ -6,6 +6,9 @@ import {
   SkipForward,
   Pencil,
   Trash2,
+  CheckCircle2,
+  XCircle,
+  X,
 } from "lucide-react";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
@@ -20,6 +23,8 @@ import {
   useUpdateCareTask,
   useDeleteCareTask,
   useLogCareTask,
+  useBulkLogCareTasks,
+  useBulkDeleteCareTasks,
   usePlantInstances,
   useZones,
 } from "../api/hooks";
@@ -33,12 +38,16 @@ export default function CareTasks() {
   const updateTask = useUpdateCareTask();
   const deleteTask = useDeleteCareTask();
   const logTask = useLogCareTask();
+  const bulkLog = useBulkLogCareTasks();
+  const bulkDelete = useBulkDeleteCareTasks();
   const { data: plantInstances } = usePlantInstances();
   const { data: zones } = useZones();
   const { showToast } = useToast();
   const [showAdd, setShowAdd] = useState(false);
   const [editingTask, setEditingTask] = useState<CareTask | null>(null);
   const [confirmDeleteTask, setConfirmDeleteTask] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [form, setForm] = useState({
     title: "",
     taskType: "water" as CareTaskType,
@@ -54,6 +63,72 @@ export default function CareTasks() {
   });
 
   const upcoming = tasks ?? [];
+  const allIds = useMemo(() => upcoming.map((t) => t.id), [upcoming]);
+  const allSelected = allIds.length > 0 && allIds.every((id) => selectedIds.has(id));
+
+  function toggleSelect(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(allIds));
+    }
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+
+  function handleBulkComplete() {
+    const ids = Array.from(selectedIds);
+    bulkLog.mutate(
+      { ids, action: "completed" },
+      {
+        onSuccess: (data) => {
+          showToast(`${data.count} task${data.count !== 1 ? "s" : ""} completed!`, "success");
+          clearSelection();
+        },
+        onError: (err) => showToast(`Failed: ${(err as Error).message}`, "error"),
+      }
+    );
+  }
+
+  function handleBulkSkip() {
+    const ids = Array.from(selectedIds);
+    bulkLog.mutate(
+      { ids, action: "skipped" },
+      {
+        onSuccess: (data) => {
+          showToast(`${data.count} task${data.count !== 1 ? "s" : ""} skipped`, "success");
+          clearSelection();
+        },
+        onError: (err) => showToast(`Failed: ${(err as Error).message}`, "error"),
+      }
+    );
+  }
+
+  function handleBulkDelete() {
+    const ids = Array.from(selectedIds);
+    bulkDelete.mutate(ids, {
+      onSuccess: (data) => {
+        showToast(`${data.count} task${data.count !== 1 ? "s" : ""} deleted`, "success");
+        clearSelection();
+        setConfirmBulkDelete(false);
+      },
+      onError: (err) => {
+        showToast(`Failed: ${(err as Error).message}`, "error");
+        setConfirmBulkDelete(false);
+      },
+    });
+  }
 
   // Group upcoming by date
   const grouped = upcoming.reduce<Record<string, typeof upcoming>>(
@@ -167,10 +242,62 @@ export default function CareTasks() {
             {upcoming.length} task{upcoming.length !== 1 ? "s" : ""} to do
           </p>
         </div>
-        <Button onClick={() => { resetForm(); setShowAdd(true); }}>
-          <Plus size={16} /> Add Task
-        </Button>
+        <div className="flex items-center gap-2">
+          {upcoming.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleSelectAll}
+            >
+              {allSelected ? "Deselect All" : "Select All"}
+            </Button>
+          )}
+          <Button onClick={() => { resetForm(); setShowAdd(true); }}>
+            <Plus size={16} /> Add Task
+          </Button>
+        </div>
       </div>
+
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="sticky top-0 z-10 bg-stone-800 border border-stone-700 rounded-lg px-4 py-3 flex items-center justify-between gap-4">
+          <span className="text-sm font-medium text-stone-200 font-[family-name:var(--font-display)]">
+            {selectedIds.size} selected
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={handleBulkComplete}
+              disabled={bulkLog.isPending}
+            >
+              <CheckCircle2 size={14} /> Complete All
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleBulkSkip}
+              disabled={bulkLog.isPending}
+            >
+              <XCircle size={14} /> Skip All
+            </Button>
+            <Button
+              size="sm"
+              variant="danger"
+              onClick={() => setConfirmBulkDelete(true)}
+              disabled={bulkDelete.isPending}
+            >
+              <Trash2 size={14} /> Delete All
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={clearSelection}
+            >
+              <X size={14} /> Clear
+            </Button>
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="space-y-4">
@@ -198,6 +325,12 @@ export default function CareTasks() {
                   <Card key={task.id}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(task.id)}
+                          onChange={() => toggleSelect(task.id)}
+                          className="w-4 h-4 shrink-0 rounded border-stone-600 bg-stone-800 text-emerald-500 focus:ring-emerald-500/40 cursor-pointer accent-emerald-500"
+                        />
                         <span className="text-lg">
                           {taskTypeIcons[task.taskType] ?? "\u{1f4cb}"}
                         </span>
@@ -480,6 +613,17 @@ export default function CareTasks() {
         title="Delete Task"
         message="Are you sure you want to delete this care task? This action cannot be undone."
         confirmLabel="Delete"
+        variant="destructive"
+      />
+
+      {/* Confirm Bulk Delete */}
+      <ConfirmModal
+        open={confirmBulkDelete}
+        onClose={() => setConfirmBulkDelete(false)}
+        onConfirm={handleBulkDelete}
+        title="Delete Selected Tasks"
+        message={`Are you sure you want to delete ${selectedIds.size} care task${selectedIds.size !== 1 ? "s" : ""}? This action cannot be undone.`}
+        confirmLabel="Delete All"
         variant="destructive"
       />
     </div>

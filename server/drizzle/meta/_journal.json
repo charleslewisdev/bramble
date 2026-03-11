@@ -50,6 +50,13 @@
       "when": 1773181306146,
       "tag": "0006_magenta_thing",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1773193174428,
+      "tag": "0007_silky_silk_fever",
+      "breakpoints": true
     }
   ]
 }
