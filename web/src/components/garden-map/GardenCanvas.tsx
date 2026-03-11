@@ -100,6 +100,8 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
   const animsRef = useRef<PlantAnim[]>([]);
   const emittersRef = useRef<ParticleEmitter[]>([]);
   const zoneRotationsRef = useRef<ZoneRotation[]>([]);
+  // Track clickable plant regions for manual hit testing (pixi-viewport consumes pointer events)
+  const plantHitAreasRef = useRef<Array<{ plant: PlantInstance; x: number; y: number; w: number; h: number }>>([]);
   const weatherSystemRef = useRef<WeatherEffectSystem | null>(null);
   const wildlifeSystemRef = useRef<WildlifeSystem | null>(null);
   const tickerCallbackRef = useRef<((dt: { deltaTime: number }) => void) | null>(null);
@@ -188,6 +190,7 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
       viewportRef.current.destroy({ children: true });
       viewportRef.current = null;
     }
+    plantHitAreasRef.current = [];
 
     const width = container.clientWidth;
     const height = container.clientHeight;
@@ -215,15 +218,26 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
     app.stage.addChild(viewport);
     viewportRef.current = viewport;
 
-    // Handle background clicks — dismiss plant panel when clicking non-plant areas
+    // Handle clicks via viewport's clicked event (pixi-viewport consumes pointer events,
+    // so per-sprite pointertap doesn't work). Manual hit test against plant positions.
     viewport.on("clicked", (e) => {
-      const target = e.event.target as Container;
-      // Walk up the display tree to see if the click landed on a plant sprite
-      let node: Container | null = target;
-      while (node && node !== viewport) {
-        if (node.label === "plant-sprite") return; // Plant handles its own click
-        node = node.parent;
+      const worldX = e.world.x;
+      const worldY = e.world.y;
+
+      // Check if click hit any plant sprite
+      for (const hit of plantHitAreasRef.current) {
+        if (worldX >= hit.x && worldX <= hit.x + hit.w &&
+            worldY >= hit.y && worldY <= hit.y + hit.h) {
+          if (onPlantClick) {
+            // Convert world position to screen position for panel placement
+            const screenPt = viewport.toScreen(worldX, worldY);
+            onPlantClick(hit.plant, screenPt.x, screenPt.y);
+          }
+          return;
+        }
       }
+
+      // No plant hit — background click
       onBackgroundClick?.();
     });
 
@@ -407,16 +421,15 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
       plantGfx.x = pos.x - (8 * PLANT_SPRITE_SCALE);
       plantGfx.y = pos.y - (16 * PLANT_SPRITE_SCALE);
 
-      // Hit area for click detection (covers the full 16x16 sprite area at scale)
-      plantGfx.hitArea = { contains: (x: number, y: number) => x >= 0 && x <= 16 && y >= 0 && y <= 16 };
-      plantGfx.eventMode = "static";
-      plantGfx.cursor = "pointer";
-      plantGfx.on("pointertap", (e) => {
-        e.stopPropagation();
-        if (onPlantClick) {
-          const global = plantGfx.getGlobalPosition();
-          onPlantClick(plant, global.x, global.y);
-        }
+      // Register hit area for manual click detection via viewport clicked event
+      const spriteW = 16 * PLANT_SPRITE_SCALE;
+      const spriteH = 16 * PLANT_SPRITE_SCALE;
+      plantHitAreasRef.current.push({
+        plant,
+        x: plantGfx.x,
+        y: plantGfx.y,
+        w: spriteW,
+        h: spriteH,
       });
 
       // Planned plants are slightly translucent
@@ -582,7 +595,10 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
           // Clear old plants from this zone's container
           rot.container.removeChildren();
 
-          // Remove old anims for this zone
+          // Remove old hit areas and anims for this zone
+          plantHitAreasRef.current = plantHitAreasRef.current.filter(
+            (h) => h.plant.zoneId !== rot.zoneId,
+          );
           animsRef.current = animsRef.current.filter(
             (a) => a.plant.zoneId !== rot.zoneId,
           );
@@ -603,15 +619,16 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
             plantGfx.scale.set(PLANT_SPRITE_SCALE, PLANT_SPRITE_SCALE);
             plantGfx.x = pos.x - (8 * PLANT_SPRITE_SCALE);
             plantGfx.y = pos.y - (16 * PLANT_SPRITE_SCALE);
-            plantGfx.hitArea = { contains: (hx: number, hy: number) => hx >= 0 && hx <= 16 && hy >= 0 && hy <= 16 };
-            plantGfx.eventMode = "static";
-            plantGfx.cursor = "pointer";
-            plantGfx.on("pointertap", (ev) => {
-              ev.stopPropagation();
-              if (onPlantClick) {
-                const gp = plantGfx.getGlobalPosition();
-                onPlantClick(plant, gp.x, gp.y);
-              }
+
+            // Register for manual hit testing (replaces old entries for this zone)
+            const sw = 16 * PLANT_SPRITE_SCALE;
+            const sh = 16 * PLANT_SPRITE_SCALE;
+            plantHitAreasRef.current.push({
+              plant,
+              x: plantGfx.x,
+              y: plantGfx.y,
+              w: sw,
+              h: sh,
             });
 
             if (plant.status === "planned") plantGfx.alpha = 0.75;
