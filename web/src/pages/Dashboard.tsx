@@ -201,6 +201,7 @@ function WildlifeWidget({ locationId, locationName }: { locationId: number; loca
     beneficial_insect: "Beneficial Insects",
     mammal: "Mammals",
     reptile: "Reptiles",
+    amphibian: "Amphibians",
   };
 
   // Group by category

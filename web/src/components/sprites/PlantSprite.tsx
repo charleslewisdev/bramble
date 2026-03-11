@@ -7,6 +7,7 @@ interface PlantSpriteProps {
   mood: PlantMood;
   size?: number;
   className?: string;
+  showOverlay?: boolean;
 }
 
 // Pixel grid helper — each "pixel" is a rect in a 16x16 grid
@@ -394,6 +395,7 @@ export default function PlantSprite({
   mood,
   size = 64,
   className,
+  showOverlay = true,
 }: PlantSpriteProps) {
   const scale = size / 16;
   const resolvedType = getSpriteType(type);
@@ -425,7 +427,7 @@ export default function PlantSprite({
         </g>
 
         {/* Mood overlays */}
-        {mood === "happy" && (
+        {showOverlay && mood === "happy" && (
           <>
             <rect x={12 * scale} y={3 * scale} width={scale * 0.5} height={scale * 0.5} fill="#facc15" />
             <rect x={13 * scale} y={2 * scale} width={scale * 0.5} height={scale * 0.5} fill="#facc15" />
@@ -433,7 +435,7 @@ export default function PlantSprite({
           </>
         )}
 
-        {mood === "new" && (
+        {showOverlay && mood === "new" && (
           <>
             <rect x={12 * scale} y={2 * scale} width={scale * 0.6} height={scale * 0.6} fill="#34d399" />
             <rect x={13.5 * scale} y={4 * scale} width={scale * 0.4} height={scale * 0.4} fill="#6ee7b7" />
@@ -442,14 +444,14 @@ export default function PlantSprite({
           </>
         )}
 
-        {mood === "thirsty" && (
+        {showOverlay && mood === "thirsty" && (
           <>
             <rect x={12 * scale} y={8 * scale} width={scale * 0.8} height={scale * 1.2} fill="#60a5fa" rx={scale * 0.3} />
             <rect x={13.5 * scale} y={10 * scale} width={scale * 0.6} height={scale * 0.9} fill="#93c5fd" rx={scale * 0.2} />
           </>
         )}
 
-        {mood === "hot" && (
+        {showOverlay && mood === "hot" && (
           <>
             <rect x={13 * scale} y={4 * scale} width={scale * 0.4} height={scale * 2} fill="#f97316" opacity={0.6} />
             <rect x={14 * scale} y={5 * scale} width={scale * 0.4} height={scale * 1.5} fill="#fb923c" opacity={0.5} />
@@ -457,7 +459,7 @@ export default function PlantSprite({
           </>
         )}
 
-        {mood === "sleeping" && (
+        {showOverlay && mood === "sleeping" && (
           <>
             <text x={11 * scale} y={4 * scale} fontSize={scale * 2} fill="#a8a29e" fontFamily="monospace">z</text>
             <text x={12.5 * scale} y={2.5 * scale} fontSize={scale * 1.5} fill="#78716c" fontFamily="monospace">z</text>

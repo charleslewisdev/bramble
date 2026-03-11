@@ -30,7 +30,7 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
   return (
     <span
       className={clsx(
-        "inline-flex items-center px-2 py-1 rounded-md text-xs font-medium font-[family-name:var(--font-display)]",
+        "inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-medium font-[family-name:var(--font-display)]",
         c.bg,
         c.text
       )}

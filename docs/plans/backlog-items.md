@@ -12,9 +12,9 @@ Captured 2026-03-10 from user feedback session. Updated end of garden map v2 ses
 
 ## UI/UX Fixes
 
-- [ ] **Amphibian capitalization** — "amphibian" category on wildlife dashboard should be capitalized
-- [ ] **Yellow dots on plant sprites** — All plant sprites in the library show 3 yellow dots in top-right of image container; likely mood overlay "happy" sparkles rendering in the wrong context
-- [ ] **Plant tag/chip inconsistency** — Tags on plant cards have different sizes, text sizes; need consistent design. Consider more efficient representations
+- [x] **Amphibian capitalization** — Added "Amphibians" to categoryLabels in Dashboard
+- [x] **Yellow dots on plant sprites** — Added `showOverlay` prop to PlantSprite; disabled in PlantBrowser reference views
+- [x] **Plant tag/chip inconsistency** — Created `Chip` component; standardized SafetyBadge, StatusBadge, and inline badges to consistent sizing
 - [ ] **Sprite selection on plants** — Allow choosing a sprite from the full library when editing a plant. Current auto-matching is rough; users should be able to override
 - [ ] **Bulk care task actions** — New garden setup generates hundreds of care tasks; need bulk select/edit/complete/delete
 

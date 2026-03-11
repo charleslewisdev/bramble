@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
+import Chip from "../components/ui/Chip";
 import { Select } from "../components/ui/Input";
 import PlantSprite from "../components/sprites/PlantSprite";
 import SafetyBadge from "../components/ui/SafetyBadge";
@@ -212,6 +213,7 @@ export default function PlantBrowser() {
                     type={(plant.plantType as PlantType) ?? "flower"}
                     mood="happy"
                     size={48}
+                    showOverlay={false}
                   />
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-stone-200 font-[family-name:var(--font-display)] truncate">
@@ -230,9 +232,9 @@ export default function PlantBrowser() {
                           : ""}
                       </p>
                       {plant.lifecycle && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-stone-800 text-stone-400 capitalize">
+                        <Chip className="capitalize">
                           {plant.lifecycle.replace("_", " ")}
-                        </span>
+                        </Chip>
                       )}
                     </div>
                   </div>
@@ -253,29 +255,29 @@ export default function PlantBrowser() {
                     />
                   )}
                   {plant.droughtTolerant === 1 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-900/30 text-amber-400 flex items-center gap-1">
+                    <Chip color="amber">
                       <Droplets size={10} /> Drought tolerant
-                    </span>
+                    </Chip>
                   )}
                   {plant.deerResistant === 1 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-900/30 text-green-400 flex items-center gap-1">
+                    <Chip color="green">
                       <Shield size={10} /> Deer resistant
-                    </span>
+                    </Chip>
                   )}
                   {plant.attractsPollinators === 1 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-900/30 text-yellow-400 flex items-center gap-1">
+                    <Chip color="yellow">
                       <Bug size={10} /> Pollinators
-                    </span>
+                    </Chip>
                   )}
                   {plant.attractsBirds === 1 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-900/30 text-sky-400 flex items-center gap-1">
+                    <Chip color="sky">
                       <Bird size={10} /> Birds
-                    </span>
+                    </Chip>
                   )}
                   {plant.attractsButterflies === 1 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-pink-900/30 text-pink-400 flex items-center gap-1">
+                    <Chip color="pink">
                       <Flower2 size={10} /> Butterflies
-                    </span>
+                    </Chip>
                   )}
                 </div>
 
@@ -328,9 +330,9 @@ export default function PlantBrowser() {
                 ? ` of ${searchResults.apiTotal} total`
                 : ""}
             </span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-stone-800 text-stone-500">
+            <Chip>
               Perenual API
-            </span>
+            </Chip>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {apiResults.map((result) => (
@@ -364,22 +366,13 @@ export default function PlantBrowser() {
                     )}
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       {result.cycle && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-stone-800 text-stone-400">
-                          {result.cycle}
-                        </span>
+                        <Chip>{result.cycle}</Chip>
                       )}
                       {result.watering && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-900/30 text-blue-400">
-                          {result.watering} water
-                        </span>
+                        <Chip color="blue">{result.watering} water</Chip>
                       )}
                       {result.sunlight?.map((s) => (
-                        <span
-                          key={s}
-                          className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-900/30 text-yellow-400"
-                        >
-                          {s}
-                        </span>
+                        <Chip key={s} color="yellow">{s}</Chip>
                       ))}
                     </div>
                   </div>
