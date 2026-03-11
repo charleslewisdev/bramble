@@ -15,8 +15,8 @@ Captured 2026-03-10 from user feedback session. Updated end of garden map v2 ses
 - [x] **Amphibian capitalization** — Added "Amphibians" to categoryLabels in Dashboard
 - [x] **Yellow dots on plant sprites** — Added `showOverlay` prop to PlantSprite; disabled in PlantBrowser reference views
 - [x] **Plant tag/chip inconsistency** — Created `Chip` component; standardized SafetyBadge, StatusBadge, and inline badges to consistent sizing
-- [ ] **Sprite selection on plants** — Allow choosing a sprite from the full library when editing a plant. Current auto-matching is rough; users should be able to override
-- [ ] **Bulk care task actions** — New garden setup generates hundreds of care tasks; need bulk select/edit/complete/delete
+- [x] **Sprite selection on plants** — Clickable sprite in MyPlantDetail opens 4x3 picker; spriteOverride column on plant instances
+- [x] **Bulk care task actions** — Checkbox selection, sticky bulk bar with Complete All/Skip All/Delete All; bulk server endpoints
 
 ## Workflow/Process Improvements
 
