@@ -187,7 +187,7 @@ const BUBBLE_PAD_X = 6;
 const BUBBLE_PAD_Y = 4;
 const BUBBLE_MAX_WIDTH = 120;
 const TAIL_SIZE = 4;
-const FONT_SIZE = 8;
+const FONT_SIZE = 9;
 const OVERLAP_DISTANCE = 50; // minimum px between bubble centers
 
 function randomBetween(min: number, max: number): number {
@@ -417,13 +417,15 @@ export class SpeechBubbleManager {
     const textStyle = new TextStyle({
       fontFamily: "monospace",
       fontSize: FONT_SIZE,
+      fontWeight: "bold",
       fill: 0xffffff,
       wordWrap: true,
       wordWrapWidth: BUBBLE_MAX_WIDTH - BUBBLE_PAD_X * 2,
-      lineHeight: FONT_SIZE + 2,
+      lineHeight: FONT_SIZE + 3,
+      stroke: { color: 0x000000, width: 1 },
     });
 
-    const text = new Text({ text: wrappedText, style: textStyle });
+    const text = new Text({ text: wrappedText, style: textStyle, resolution: Math.max(2, window.devicePixelRatio || 1) });
     text.anchor.set(0.5, 1);
 
     const bgWidth = Math.min(
