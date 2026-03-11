@@ -574,6 +574,9 @@ export const WANG_TILESET_MAP: Partial<Record<TileType, string>> = {
   [TileType.STONE_PAVER_LIGHT]: "grass-cobble",
   [TileType.PATH_GRAVEL]: "grass-gravel",
   [TileType.PATH_DIRT]: "grass-gravel",
+  [TileType.SIDEWALK]: "grass-sidewalk",
+  [TileType.WATER]: "grass-water",
+  [TileType.RAISED_BED_WOOD]: "grass-wood",
 };
 
 // ---- Loading --------------------------------------------------------------
@@ -691,4 +694,94 @@ export function getWangTileCanvas(
 
   tileCanvasCache.set(key, canvas);
   return canvas;
+}
+
+// ---- Corner detection -----------------------------------------------------
+
+/** Minimal tile info needed for corner detection (avoids circular import) */
+interface TileCellLike {
+  type: TileType;
+  zoneId?: number;
+}
+
+/**
+ * Determine whether a grid position has a Wang-mapped tile type.
+ * Returns false for out-of-bounds or non-Wang tiles.
+ */
+function isWangTile(grid: TileCellLike[][], x: number, y: number, tilesetName: string): boolean {
+  const cell = grid[y]?.[x];
+  if (!cell) return false;
+  return WANG_TILESET_MAP[cell.type] === tilesetName;
+}
+
+/**
+ * Compute Wang corners for a tile at (x, y) within the grid.
+ * Each corner checks the 3 adjacent tiles in that diagonal direction:
+ *   NW = upper if (x-1,y), (x,y-1), and (x-1,y-1) are all the same Wang terrain
+ *   NE = upper if (x+1,y), (x,y-1), and (x+1,y-1) are all the same Wang terrain
+ *   SW = upper if (x-1,y), (x,y+1), and (x-1,y+1) are all the same Wang terrain
+ *   SE = upper if (x+1,y), (x,y+1), and (x+1,y+1) are all the same Wang terrain
+ *
+ * "upper" = zone terrain (dirt/cobble/gravel), "lower" = grass base
+ */
+export function computeWangCorners(
+  grid: TileCellLike[][],
+  x: number,
+  y: number,
+  tilesetName: string,
+): WangCorners {
+  const nw: WangTerrain =
+    isWangTile(grid, x - 1, y, tilesetName) &&
+    isWangTile(grid, x, y - 1, tilesetName) &&
+    isWangTile(grid, x - 1, y - 1, tilesetName)
+      ? "upper"
+      : "lower";
+
+  const ne: WangTerrain =
+    isWangTile(grid, x + 1, y, tilesetName) &&
+    isWangTile(grid, x, y - 1, tilesetName) &&
+    isWangTile(grid, x + 1, y - 1, tilesetName)
+      ? "upper"
+      : "lower";
+
+  const sw: WangTerrain =
+    isWangTile(grid, x - 1, y, tilesetName) &&
+    isWangTile(grid, x, y + 1, tilesetName) &&
+    isWangTile(grid, x - 1, y + 1, tilesetName)
+      ? "upper"
+      : "lower";
+
+  const se: WangTerrain =
+    isWangTile(grid, x + 1, y, tilesetName) &&
+    isWangTile(grid, x, y + 1, tilesetName) &&
+    isWangTile(grid, x + 1, y + 1, tilesetName)
+      ? "upper"
+      : "lower";
+
+  return { NW: nw, NE: ne, SW: sw, SE: se };
+}
+
+// ---- Preloading -----------------------------------------------------------
+
+/**
+ * Preload all Wang tilesets that are mapped in WANG_TILESET_MAP.
+ * Call before rendering to avoid per-tile async delays.
+ */
+export async function preloadWangTilesets(): Promise<Map<string, LoadedWangTileset>> {
+  const names = new Set(Object.values(WANG_TILESET_MAP));
+  const entries = await Promise.all(
+    [...names].map(async (name) => {
+      const tileset = await loadWangTileset(name);
+      return [name, tileset] as const;
+    }),
+  );
+  return new Map(entries);
+}
+
+/**
+ * Clear all Wang tileset caches (for cleanup).
+ */
+export function clearWangTilesetCache(): void {
+  tilesetCache.clear();
+  tileCanvasCache.clear();
 }

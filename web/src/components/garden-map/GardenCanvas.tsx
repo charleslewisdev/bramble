@@ -18,10 +18,21 @@ import {
 import { Viewport } from "pixi-viewport";
 import type { Location, Structure, Zone, PlantInstance, Weather, SunData } from "../../api";
 import { generateMap, calculatePlantPositions, type PlantLayout } from "./map-generator";
-import { TILE_SIZE, generateTilePattern, renderTileToCanvas, TileType } from "./tiles";
+import {
+  TILE_SIZE,
+  generateTilePattern,
+  renderTileToCanvas,
+  TileType,
+  WANG_TILESET_MAP,
+  preloadWangTilesets,
+  getWangTileCanvas,
+  computeWangCorners,
+  clearWangTilesetCache,
+  type LoadedWangTileset,
+} from "./tiles";
 import { clearTextureCache, createPlantSprite, preloadPlantTextures } from "./sprite-textures";
 import { ParticleEmitter, getMoodParticleType, getMoodParticleRate } from "./particles";
-import { generateHouseTexture, clearHouseTextureCache } from "./house-sprite";
+import { loadHouseTexture, clearHouseTextureCache } from "./house-sprite";
 import { WeatherEffectSystem } from "./weather-effects";
 import { WildlifeSystem } from "./wildlife";
 import type { PlantMood } from "../../api";
@@ -245,11 +256,13 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
     const tileContainer = new Container();
     tileContainer.label = "tiles";
 
-    // Create tile textures (cache by type+seed combos)
+    // Preload Wang tilesets, then render all tiles
+    const wangTilesets = await preloadWangTilesets();
+
+    // Create tile textures (cache by type+seed combos for procedural fallback)
     const tileTextureCache = new Map<string, Texture>();
 
-    function getTileTexture(type: TileType, seed: number): Texture {
-      // Use seed mod 4 for variation (4 variants per type)
+    function getProceduralTileTexture(type: TileType, seed: number): Texture {
       const varSeed = seed % 4;
       const key = `${type}:${varSeed}`;
       if (tileTextureCache.has(key)) return tileTextureCache.get(key)!;
@@ -266,12 +279,38 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
       return texture;
     }
 
+    function getWangTileTexture(
+      tileset: LoadedWangTileset,
+      x: number,
+      y: number,
+    ): Texture {
+      const corners = computeWangCorners(map.tiles, x, y, tileset.name);
+      const key = `wang:${tileset.name}:${corners.NW}${corners.NE}${corners.SW}${corners.SE}`;
+      if (tileTextureCache.has(key)) return tileTextureCache.get(key)!;
+
+      const canvas = getWangTileCanvas(tileset, corners);
+      const source = new CanvasSource({
+        resource: canvas,
+        resolution: 1,
+        scaleMode: "nearest",
+      });
+      const texture = new Texture({ source });
+      tileTextureCache.set(key, texture);
+      return texture;
+    }
+
     for (let y = 0; y < map.height; y++) {
       for (let x = 0; x < map.width; x++) {
         const cell = map.tiles[y]![x]!;
         if (cell.type === TileType.EMPTY) continue;
 
-        const texture = getTileTexture(cell.type, cell.seed);
+        // Use Wang tileset if available for this tile type, else procedural
+        const wangName = WANG_TILESET_MAP[cell.type];
+        const wangTileset = wangName ? wangTilesets.get(wangName) : undefined;
+        const texture = wangTileset
+          ? getWangTileTexture(wangTileset, x, y)
+          : getProceduralTileTexture(cell.type, cell.seed);
+
         const sprite = new Sprite(texture);
         sprite.x = x * TILE_SIZE;
         sprite.y = y * TILE_SIZE;
@@ -287,10 +326,12 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
     if (map.houseArea && structures.length > 0) {
       const mainStruct = structures[0]!;
       const ha = map.houseArea;
-      const houseTexture = generateHouseTexture(ha.w, ha.h, mainStruct);
+      const houseTexture = await loadHouseTexture(ha.w, ha.h, mainStruct);
       const houseSprite = new Sprite(houseTexture);
       houseSprite.x = ha.x * TILE_SIZE;
       houseSprite.y = ha.y * TILE_SIZE;
+      houseSprite.width = ha.w * TILE_SIZE;
+      houseSprite.height = ha.h * TILE_SIZE;
       viewport.addChild(houseSprite);
     }
 
@@ -437,11 +478,11 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
         h: spriteH,
       });
 
-      // Planned plants are slightly translucent
+      // Planned plants are distinctly ghost-like, sleeping slightly faded
       if (plant.status === "planned") {
-        plantSprite.alpha = 0.75;
+        plantSprite.alpha = 0.45;
       } else if (plant.mood === "sleeping") {
-        plantSprite.alpha = 0.7;
+        plantSprite.alpha = 0.65;
       }
 
       parent.addChild(plantSprite);
@@ -640,12 +681,12 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
                   h: sh,
                 });
 
-                if (plant.status === "planned") plantSprite.alpha = 0.75;
-                else if (plant.mood === "sleeping") plantSprite.alpha = 0.7;
+                if (plant.status === "planned") plantSprite.alpha = 0.45;
+                else if (plant.mood === "sleeping") plantSprite.alpha = 0.65;
 
                 // Fade in
                 plantSprite.alpha = 0;
-                const targetAlpha = plant.status === "planned" ? 0.75 : plant.mood === "sleeping" ? 0.7 : 1;
+                const targetAlpha = plant.status === "planned" ? 0.45 : plant.mood === "sleeping" ? 0.65 : 1;
                 const fadeIn = () => {
                   if (plantSprite.alpha < targetAlpha) {
                     plantSprite.alpha = Math.min(plantSprite.alpha + 0.05, targetAlpha);
@@ -722,6 +763,7 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
       }
       clearTextureCache();
       clearHouseTextureCache();
+      clearWangTilesetCache();
     };
   }, [buildScene, ready]);
 
