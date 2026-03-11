@@ -1,6 +1,7 @@
 /**
  * Main PixiJS canvas component for the garden map.
- * Renders tiles, structures, zones, and plant sprites with pan/zoom.
+ * Renders tiles, house sprite, zones, plant sprites, weather effects,
+ * and wildlife with pan/zoom.
  */
 
 import { useRef, useEffect, useCallback, useState, useImperativeHandle, forwardRef } from "react";
@@ -9,16 +10,20 @@ import {
   Container,
   Sprite,
   Texture,
+  CanvasSource,
   Graphics,
   Text,
   TextStyle,
 } from "pixi.js";
 import { Viewport } from "pixi-viewport";
-import type { Location, Structure, Zone, PlantInstance } from "../../api";
-import { generateMap, calculatePlantPositions } from "./map-generator";
+import type { Location, Structure, Zone, PlantInstance, Weather, SunData } from "../../api";
+import { generateMap, calculatePlantPositions, type PlantLayout } from "./map-generator";
 import { TILE_SIZE, generateTilePattern, renderTileToCanvas, TileType } from "./tiles";
-import { getPlantTexture, preloadPlantTextures, clearTextureCache } from "./sprite-textures";
+import { clearTextureCache, createPlantGraphics } from "./sprite-textures";
 import { ParticleEmitter, getMoodParticleType, getMoodParticleRate } from "./particles";
+import { generateHouseTexture, clearHouseTextureCache } from "./house-sprite";
+import { WeatherEffectSystem } from "./weather-effects";
+import { WildlifeSystem } from "./wildlife";
 import type { PlantMood } from "../../api";
 
 interface GardenCanvasProps {
@@ -26,6 +31,8 @@ interface GardenCanvasProps {
   structures: Structure[];
   zones: Zone[];
   plants: PlantInstance[];
+  weather?: Weather | null;
+  sunData?: SunData | null;
   onPlantClick?: (plant: PlantInstance, screenX: number, screenY: number) => void;
   onBackgroundClick?: () => void;
 }
@@ -48,11 +55,42 @@ interface PlantAnim {
   phase: number; // random phase offset
 }
 
+// Zone rotation state for zones with more plants than slots
+interface ZoneRotation {
+  zoneId: number;
+  allPlants: PlantInstance[];
+  positions: Array<{ x: number; y: number }>;
+  maxSlots: number;
+  currentOffset: number;
+  container: Container;
+  timer: number;
+}
+
+/** Determine time-of-day phase from sun data */
+function getTimeOfDay(sunData: SunData | null | undefined): "night" | "dawn" | "day" | "dusk" {
+  if (!sunData) return "day";
+
+  const now = new Date();
+  const sunrise = new Date(sunData.sunrise);
+  const sunset = new Date(sunData.sunset);
+
+  const dawnStart = new Date(sunrise.getTime() - 30 * 60 * 1000); // 30 min before sunrise
+  const duskEnd = new Date(sunset.getTime() + 30 * 60 * 1000); // 30 min after sunset
+
+  if (now < dawnStart) return "night";
+  if (now < sunrise) return "dawn";
+  if (now < sunset) return "day";
+  if (now < duskEnd) return "dusk";
+  return "night";
+}
+
 const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function GardenCanvas({
   location,
   structures,
   zones,
   plants,
+  weather,
+  sunData,
   onPlantClick,
   onBackgroundClick,
 }: GardenCanvasProps, ref) {
@@ -61,41 +99,98 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
   const viewportRef = useRef<Viewport | null>(null);
   const animsRef = useRef<PlantAnim[]>([]);
   const emittersRef = useRef<ParticleEmitter[]>([]);
+  const zoneRotationsRef = useRef<ZoneRotation[]>([]);
+  const weatherSystemRef = useRef<WeatherEffectSystem | null>(null);
+  const wildlifeSystemRef = useRef<WildlifeSystem | null>(null);
   const tickerCallbackRef = useRef<((dt: { deltaTime: number }) => void) | null>(null);
+  const appInitFailedRef = useRef(false);
   const [ready, setReady] = useState(false);
+  const [webglFailed, setWebglFailed] = useState(false);
 
-  // Build the scene
+  // Initialize PixiJS app ONCE — separated from scene building to avoid
+  // destroying/recreating WebGL contexts on every data change
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || appRef.current || appInitFailedRef.current) return;
+
+    let cancelled = false;
+
+    (async () => {
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      const app = new Application();
+      try {
+        await app.init({
+          width,
+          height,
+          backgroundColor: 0x1a1a1a,
+          antialias: false,
+          resolution: window.devicePixelRatio || 1,
+          autoDensity: true,
+          preference: "webgl",
+        });
+      } catch (err) {
+        console.error("[GardenMap] Failed to init PixiJS:", err);
+        appInitFailedRef.current = true;
+        if (!cancelled) setWebglFailed(true);
+        return;
+      }
+
+      if (cancelled) {
+        app.destroy(true);
+        return;
+      }
+
+      container.appendChild(app.canvas);
+      app.canvas.style.imageRendering = "pixelated";
+      appRef.current = app;
+
+      // Handle WebGL context loss (log only, don't try recursive rebuild)
+      const glCanvas = app.canvas as HTMLCanvasElement;
+      glCanvas.addEventListener("webglcontextlost", (e) => {
+        e.preventDefault();
+        console.warn("[GardenMap] WebGL context lost");
+      });
+
+      // Trigger scene build
+      setReady((v) => !v);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- app init runs once
+
+  // Build the scene contents (reuses existing app)
   const buildScene = useCallback(async () => {
     const container = containerRef.current;
-    if (!container) return;
+    const app = appRef.current;
+    if (!container || !app) return;
 
-    // Clean up previous
-    if (appRef.current) {
-      if (tickerCallbackRef.current) {
-        appRef.current.ticker.remove(tickerCallbackRef.current);
-      }
-      appRef.current.destroy(true, { children: true, texture: false });
-      appRef.current = null;
+    // Don't build until we have actual data
+    if (zones.length === 0 && plants.length === 0) {
+      console.log("[GardenMap] Skipping build — no data yet");
+      return;
+    }
+
+    // Clean up previous scene contents (but keep the app/context alive)
+    if (tickerCallbackRef.current) {
+      app.ticker.remove(tickerCallbackRef.current);
+      tickerCallbackRef.current = null;
+    }
+    weatherSystemRef.current?.destroy();
+    weatherSystemRef.current = null;
+    wildlifeSystemRef.current?.destroy();
+    wildlifeSystemRef.current = null;
+    if (viewportRef.current) {
+      app.stage.removeChild(viewportRef.current);
+      viewportRef.current.destroy({ children: true });
       viewportRef.current = null;
     }
 
     const width = container.clientWidth;
     const height = container.clientHeight;
-
-    // Create PixiJS app
-    const app = new Application();
-    await app.init({
-      width,
-      height,
-      backgroundColor: 0x1a1a1a,
-      antialias: false,
-      resolution: window.devicePixelRatio || 1,
-      autoDensity: true,
-    });
-
-    container.appendChild(app.canvas);
-    app.canvas.style.imageRendering = "pixelated";
-    appRef.current = app;
 
     // Generate tile map
     const map = generateMap(location, structures, zones);
@@ -114,7 +209,7 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
       .pinch()
       .wheel({ smooth: 3 })
       .decelerate({ friction: 0.92 })
-      .clampZoom({ minScale: 0.5, maxScale: 6 })
+      .clampZoom({ minScale: 0.8, maxScale: 8 })
       .clamp({ direction: "all" });
 
     app.stage.addChild(viewport);
@@ -143,7 +238,12 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
 
       const pixels = generateTilePattern(type, varSeed);
       const canvas = renderTileToCanvas(pixels);
-      const texture = Texture.from({ resource: canvas, antialias: false });
+      const source = new CanvasSource({
+        resource: canvas,
+        resolution: 1,
+        scaleMode: "nearest",
+      });
+      const texture = new Texture({ source });
       tileTextureCache.set(key, texture);
       return texture;
     }
@@ -165,26 +265,40 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
 
     viewport.addChild(tileContainer);
 
-    // ---- LAYER 2: Zone borders + labels ----
+    // ---- LAYER 2: House sprite ----
+    if (map.houseArea && structures.length > 0) {
+      const mainStruct = structures[0]!;
+      const ha = map.houseArea;
+      const houseTexture = generateHouseTexture(ha.w, ha.h, mainStruct);
+      const houseSprite = new Sprite(houseTexture);
+      houseSprite.x = ha.x * TILE_SIZE;
+      houseSprite.y = ha.y * TILE_SIZE;
+      viewport.addChild(houseSprite);
+    }
+
+    // ---- LAYER 3: Zone borders + labels ----
     const zoneContainer = new Container();
     zoneContainer.label = "zones";
 
     for (const zone of zones) {
-      const zx = (4 + zone.posX) * TILE_SIZE;
-      const zy = (4 + zone.posY) * TILE_SIZE;
-      const zw = zone.width * TILE_SIZE;
-      const zh = zone.depth * TILE_SIZE;
+      const zoneArea = map.zoneAreas.get(zone.id);
+      if (!zoneArea) continue;
 
-      // Zone border
+      const zx = zoneArea.x * TILE_SIZE;
+      const zy = zoneArea.y * TILE_SIZE;
+      const zw = zoneArea.w * TILE_SIZE;
+      const zh = zoneArea.h * TILE_SIZE;
+
+      // Zone border — thick and visible
       const border = new Graphics();
       const zoneColor = zone.color ? parseInt(zone.color.replace("#", ""), 16) : 0x8b7355;
       border.rect(zx, zy, zw, zh);
-      border.stroke({ width: 2, color: zoneColor, alpha: 0.6 });
+      border.stroke({ width: 3, color: zoneColor, alpha: 0.85 });
       zoneContainer.addChild(border);
 
-      // Corner markers
+      // Corner markers — prominent
       const corners = new Graphics();
-      const cornerLen = Math.min(8, Math.min(zw, zh) / 4);
+      const cornerLen = Math.min(12, Math.min(zw, zh) / 3);
       // Top-left
       corners.moveTo(zx, zy + cornerLen).lineTo(zx, zy).lineTo(zx + cornerLen, zy);
       // Top-right
@@ -193,225 +307,246 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
       corners.moveTo(zx, zy + zh - cornerLen).lineTo(zx, zy + zh).lineTo(zx + cornerLen, zy + zh);
       // Bottom-right
       corners.moveTo(zx + zw - cornerLen, zy + zh).lineTo(zx + zw, zy + zh).lineTo(zx + zw, zy + zh - cornerLen);
-      corners.stroke({ width: 2, color: zoneColor, alpha: 0.9 });
+      corners.stroke({ width: 3, color: zoneColor, alpha: 1.0 });
       zoneContainer.addChild(corners);
 
-      // Zone label
+      // Zone label — larger and more visible
       const labelStyle = new TextStyle({
         fontFamily: "monospace",
-        fontSize: 8,
+        fontSize: 10,
         fill: 0xffffff,
+        fontWeight: "bold",
         letterSpacing: 0,
       });
       const label = new Text({ text: zone.name, style: labelStyle });
       label.anchor.set(0.5, 0);
       label.x = zx + zw / 2;
-      label.y = zy - 12;
-      label.alpha = 0.8;
+      label.y = zy - 14;
+      label.alpha = 0.9;
 
       // Label background
       const labelBg = new Graphics();
-      const labelPad = 3;
+      const labelPad = 4;
       labelBg.roundRect(
         label.x - label.width / 2 - labelPad,
         label.y - labelPad,
         label.width + labelPad * 2,
         label.height + labelPad * 2,
-        2,
+        3,
       );
-      labelBg.fill({ color: 0x000000, alpha: 0.6 });
+      labelBg.fill({ color: 0x000000, alpha: 0.7 });
       zoneContainer.addChild(labelBg);
       zoneContainer.addChild(label);
     }
 
     viewport.addChild(zoneContainer);
 
-    // ---- LAYER 3: Structure labels ----
-    const structContainer = new Container();
-    structContainer.label = "structures";
+    // ---- LAYER 4: Structure labels (for non-primary structures) ----
+    if (structures.length > 1) {
+      const structContainer = new Container();
+      structContainer.label = "structures";
 
-    for (const struct of structures) {
-      const sx = (4 + struct.posX) * TILE_SIZE;
-      const sy = (4 + struct.posY) * TILE_SIZE;
-      const sw = struct.width * TILE_SIZE;
-      const sh = struct.depth * TILE_SIZE;
+      // Skip the first structure (main house, already rendered as sprite)
+      for (let i = 1; i < structures.length; i++) {
+        const struct = structures[i]!;
+        // Try to find this structure in the house area context
+        const labelStyle = new TextStyle({
+          fontFamily: "monospace",
+          fontSize: 7,
+          fill: 0xb0a89a,
+          letterSpacing: 0,
+        });
+        const label = new Text({ text: struct.name, style: labelStyle });
+        label.anchor.set(0.5, 0.5);
+        // Position relative to map center (abstract positioning)
+        label.x = map.pixelWidth / 2;
+        label.y = map.pixelHeight / 2;
+        label.alpha = 0.7;
+        structContainer.addChild(label);
+      }
 
-      const labelStyle = new TextStyle({
-        fontFamily: "monospace",
-        fontSize: 7,
-        fill: 0xb0a89a,
-        letterSpacing: 0,
-      });
-      const label = new Text({ text: struct.name, style: labelStyle });
-      label.anchor.set(0.5, 0.5);
-      label.x = sx + sw / 2;
-      label.y = sy + sh / 2;
-      label.alpha = 0.7;
-      structContainer.addChild(label);
+      viewport.addChild(structContainer);
     }
 
-    viewport.addChild(structContainer);
-
-    // ---- LAYER 4: Plant sprites ----
+    // ---- LAYER 5: Plant sprites ----
     const plantContainer = new Container();
     plantContainer.label = "plants";
 
     // Group plants by zone
     const plantsByZone = new Map<number, PlantInstance[]>();
-    const unzonedPlants: PlantInstance[] = [];
     for (const plant of plants) {
       if (plant.zoneId) {
         const list = plantsByZone.get(plant.zoneId) ?? [];
         list.push(plant);
         plantsByZone.set(plant.zoneId, list);
-      } else {
-        unzonedPlants.push(plant);
       }
     }
 
-    // Preload textures
-    preloadPlantTextures(
-      plants.map((p) => ({
-        plantType: p.plantReference?.plantType,
-        mood: p.mood,
-      })),
-    );
-
     const plantAnims: PlantAnim[] = [];
     const particleEmitters: ParticleEmitter[] = [];
+    const zoneRotations: ZoneRotation[] = [];
+
+    /** Create and add a single plant graphic at a position */
+    function addPlantAtPosition(
+      plant: PlantInstance,
+      pos: { x: number; y: number },
+      parent: Container,
+    ): Container {
+      const plantGfx = createPlantGraphics(
+        plant.plantReference?.plantType,
+        plant.mood as PlantMood,
+      );
+
+      plantGfx.scale.set(PLANT_SPRITE_SCALE, PLANT_SPRITE_SCALE);
+      // Center horizontally, anchor at bottom of sprite
+      plantGfx.x = pos.x - (8 * PLANT_SPRITE_SCALE);
+      plantGfx.y = pos.y - (16 * PLANT_SPRITE_SCALE);
+
+      // Hit area for click detection (covers the full 16x16 sprite area at scale)
+      plantGfx.hitArea = { contains: (x: number, y: number) => x >= 0 && x <= 16 && y >= 0 && y <= 16 };
+      plantGfx.eventMode = "static";
+      plantGfx.cursor = "pointer";
+      plantGfx.on("pointertap", (e) => {
+        e.stopPropagation();
+        if (onPlantClick) {
+          const global = plantGfx.getGlobalPosition();
+          onPlantClick(plant, global.x, global.y);
+        }
+      });
+
+      // Planned plants are slightly translucent
+      if (plant.status === "planned") {
+        plantGfx.alpha = 0.75;
+      } else if (plant.mood === "sleeping") {
+        plantGfx.alpha = 0.7;
+      }
+
+      parent.addChild(plantGfx);
+
+      plantAnims.push({
+        sprite: plantGfx as unknown as Sprite,
+        plant,
+        baseX: plantGfx.x,
+        baseY: plantGfx.y,
+        phase: Math.random() * Math.PI * 2,
+      });
+
+      return plantGfx;
+    }
 
     for (const zone of zones) {
       const zonePlants = plantsByZone.get(zone.id) ?? [];
       if (zonePlants.length === 0) continue;
 
-      const positions = calculatePlantPositions(zone, zonePlants.length);
+      const layout = calculatePlantPositions(zone, zonePlants.length, map);
+      const { positions, maxSlots, totalPlants } = layout;
 
-      zonePlants.forEach((plant, i) => {
-        const pos = positions[i];
-        if (!pos) return;
+      if (totalPlants <= maxSlots) {
+        // All plants fit — just place them
+        zonePlants.forEach((plant, i) => {
+          const pos = positions[i];
+          if (!pos) return;
+          addPlantAtPosition(plant, pos, plantContainer);
+        });
+      } else {
+        // Too many plants for this zone — set up rotation
+        const zoneContainer = new Container();
+        zoneContainer.label = `zone-${zone.id}-plants`;
 
-        const texture = getPlantTexture(
-          plant.plantReference?.plantType,
-          plant.mood as PlantMood,
-        );
-
-        const sprite = new Sprite(texture);
-        sprite.anchor.set(0.5, 1); // bottom-center anchor
-        sprite.x = pos.x;
-        sprite.y = pos.y;
-        sprite.width = TILE_SIZE * PLANT_SPRITE_SCALE;
-        sprite.height = TILE_SIZE * PLANT_SPRITE_SCALE;
-
-        // Make interactive
-        sprite.eventMode = "static";
-        sprite.cursor = "pointer";
-        sprite.on("pointertap", (e) => {
-          e.stopPropagation();
-          if (onPlantClick) {
-            const global = sprite.getGlobalPosition();
-            onPlantClick(plant, global.x, global.y - sprite.height / 2);
-          }
+        // Show first batch
+        const visibleSlice = zonePlants.slice(0, maxSlots);
+        visibleSlice.forEach((plant, i) => {
+          const pos = positions[i];
+          if (!pos) return;
+          addPlantAtPosition(plant, pos, zoneContainer);
         });
 
-        // Hover glow effect
-        sprite.on("pointerover", () => {
-          sprite.alpha = 0.85;
-          sprite.scale.set(
-            PLANT_SPRITE_SCALE + 0.3,
-            PLANT_SPRITE_SCALE + 0.3,
-          );
+        plantContainer.addChild(zoneContainer);
+
+        zoneRotations.push({
+          zoneId: zone.id,
+          allPlants: zonePlants,
+          positions,
+          maxSlots,
+          currentOffset: 0,
+          container: zoneContainer,
+          timer: 0,
         });
-        sprite.on("pointerout", () => {
-          sprite.alpha = plant.mood === "sleeping" ? 0.7 : 1;
-          sprite.scale.set(PLANT_SPRITE_SCALE, PLANT_SPRITE_SCALE);
-        });
-
-        // Planned plants are ghostly
-        if (plant.status === "planned") {
-          sprite.alpha = 0.4;
-        } else if (plant.mood === "sleeping") {
-          sprite.alpha = 0.7;
-        }
-
-        plantContainer.addChild(sprite);
-
-        // Register for animation
-        plantAnims.push({
-          sprite,
-          plant,
-          baseX: pos.x,
-          baseY: pos.y,
-          phase: Math.random() * Math.PI * 2,
-        });
-
-        // Add particle effects for mood
-        const particleType = getMoodParticleType(plant.mood);
-        if (particleType && plant.status !== "planned") {
-          const emitter = new ParticleEmitter(plantContainer, {
-            x: pos.x,
-            y: pos.y - TILE_SIZE * PLANT_SPRITE_SCALE * 0.5,
-            type: particleType,
-            rate: getMoodParticleRate(plant.mood),
-          });
-          particleEmitters.push(emitter);
-        }
-      });
+      }
     }
 
     viewport.addChild(plantContainer);
     animsRef.current = plantAnims;
     emittersRef.current = particleEmitters;
+    zoneRotationsRef.current = zoneRotations;
 
-    // ---- LAYER 5: Lot boundary indicator ----
-    const lotBorder = new Graphics();
-    const lotX = 4 * TILE_SIZE;
-    const lotY = 4 * TILE_SIZE;
-    const lotW = (location.lotWidth ?? 50) * TILE_SIZE;
-    const lotH = (location.lotDepth ?? 50) * TILE_SIZE;
+    // ---- LAYER 6: Weather effects ----
+    const weatherSystem = new WeatherEffectSystem(viewport, map.pixelWidth, map.pixelHeight);
+    weatherSystemRef.current = weatherSystem;
 
-    // Dashed lot boundary
-    const dashLen = 6;
-    const gapLen = 4;
-    drawDashedRect(lotBorder, lotX, lotY, lotW, lotH, dashLen, gapLen);
-    lotBorder.stroke({ width: 1, color: 0x555555, alpha: 0.5 });
-    viewport.addChild(lotBorder);
+    if (weather) {
+      weatherSystem.setWeather(weather.conditions ?? null, weather.temperature ?? null);
+    }
+
+    weatherSystem.setSeason(new Date().getMonth() + 1);
+
+    const phase = getTimeOfDay(sunData);
+    weatherSystem.setTimeOfDay(phase);
+
+    // ---- LAYER 7: Wildlife ----
+    const wildlifeSystem = new WildlifeSystem(viewport, map.pixelWidth, map.pixelHeight);
+    wildlifeSystemRef.current = wildlifeSystem;
+
+    const month = new Date().getMonth() + 1;
+    const season: "spring" | "summer" | "fall" | "winter" =
+      month >= 3 && month <= 5 ? "spring" :
+      month >= 6 && month <= 8 ? "summer" :
+      month >= 9 && month <= 11 ? "fall" :
+      "winter";
+
+    wildlifeSystem.configure({
+      season,
+      timeOfDay: phase,
+      isRaining: (weather?.conditions ?? "").toLowerCase().includes("rain"),
+    });
 
     // ---- ANIMATION LOOP ----
     let elapsed = 0;
 
     const tickerCallback = (ticker: { deltaTime: number }) => {
+      const dt = ticker.deltaTime / 60;
       elapsed += ticker.deltaTime * 0.02;
 
       for (const anim of animsRef.current) {
-        const { sprite, plant, baseX, baseY, phase } = anim;
+        const { sprite, plant, baseX, baseY, phase: animPhase } = anim;
         const mood = plant.mood as PlantMood;
 
         switch (mood) {
           case "happy":
           case "new": {
             // Gentle bounce
-            sprite.y = baseY + Math.sin(elapsed * 2 + phase) * 1.5;
+            sprite.y = baseY + Math.sin(elapsed * 2 + animPhase) * 1.5;
             break;
           }
           case "thirsty": {
             // Slight droop + slow sway
             sprite.y = baseY + 1;
-            sprite.rotation = Math.sin(elapsed * 1.2 + phase) * 0.05;
+            sprite.rotation = Math.sin(elapsed * 1.2 + animPhase) * 0.05;
             break;
           }
           case "hot": {
             // Quick shimmer
-            sprite.y = baseY + Math.sin(elapsed * 4 + phase) * 0.5;
+            sprite.y = baseY + Math.sin(elapsed * 4 + animPhase) * 0.5;
             break;
           }
           case "cold": {
             // Shiver (oscillate around base position)
-            sprite.x = baseX + Math.sin(elapsed * 8 + phase) * 0.8;
+            sprite.x = baseX + Math.sin(elapsed * 8 + animPhase) * 0.8;
             break;
           }
           case "wilting": {
             // Droop lean
-            sprite.rotation = Math.sin(elapsed * 0.5 + phase) * 0.08 + 0.1;
+            sprite.rotation = Math.sin(elapsed * 0.5 + animPhase) * 0.08 + 0.1;
             sprite.y = baseY + 2;
             break;
           }
@@ -421,47 +556,148 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
           }
           default: {
             // Default gentle idle
-            sprite.y = baseY + Math.sin(elapsed * 1.5 + phase) * 0.8;
+            sprite.y = baseY + Math.sin(elapsed * 1.5 + animPhase) * 0.8;
           }
         }
       }
 
       // Update particle emitters
-      const dtSeconds = ticker.deltaTime / 60;
       for (const emitter of emittersRef.current) {
-        emitter.update(dtSeconds);
+        emitter.update(dt);
       }
+
+      // Zone plant rotation (for zones with more plants than slots)
+      const ROTATION_INTERVAL = 8; // seconds between rotations
+      for (const rot of zoneRotationsRef.current) {
+        rot.timer += dt;
+        if (rot.timer >= ROTATION_INTERVAL) {
+          rot.timer = 0;
+          rot.currentOffset = (rot.currentOffset + rot.maxSlots) % rot.allPlants.length;
+
+          // Clear old plants from this zone's container
+          rot.container.removeChildren();
+
+          // Remove old anims for this zone
+          animsRef.current = animsRef.current.filter(
+            (a) => a.plant.zoneId !== rot.zoneId,
+          );
+
+          // Add new batch
+          const start = rot.currentOffset;
+          for (let i = 0; i < rot.maxSlots && i < rot.allPlants.length; i++) {
+            const plantIdx = (start + i) % rot.allPlants.length;
+            const plant = rot.allPlants[plantIdx]!;
+            const pos = rot.positions[i];
+            if (!pos) continue;
+
+            const plantGfx = createPlantGraphics(
+              plant.plantReference?.plantType,
+              plant.mood as PlantMood,
+            );
+            plantGfx.scale.set(PLANT_SPRITE_SCALE, PLANT_SPRITE_SCALE);
+            plantGfx.x = pos.x - (8 * PLANT_SPRITE_SCALE);
+            plantGfx.y = pos.y - (16 * PLANT_SPRITE_SCALE);
+            plantGfx.hitArea = { contains: (hx: number, hy: number) => hx >= 0 && hx <= 16 && hy >= 0 && hy <= 16 };
+            plantGfx.eventMode = "static";
+            plantGfx.cursor = "pointer";
+            plantGfx.on("pointertap", (ev) => {
+              ev.stopPropagation();
+              if (onPlantClick) {
+                const gp = plantGfx.getGlobalPosition();
+                onPlantClick(plant, gp.x, gp.y);
+              }
+            });
+
+            if (plant.status === "planned") plantGfx.alpha = 0.75;
+            else if (plant.mood === "sleeping") plantGfx.alpha = 0.7;
+
+            // Fade in
+            plantGfx.alpha = Math.min(plantGfx.alpha, 0);
+            const targetAlpha = plant.status === "planned" ? 0.75 : plant.mood === "sleeping" ? 0.7 : 1;
+            const fadeIn = () => {
+              if (plantGfx.alpha < targetAlpha) {
+                plantGfx.alpha = Math.min(plantGfx.alpha + 0.05, targetAlpha);
+                requestAnimationFrame(fadeIn);
+              }
+            };
+            requestAnimationFrame(fadeIn);
+
+            rot.container.addChild(plantGfx);
+
+            animsRef.current.push({
+              sprite: plantGfx as unknown as Sprite,
+              plant,
+              baseX: plantGfx.x,
+              baseY: plantGfx.y,
+              phase: Math.random() * Math.PI * 2,
+            });
+          }
+        }
+      }
+
+      // Weather effects
+      weatherSystem.update(dt);
+
+      // Wildlife
+      wildlifeSystem.update(dt);
     };
 
     tickerCallbackRef.current = tickerCallback;
     app.ticker.add(tickerCallback);
 
-    // Center viewport on the lot
-    viewport.moveCenter(lotX + lotW / 2, lotY + lotH / 2);
-    viewport.fit(true, lotW + TILE_SIZE * 8, lotH + TILE_SIZE * 8);
+    // Center viewport on house area with a comfortable zoom
+    const centerX = map.houseArea
+      ? (map.houseArea.x + map.houseArea.w / 2) * TILE_SIZE
+      : map.pixelWidth / 2;
+    const centerY = map.houseArea
+      ? (map.houseArea.y + map.houseArea.h / 2) * TILE_SIZE
+      : map.pixelHeight / 2;
+    viewport.setZoom(2.5, true);
+    viewport.moveCenter(centerX, centerY);
 
     setReady(true);
-  }, [location, structures, zones, plants, onPlantClick, onBackgroundClick]);
+  }, [location, structures, zones, plants, weather, sunData, onPlantClick, onBackgroundClick]);
 
-  // Init and rebuild on data change
+  // Rebuild scene when data changes or app becomes ready
   useEffect(() => {
     buildScene();
 
     return () => {
-      if (tickerCallbackRef.current && appRef.current) {
-        appRef.current.ticker.remove(tickerCallbackRef.current);
+      // Clean up scene contents on data change (NOT the app itself)
+      const app = appRef.current;
+      if (app) {
+        if (tickerCallbackRef.current) {
+          app.ticker.remove(tickerCallbackRef.current);
+          tickerCallbackRef.current = null;
+        }
+        for (const emitter of emittersRef.current) {
+          emitter.destroy();
+        }
+        emittersRef.current = [];
+        weatherSystemRef.current?.destroy();
+        weatherSystemRef.current = null;
+        wildlifeSystemRef.current?.destroy();
+        wildlifeSystemRef.current = null;
+        if (viewportRef.current) {
+          app.stage.removeChild(viewportRef.current);
+          viewportRef.current.destroy({ children: true });
+          viewportRef.current = null;
+        }
       }
-      for (const emitter of emittersRef.current) {
-        emitter.destroy();
-      }
-      emittersRef.current = [];
+      clearTextureCache();
+      clearHouseTextureCache();
+    };
+  }, [buildScene, ready]);
+
+  // Destroy the app on unmount only
+  useEffect(() => {
+    return () => {
       if (appRef.current) {
         appRef.current.destroy(true, { children: true, texture: false });
         appRef.current = null;
       }
-      clearTextureCache();
     };
-  }, [buildScene]);
+  }, []);
 
   // Handle resize
   useEffect(() => {
@@ -500,6 +736,24 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
     },
   }), []);
 
+  if (webglFailed) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-stone-950 text-stone-400">
+        <div className="text-center max-w-md px-6">
+          <p className="text-lg font-bold text-stone-300 mb-2">WebGL Unavailable</p>
+          <p className="text-sm mb-4">
+            Your browser couldn't create a WebGL context. The garden map requires
+            WebGL to render.
+          </p>
+          <p className="text-xs text-stone-500">
+            Try closing other tabs, enabling hardware acceleration in browser
+            settings, or using a different browser.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={containerRef}
@@ -510,44 +764,3 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
 });
 
 export default GardenCanvas;
-
-/** Draw a dashed rectangle using moveTo/lineTo */
-function drawDashedRect(
-  g: Graphics,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  dashLen: number,
-  gapLen: number,
-): void {
-  const edges = [
-    { x1: x, y1: y, x2: x + w, y2: y },
-    { x1: x + w, y1: y, x2: x + w, y2: y + h },
-    { x1: x + w, y1: y + h, x2: x, y2: y + h },
-    { x1: x, y1: y + h, x2: x, y2: y },
-  ];
-
-  for (const edge of edges) {
-    const dx = edge.x2 - edge.x1;
-    const dy = edge.y2 - edge.y1;
-    const len = Math.sqrt(dx * dx + dy * dy);
-    const nx = dx / len;
-    const ny = dy / len;
-    let pos = 0;
-    let drawing = true;
-
-    while (pos < len) {
-      const segLen = drawing ? dashLen : gapLen;
-      const end = Math.min(pos + segLen, len);
-
-      if (drawing) {
-        g.moveTo(edge.x1 + nx * pos, edge.y1 + ny * pos);
-        g.lineTo(edge.x1 + nx * end, edge.y1 + ny * end);
-      }
-
-      pos = end;
-      drawing = !drawing;
-    }
-  }
-}

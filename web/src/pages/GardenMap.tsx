@@ -127,6 +127,8 @@ export default function GardenMap() {
         structures={structures ?? []}
         zones={zones ?? []}
         plants={plants ?? []}
+        weather={weather}
+        sunData={sunData}
         onPlantClick={handlePlantClick}
         onBackgroundClick={handleBackgroundClick}
       />

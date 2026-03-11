@@ -3,7 +3,7 @@
  * Reuses the same pixel data and mood tint system from PlantSprite.tsx.
  */
 
-import { Texture } from "pixi.js";
+import { Texture, Graphics, Container } from "pixi.js";
 import type { PlantType, PlantMood } from "../../api";
 import { getSpriteType } from "../../api";
 
@@ -315,7 +315,7 @@ export function getPlantTexture(plantType: string | null | undefined, mood: Plan
     ctx.fillRect(14, 5, 1, 1);
   }
 
-  const texture = Texture.from({ resource: canvas, antialias: false });
+  const texture = Texture.from(canvas);
   textureCache.set(key, texture);
   return texture;
 }
@@ -339,4 +339,57 @@ export function clearTextureCache(): void {
     texture.destroy(true);
   }
   textureCache.clear();
+}
+
+// ---- Graphics-based plant sprite (bypasses canvas→WebGL texture issues) ----
+
+function hexToInt(hex: string): number {
+  return parseInt(hex.replace("#", ""), 16);
+}
+
+/**
+ * Create a plant sprite as a PixiJS Container with Graphics-drawn pixels.
+ * This bypasses the canvas→WebGL texture pipeline which has premultiplied alpha issues.
+ * Returns a Container sized at SPRITE_SIZE x SPRITE_SIZE (16x16).
+ */
+export function createPlantGraphics(
+  plantType: string | null | undefined,
+  mood: PlantMood,
+): Container {
+  const resolved = getSpriteType(plantType);
+  const pixels = getPlantPixels(resolved);
+  const opacity = mood === "sleeping" ? 0.6 : 1;
+
+  const container = new Container();
+  const g = new Graphics();
+
+  for (const [x, y, color] of pixels) {
+    const tinted = applyMoodTint(color, mood);
+    g.rect(x, y, 1, 1).fill({ color: hexToInt(tinted), alpha: opacity });
+  }
+
+  // Mood overlays
+  if (mood === "happy") {
+    g.rect(12, 3, 1, 1).fill(0xfacc15);
+    g.rect(13, 2, 1, 1).fill(0xfacc15);
+    g.rect(14, 4, 1, 1).fill(0xfacc15);
+  } else if (mood === "new") {
+    g.rect(12, 2, 1, 1).fill(0x34d399);
+    g.rect(2, 3, 1, 1).fill(0x34d399);
+    g.rect(13, 4, 1, 1).fill(0x6ee7b7);
+    g.rect(1, 5, 1, 1).fill(0x6ee7b7);
+  } else if (mood === "thirsty") {
+    g.rect(12, 8, 1, 1).fill(0x60a5fa);
+    g.rect(12, 9, 1, 1).fill(0x60a5fa);
+    g.rect(13, 10, 1, 1).fill(0x93c5fd);
+  } else if (mood === "hot") {
+    g.rect(13, 4, 1, 1).fill({ color: 0xf97316, alpha: 0.6 });
+    g.rect(13, 5, 1, 1).fill({ color: 0xf97316, alpha: 0.6 });
+    g.rect(1, 5, 1, 1).fill({ color: 0xf97316, alpha: 0.6 });
+    g.rect(1, 6, 1, 1).fill({ color: 0xf97316, alpha: 0.6 });
+    g.rect(14, 5, 1, 1).fill({ color: 0xfb923c, alpha: 0.5 });
+  }
+
+  container.addChild(g);
+  return container;
 }

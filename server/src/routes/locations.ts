@@ -16,7 +16,7 @@ const idParamSchema = z.object({
   }),
 });
 
-const roofTypeEnum = z.enum(["flat", "gable", "hip", "shed", "gambrel"]);
+const roofTypeEnum = z.enum(["flat", "gable", "hip", "shed", "gambrel", "pergola", "gazebo", "open", "canopy"]);
 
 const createLocationSchema = z.object({
   name: z.string().min(1),

@@ -52,7 +52,7 @@ export const structures = sqliteTable("structures", {
   height: real("height").notNull().default(10),
   stories: integer("stories").notNull().default(1),
   roofType: text("roof_type", {
-    enum: ["flat", "gable", "hip", "shed", "gambrel"],
+    enum: ["flat", "gable", "hip", "shed", "gambrel", "pergola", "gazebo", "open", "canopy"],
   })
     .notNull()
     .default("gable"),
@@ -77,6 +77,13 @@ export const zones = sqliteTable("zones", {
     .references(() => locations.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
+  zoneType: text("zone_type", {
+    enum: ["bed", "container", "raised_bed", "lawn", "patio", "path"],
+  }).notNull().default("bed"),
+  climbingStructure: text("climbing_structure", {
+    enum: ["trellis", "arbor", "pergola", "wall_mount", "fence"],
+  }),
+  hasPatio: integer("has_patio", { mode: "boolean" }).notNull().default(false),
   posX: real("pos_x").notNull().default(0),
   posY: real("pos_y").notNull().default(0),
   width: real("width").notNull().default(10),

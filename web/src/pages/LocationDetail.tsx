@@ -124,6 +124,9 @@ export default function LocationDetail() {
     posY: "0",
     color: "#4ade80",
     notes: "",
+    zoneType: "bed",
+    climbingStructure: "",
+    hasPatio: false,
   });
   const [structForm, setStructForm] = useState({
     name: "",
@@ -131,7 +134,7 @@ export default function LocationDetail() {
     depth: "",
     height: "10",
     stories: "1",
-    roofType: "gable" as "flat" | "gable" | "hip" | "shed" | "gambrel",
+    roofType: "gable" as "flat" | "gable" | "hip" | "shed" | "gambrel" | "pergola" | "gazebo" | "open" | "canopy",
     posX: "0",
     posY: "0",
   });
@@ -196,6 +199,9 @@ export default function LocationDetail() {
       posY: String(z.posY),
       color: z.color ?? "#4ade80",
       notes: z.notes ?? "",
+      zoneType: (z as any).zoneType ?? "bed",
+      climbingStructure: (z as any).climbingStructure ?? "",
+      hasPatio: (z as any).hasPatio ?? false,
     });
     setEditingZone(z);
     setShowAddZone(true);
@@ -1361,6 +1367,9 @@ export default function LocationDetail() {
               posY: Number(zoneForm.posY) || 0,
               color: zoneForm.color || "#4ade80",
               notes: zoneForm.notes || undefined,
+              zoneType: zoneForm.zoneType || "bed",
+              climbingStructure: zoneForm.climbingStructure || null,
+              hasPatio: zoneForm.hasPatio,
             };
             const resetZoneForm = () => {
               setShowAddZone(false);
@@ -1378,6 +1387,9 @@ export default function LocationDetail() {
                 posY: "0",
                 color: "#4ade80",
                 notes: "",
+                zoneType: "bed",
+                climbingStructure: "",
+                hasPatio: false,
               });
             };
             if (editingZone) {
@@ -1444,6 +1456,36 @@ export default function LocationDetail() {
             />
           </div>
           <Select
+            label="Zone Type"
+            value={zoneForm.zoneType}
+            onChange={(e) =>
+              setZoneForm({ ...zoneForm, zoneType: e.target.value })
+            }
+          >
+            <option value="bed">Garden Bed</option>
+            <option value="container">Container / Pot</option>
+            <option value="raised_bed">Raised Bed</option>
+            <option value="lawn">Lawn Area</option>
+            <option value="patio">Patio / Hardscape</option>
+            <option value="path">Path / Walkway</option>
+          </Select>
+          {(zoneForm.zoneType === "bed" || zoneForm.zoneType === "raised_bed") && (
+            <Select
+              label="Climbing Structure"
+              value={zoneForm.climbingStructure}
+              onChange={(e) =>
+                setZoneForm({ ...zoneForm, climbingStructure: e.target.value })
+              }
+            >
+              <option value="">None</option>
+              <option value="trellis">Trellis</option>
+              <option value="arbor">Arbor</option>
+              <option value="pergola">Pergola</option>
+              <option value="wall_mount">Wall Mount</option>
+              <option value="fence">Fence</option>
+            </Select>
+          )}
+          <Select
             label="Sun Exposure"
             value={zoneForm.sunExposure}
             onChange={(e) =>
@@ -1478,6 +1520,15 @@ export default function LocationDetail() {
               className="rounded border-stone-600 bg-stone-800 text-emerald-500 focus:ring-emerald-500/40"
             />
             <span className="text-sm text-stone-300 font-[family-name:var(--font-display)]">Indoor zone</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={zoneForm.hasPatio}
+              onChange={(e) => setZoneForm({ ...zoneForm, hasPatio: e.target.checked })}
+              className="rounded border-stone-600 bg-stone-800 text-emerald-500 focus:ring-emerald-500/40"
+            />
+            <span className="text-sm text-stone-300 font-[family-name:var(--font-display)]">Has patio furniture</span>
           </label>
           <div className="flex items-center gap-3">
             <label className="text-sm text-stone-400 font-[family-name:var(--font-display)]">Color</label>
@@ -1633,6 +1684,7 @@ export default function LocationDetail() {
             <label className="block text-sm font-medium text-stone-300 mb-2">
               Roof Type
             </label>
+            <p className="text-xs text-stone-500 mb-1.5 font-[family-name:var(--font-display)]">Solid Roof</p>
             <div className="grid grid-cols-5 gap-2">
               {([
                 { value: "flat", label: "Flat", desc: "Level top",
@@ -1666,6 +1718,49 @@ export default function LocationDetail() {
                         strokeWidth={2}
                         strokeLinejoin="round"
                         fill={isSelected ? "rgba(56,189,248,0.1)" : "rgba(120,113,108,0.1)"}
+                      />
+                      {/* Ground line */}
+                      <line x1="4" y1="22" x2="44" y2="22" stroke={isSelected ? "#38bdf8" : "#78716c"} strokeWidth={1} opacity={0.4} />
+                    </svg>
+                    <span className="text-[10px] font-[family-name:var(--font-display)] font-semibold">
+                      {roof.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-stone-500 mt-3 mb-1.5 font-[family-name:var(--font-display)]">Open Structures</p>
+            <div className="grid grid-cols-4 gap-2">
+              {([
+                { value: "pergola", label: "Pergola", desc: "Open beam structure with slats",
+                  path: "M6 22 L6 8 L42 8 L42 22 M10 8 L10 6 M18 8 L18 6 M26 8 L26 6 M34 8 L34 6 M38 8 L38 6 M14 8 L14 6 M22 8 L22 6 M30 8 L30 6" },
+                { value: "gazebo", label: "Gazebo", desc: "Hexagonal open-sided structure",
+                  path: "M14 22 L14 12 L10 10 L24 4 L38 10 L34 12 L34 22 M14 12 L34 12" },
+                { value: "open", label: "Open", desc: "No roof or covering",
+                  path: "M8 22 L8 12 M40 22 L40 12 M12 12 L12 10 M36 12 L36 10" },
+                { value: "canopy", label: "Canopy", desc: "Fabric or light covering",
+                  path: "M6 22 L6 10 Q14 6 24 8 Q34 6 42 10 L42 22" },
+              ] as const).map((roof) => {
+                const isSelected = structForm.roofType === roof.value;
+                return (
+                  <button
+                    key={roof.value}
+                    type="button"
+                    onClick={() => setStructForm({ ...structForm, roofType: roof.value })}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-all ${
+                      isSelected
+                        ? "border-sky-500 bg-sky-500/10 text-sky-300"
+                        : "border-stone-700 bg-stone-800/50 text-stone-400 hover:border-stone-600 hover:text-stone-300"
+                    }`}
+                    title={roof.desc}
+                  >
+                    <svg width="48" height="28" viewBox="0 0 48 28" fill="none">
+                      <path
+                        d={roof.path}
+                        stroke={isSelected ? "#38bdf8" : "#78716c"}
+                        strokeWidth={2}
+                        strokeLinejoin="round"
+                        fill="none"
                       />
                       {/* Ground line */}
                       <line x1="4" y1="22" x2="44" y2="22" stroke={isSelected ? "#38bdf8" : "#78716c"} strokeWidth={1} opacity={0.4} />

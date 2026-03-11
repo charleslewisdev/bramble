@@ -43,6 +43,13 @@
       "when": 1773166064145,
       "tag": "0005_numerous_galactus",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1773181306146,
+      "tag": "0006_magenta_thing",
+      "breakpoints": true
     }
   ]
 }

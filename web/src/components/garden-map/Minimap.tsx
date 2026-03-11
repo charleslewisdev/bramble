@@ -1,10 +1,11 @@
 /**
  * Minimap overlay showing a bird's-eye view of the property.
- * Rendered as a simple canvas with zone colors and plant dots.
+ * Uses the abstract map generator for consistent layout with the main canvas.
  */
 
 import { useRef, useEffect } from "react";
 import type { Location, Structure, Zone, PlantInstance } from "../../api";
+import { generateMap } from "./map-generator";
 
 interface MinimapProps {
   location: Location;
@@ -24,60 +25,65 @@ export default function Minimap({
 }: MinimapProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const lotWidth = location.lotWidth ?? 50;
-  const lotDepth = location.lotDepth ?? 50;
-
-  // Maintain aspect ratio
-  const aspect = lotWidth / lotDepth;
-  const minimapHeight = Math.min(MINIMAP_MAX_HEIGHT, MINIMAP_WIDTH / aspect);
-  const minimapWidth = minimapHeight * aspect;
-
-  const scaleX = minimapWidth / lotWidth;
-  const scaleY = minimapHeight / lotDepth;
-
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    // Generate the same abstract map used by the main canvas
+    const map = generateMap(location, structures, zones);
+
+    // Maintain aspect ratio based on the abstract map dimensions
+    const mapAspect = map.width / map.height;
+    const minimapHeight = Math.min(MINIMAP_MAX_HEIGHT, MINIMAP_WIDTH / mapAspect);
+    const minimapWidth = minimapHeight * mapAspect;
+
+    const scaleX = minimapWidth / map.width;
+    const scaleY = minimapHeight / map.height;
 
     const ctx = canvas.getContext("2d")!;
     const dpr = window.devicePixelRatio || 1;
     canvas.width = minimapWidth * dpr;
     canvas.height = minimapHeight * dpr;
+    canvas.style.width = `${minimapWidth}px`;
+    canvas.style.height = `${minimapHeight}px`;
     ctx.scale(dpr, dpr);
 
     // Background (grass)
     ctx.fillStyle = "#2d5a1e";
     ctx.fillRect(0, 0, minimapWidth, minimapHeight);
 
-    // Structures
-    ctx.fillStyle = "#4a4a52";
-    for (const struct of structures) {
+    // House area
+    if (map.houseArea) {
+      ctx.fillStyle = "#4a4a52";
       ctx.fillRect(
-        struct.posX * scaleX,
-        struct.posY * scaleY,
-        struct.width * scaleX,
-        struct.depth * scaleY,
+        map.houseArea.x * scaleX,
+        map.houseArea.y * scaleY,
+        map.houseArea.w * scaleX,
+        map.houseArea.h * scaleY,
       );
     }
 
-    // Zones
+    // Zones (from abstract map zoneAreas)
     for (const zone of zones) {
+      const area = map.zoneAreas.get(zone.id);
+      if (!area) continue;
+
       const color = zone.color ?? "#8b7355";
       ctx.fillStyle = color + "66"; // 40% opacity
       ctx.fillRect(
-        zone.posX * scaleX,
-        zone.posY * scaleY,
-        zone.width * scaleX,
-        zone.depth * scaleY,
+        area.x * scaleX,
+        area.y * scaleY,
+        area.w * scaleX,
+        area.h * scaleY,
       );
       // Border
       ctx.strokeStyle = color;
       ctx.lineWidth = 1;
       ctx.strokeRect(
-        zone.posX * scaleX,
-        zone.posY * scaleY,
-        zone.width * scaleX,
-        zone.depth * scaleY,
+        area.x * scaleX,
+        area.y * scaleY,
+        area.w * scaleX,
+        area.h * scaleY,
       );
     }
 
@@ -95,10 +101,13 @@ export default function Minimap({
       const zonePlants = plantsByZone.get(zone.id) ?? [];
       if (zonePlants.length === 0) continue;
 
-      const zx = zone.posX * scaleX;
-      const zy = zone.posY * scaleY;
-      const zw = zone.width * scaleX;
-      const zh = zone.depth * scaleY;
+      const area = map.zoneAreas.get(zone.id);
+      if (!area) continue;
+
+      const zx = area.x * scaleX;
+      const zy = area.y * scaleY;
+      const zw = area.w * scaleX;
+      const zh = area.h * scaleY;
 
       zonePlants.forEach((plant, i) => {
         const cols = Math.ceil(Math.sqrt(zonePlants.length));
@@ -127,13 +136,13 @@ export default function Minimap({
       });
     }
 
-    // Lot border
+    // Map border
     ctx.strokeStyle = "#555555";
     ctx.lineWidth = 1;
     ctx.setLineDash([3, 2]);
     ctx.strokeRect(0, 0, minimapWidth, minimapHeight);
     ctx.setLineDash([]);
-  }, [location, structures, zones, plants, minimapWidth, minimapHeight, scaleX, scaleY]);
+  }, [location, structures, zones, plants]);
 
   return (
     <div className="fixed bottom-20 left-4 z-[55] pointer-events-auto">
@@ -141,8 +150,6 @@ export default function Minimap({
         <canvas
           ref={canvasRef}
           style={{
-            width: minimapWidth,
-            height: minimapHeight,
             imageRendering: "pixelated",
           }}
           className="rounded"

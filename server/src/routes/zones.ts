@@ -14,6 +14,8 @@ const sunExposureEnum = z.enum(["full_sun", "partial_sun", "partial_shade", "ful
 const soilTypeEnum = z.enum(["clay", "sandy", "loamy", "silty", "peaty", "chalky", "mixed"]);
 const moistureLevelEnum = z.enum(["dry", "moderate", "moist", "wet"]);
 const windExposureEnum = z.enum(["sheltered", "moderate", "exposed"]);
+const zoneTypeEnum = z.enum(["bed", "container", "raised_bed", "lawn", "patio", "path"]);
+const climbingStructureEnum = z.enum(["trellis", "arbor", "pergola", "wall_mount", "fence"]);
 
 const createZoneSchema = z.object({
   locationId: z.number().int().positive(),
@@ -30,6 +32,9 @@ const createZoneSchema = z.object({
   isIndoor: z.boolean().optional(),
   notes: z.string().optional(),
   color: z.string().optional(),
+  zoneType: zoneTypeEnum.optional(),
+  climbingStructure: climbingStructureEnum.nullable().optional(),
+  hasPatio: z.boolean().optional(),
 });
 
 const updateZoneSchema = createZoneSchema.omit({ locationId: true }).partial();

@@ -65,7 +65,7 @@ export interface Structure {
   depth: number;
   height: number;
   stories: number;
-  roofType: "flat" | "gable" | "hip" | "shed" | "gambrel";
+  roofType: "flat" | "gable" | "hip" | "shed" | "gambrel" | "pergola" | "gazebo" | "open" | "canopy";
   createdAt: string;
 }
 
@@ -83,6 +83,9 @@ export interface Zone {
   moistureLevel?: string | null;
   windExposure?: string | null;
   isIndoor: boolean;
+  zoneType?: string | null;
+  climbingStructure?: string | null;
+  hasPatio: boolean;
   notes?: string | null;
   color?: string | null;
   createdAt: string;
