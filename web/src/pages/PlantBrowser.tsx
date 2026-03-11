@@ -371,7 +371,7 @@ export default function PlantBrowser() {
                       {result.watering && (
                         <Chip color="blue">{result.watering} water</Chip>
                       )}
-                      {result.sunlight?.map((s) => (
+                      {(Array.isArray(result.sunlight) ? result.sunlight : result.sunlight ? [result.sunlight] : []).map((s) => (
                         <Chip key={s} color="yellow">{s}</Chip>
                       ))}
                     </div>

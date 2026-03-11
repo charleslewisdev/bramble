@@ -431,7 +431,7 @@ export interface PlantSearchResult {
   commonName: string;
   latinName?: string | null;
   plantType?: string | null;
-  sunlight?: string[];
+  sunlight?: string[] | string;
   watering?: string;
   cycle?: string;
   imageUrl?: string | null;
