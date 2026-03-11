@@ -748,7 +748,7 @@ function paintSidewalk(
 // ──────────────────────────────────────────────
 
 /** Size of one plant sprite slot in pixels (sprite is 16px scaled by PLANT_SPRITE_SCALE ~2.5) */
-const PLANT_SLOT_SIZE = 44; // ~16*2.5 + 4px padding
+const PLANT_SLOT_SIZE = 36; // tighter grid — allows slight overlap for denser, more natural feel
 
 export interface PlantLayout {
   /** Positions for each visible plant (pixel coordinates) */
@@ -792,8 +792,8 @@ export function calculatePlantPositions(
     zonePixelH = MIN_ZONE_TILES * TILE_SIZE;
   }
 
-  // Inset from zone edges (half a tile on each side)
-  const inset = TILE_SIZE * 0.5;
+  // Allow plants to overflow zone borders slightly — feels more natural/3D
+  const inset = -(TILE_SIZE * 0.25);
   const innerW = Math.max(zonePixelW - inset * 2, PLANT_SLOT_SIZE);
   const innerH = Math.max(zonePixelH - inset * 2, PLANT_SLOT_SIZE);
 
