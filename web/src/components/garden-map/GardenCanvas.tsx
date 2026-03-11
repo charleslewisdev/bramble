@@ -215,12 +215,16 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
     app.stage.addChild(viewport);
     viewportRef.current = viewport;
 
-    // Handle background clicks
+    // Handle background clicks — dismiss plant panel when clicking non-plant areas
     viewport.on("clicked", (e) => {
-      // Only fire if the click wasn't on a plant sprite
-      if (e.event.target === viewport || e.event.target instanceof Graphics) {
-        onBackgroundClick?.();
+      const target = e.event.target as Container;
+      // Walk up the display tree to see if the click landed on a plant sprite
+      let node: Container | null = target;
+      while (node && node !== viewport) {
+        if (node.label === "plant-sprite") return; // Plant handles its own click
+        node = node.parent;
       }
+      onBackgroundClick?.();
     });
 
     // ---- LAYER 1: Tiles ----
@@ -397,6 +401,7 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
         plant.mood as PlantMood,
       );
 
+      plantGfx.label = "plant-sprite";
       plantGfx.scale.set(PLANT_SPRITE_SCALE, PLANT_SPRITE_SCALE);
       // Center horizontally, anchor at bottom of sprite
       plantGfx.x = pos.x - (8 * PLANT_SPRITE_SCALE);
@@ -594,6 +599,7 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
               plant.plantReference?.plantType,
               plant.mood as PlantMood,
             );
+            plantGfx.label = "plant-sprite";
             plantGfx.scale.set(PLANT_SPRITE_SCALE, PLANT_SPRITE_SCALE);
             plantGfx.x = pos.x - (8 * PLANT_SPRITE_SCALE);
             plantGfx.y = pos.y - (16 * PLANT_SPRITE_SCALE);
