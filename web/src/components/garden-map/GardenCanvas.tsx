@@ -292,12 +292,11 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
       const worldX = e.world.x;
       const worldY = e.world.y;
 
-      // Check if click hit any plant sprite
+      // 1. Check plant hit areas first
       for (const hit of plantHitAreasRef.current) {
         if (worldX >= hit.x && worldX <= hit.x + hit.w &&
             worldY >= hit.y && worldY <= hit.y + hit.h) {
           if (onPlantClick) {
-            // Convert world position to screen position for panel placement
             const screenPt = viewport.toScreen(worldX, worldY);
             onPlantClick(hit.plant, screenPt.x, screenPt.y);
           }
@@ -305,7 +304,19 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
         }
       }
 
-      // No plant hit — background click
+      // 2. Check enclosure hit areas
+      for (const hit of enclosureHitAreasRef.current) {
+        if (worldX >= hit.x && worldX <= hit.x + hit.w &&
+            worldY >= hit.y && worldY <= hit.y + hit.h) {
+          togglePeek(hit.id);
+          return;
+        }
+      }
+
+      // 3. Background click — close any open enclosure
+      if (openEnclosureRef.current !== null) {
+        togglePeek(openEnclosureRef.current);
+      }
       onBackgroundClick?.();
     });
 
@@ -741,6 +752,43 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
 
     enclosureHitAreasRef.current = enclosureHitAreas;
 
+    /** Toggle peek into an enclosure (house or greenhouse/covered zone). */
+    function togglePeek(id: "house" | number) {
+      const current = openEnclosureRef.current;
+
+      // Close any currently open enclosure
+      if (current === "house") {
+        if (houseSpriteRef.current) registerFade("house-sprite", houseSpriteRef.current, 1);
+        if (houseFloorRef.current) registerFade("house-floor", houseFloorRef.current, 0);
+        if (indoorPlantContainerRef.current) registerFade("indoor-plants", indoorPlantContainerRef.current, 0);
+      } else if (typeof current === "number") {
+        const overlay = enclosureOverlaysRef.current.get(current);
+        if (overlay) registerFade(`overlay-${current}`, overlay, 1);
+      }
+
+      if (current === id) {
+        // Toggle off
+        setOpenEnclosure(null);
+        return;
+      }
+
+      // Open new enclosure
+      if (id === "house") {
+        if (houseSpriteRef.current) registerFade("house-sprite", houseSpriteRef.current, 0.15);
+        if (houseFloorRef.current) registerFade("house-floor", houseFloorRef.current, 1);
+        if (indoorPlantContainerRef.current) registerFade("indoor-plants", indoorPlantContainerRef.current, 1);
+      } else {
+        const overlay = enclosureOverlaysRef.current.get(id);
+        if (overlay) {
+          const zone = mapZones.find(z => z.id === id);
+          const targetAlpha = zone?.exposure === "covered" ? 0.2 : 0.1;
+          registerFade(`overlay-${id}`, overlay, targetAlpha);
+        }
+      }
+
+      setOpenEnclosure(id);
+    }
+
     // ---- LAYER 5b: Speech bubbles (above plants) ----
     const speechBubbleManager = new SpeechBubbleManager(viewport);
     speechBubbleManager.setPlants(
@@ -971,6 +1019,9 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
 
       // Wildlife
       wildlifeSystem.update(dt);
+
+      // Enclosure fade transitions
+      updateFades(dt);
     };
 
     tickerCallbackRef.current = tickerCallback;
