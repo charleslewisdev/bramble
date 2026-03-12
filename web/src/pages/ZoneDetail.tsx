@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Sun, Droplets, Wind, Layers, Check, X, Clock, Sunrise, Bell, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeft, Plus, Sun, Droplets, Wind, Layers, Check, X, Clock, Sunrise, Bell, ChevronDown, ChevronRight, Unlink } from "lucide-react";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import { Input, Select, Textarea } from "../components/ui/Input";
@@ -15,6 +15,7 @@ import {
   usePlantInstances,
   usePlantReferences,
   useCreatePlantInstance,
+  useUpdatePlantInstance,
   useSunData,
   useUpdateZone,
 } from "../api/hooks";
@@ -70,6 +71,7 @@ export default function ZoneDetail() {
     plantSearch || undefined
   );
   const createPlantInstance = useCreatePlantInstance();
+  const updatePlantInstance = useUpdatePlantInstance();
   const [selectedRef, setSelectedRef] = useState<number | null>(null);
   const [nickname, setNickname] = useState("");
   const [status, setStatus] = useState<PlantStatus>("planned");
@@ -338,8 +340,21 @@ export default function ZoneDetail() {
                 key={plant.id}
                 hoverable
                 onClick={() => navigate(`/my-plants/${plant.id}`)}
-                className="text-center py-4"
+                className="text-center py-4 relative group"
               >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    updatePlantInstance.mutate(
+                      { id: plant.id, data: { zoneId: null } },
+                      { onSuccess: () => showToast(`${plant.nickname ?? plant.plantReference?.commonName ?? "Plant"} removed from zone`, "success") },
+                    );
+                  }}
+                  className="absolute top-2 right-2 p-1 rounded text-stone-600 hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all"
+                  title="Remove from zone"
+                >
+                  <Unlink size={12} />
+                </button>
                 <PlantSprite
                   type={
                     (plant.plantReference?.plantType as PlantType) ?? "flower"

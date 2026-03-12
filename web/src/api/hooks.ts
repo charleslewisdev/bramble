@@ -277,6 +277,7 @@ export function useUpdatePlantInstance() {
     onSuccess: (_d, v) => {
       qc.invalidateQueries({ queryKey: ["plantInstances"] });
       qc.invalidateQueries({ queryKey: ["plantInstances", v.id] });
+      qc.invalidateQueries({ queryKey: ["zones"] });
     },
   });
 }

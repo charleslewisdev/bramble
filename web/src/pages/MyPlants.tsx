@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Filter, X, Sprout } from "lucide-react";
+import { Filter, X, Skull, MapPin } from "lucide-react";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import { Select } from "../components/ui/Input";
@@ -11,29 +11,35 @@ import StatusBadge from "../components/ui/StatusBadge";
 import { usePlantInstances, useLocations } from "../api/hooks";
 import type { PlantType, PlantStatus } from "../api";
 
-const statusOptions: PlantStatus[] = [
+const activeStatusOptions: PlantStatus[] = [
   "planned",
   "planted",
   "established",
   "struggling",
   "dormant",
-  "dead",
-  "removed",
 ];
 
 type SortKey = "name" | "date" | "status";
+type Tab = "garden" | "graveyard";
+
+const GRAVEYARD_STATUSES: PlantStatus[] = ["dead", "removed"];
 
 export default function MyPlants() {
   const navigate = useNavigate();
   const { data: plants, isLoading } = usePlantInstances();
   const { data: locations } = useLocations();
 
+  const [tab, setTab] = useState<Tab>("garden");
   const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("name");
 
-  let filtered = plants ?? [];
+  const allPlants = plants ?? [];
+  const gardenPlants = allPlants.filter((p) => !GRAVEYARD_STATUSES.includes(p.status));
+  const graveyardPlants = allPlants.filter((p) => GRAVEYARD_STATUSES.includes(p.status));
+
+  let filtered = tab === "garden" ? gardenPlants : graveyardPlants;
 
   if (statusFilter) {
     filtered = filtered.filter((p) => p.status === statusFilter);
@@ -48,17 +54,12 @@ export default function MyPlants() {
   filtered = [...filtered].sort((a, b) => {
     switch (sortBy) {
       case "name": {
-        const nameA =
-          a.nickname ?? a.plantReference?.commonName ?? "";
-        const nameB =
-          b.nickname ?? b.plantReference?.commonName ?? "";
+        const nameA = a.nickname ?? a.plantReference?.commonName ?? "";
+        const nameB = b.nickname ?? b.plantReference?.commonName ?? "";
         return nameA.localeCompare(nameB);
       }
       case "date":
-        return (
-          new Date(b.createdAt).getTime() -
-          new Date(a.createdAt).getTime()
-        );
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       case "status":
         return a.status.localeCompare(b.status);
       default:
@@ -74,7 +75,10 @@ export default function MyPlants() {
             My Plants
           </h1>
           <p className="text-stone-400 text-sm mt-1">
-            {plants?.length ?? 0} plants in your garden
+            {gardenPlants.length} plant{gardenPlants.length !== 1 ? "s" : ""} in your garden
+            {graveyardPlants.length > 0 && (
+              <span className="text-stone-600"> · {graveyardPlants.length} in the graveyard</span>
+            )}
           </p>
         </div>
         <Button
@@ -86,6 +90,37 @@ export default function MyPlants() {
         </Button>
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-stone-800">
+        <button
+          onClick={() => { setTab("garden"); setStatusFilter(""); }}
+          className={`px-4 py-2 text-sm font-display transition-colors border-b-2 -mb-px ${
+            tab === "garden"
+              ? "border-emerald-500 text-emerald-400"
+              : "border-transparent text-stone-500 hover:text-stone-300"
+          }`}
+        >
+          My Garden
+          {gardenPlants.length > 0 && (
+            <span className="ml-2 text-xs font-mono text-stone-500">{gardenPlants.length}</span>
+          )}
+        </button>
+        <button
+          onClick={() => { setTab("graveyard"); setStatusFilter(""); }}
+          className={`px-4 py-2 text-sm font-display transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
+            tab === "graveyard"
+              ? "border-stone-500 text-stone-300"
+              : "border-transparent text-stone-600 hover:text-stone-400"
+          }`}
+        >
+          <Skull size={13} />
+          Graveyard
+          {graveyardPlants.length > 0 && (
+            <span className="text-xs font-mono text-stone-600">{graveyardPlants.length}</span>
+          )}
+        </button>
+      </div>
+
       {showFilters && (
         <Card className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Select
@@ -94,7 +129,7 @@ export default function MyPlants() {
             onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="">All Status</option>
-            {statusOptions.map((s) => (
+            {(tab === "garden" ? activeStatusOptions : GRAVEYARD_STATUSES).map((s) => (
               <option key={s} value={s}>
                 {s.charAt(0).toUpperCase() + s.slice(1)}
               </option>
@@ -160,18 +195,22 @@ export default function MyPlants() {
               <div className="mt-1">
                 <StatusBadge status={plant.status} />
               </div>
-              {plant.zone && (
+              {plant.zone ? (
                 <p className="text-xs text-stone-500 mt-1 font-mono">
                   {plant.zone.name}
                 </p>
-              )}
+              ) : tab === "garden" ? (
+                <p className="flex items-center justify-center gap-1 text-xs text-stone-600 mt-1 font-mono">
+                  <MapPin size={10} /> No zone
+                </p>
+              ) : null}
               <p className="text-xs text-stone-400 mt-1.5 font-mono italic px-2">
                 {getMoodMessage(plant.mood, plant.nickname ?? undefined)}
               </p>
             </Card>
           ))}
         </div>
-      ) : (
+      ) : tab === "garden" ? (
         <Card className="text-center py-12">
           <PlantSprite type="flower" mood="new" size={64} className="mx-auto" />
           <p className="text-lg font-semibold text-stone-200 font-display mt-4">
@@ -186,6 +225,16 @@ export default function MyPlants() {
           >
             Browse Plants
           </Button>
+        </Card>
+      ) : (
+        <Card className="text-center py-12">
+          <PlantSprite type="flower" mood="happy" size={64} className="mx-auto" />
+          <p className="text-lg font-semibold text-stone-200 font-display mt-4">
+            Nothing here — and that's a good thing.
+          </p>
+          <p className="text-stone-400 text-sm mt-1">
+            No plants have been marked as dead or removed. Keep it up!
+          </p>
         </Card>
       )}
     </div>
