@@ -53,11 +53,18 @@ async function buildDigest(): Promise<{
     return !hasRecentCompletion;
   });
 
-  if (activeTasks.length === 0) return null;
+  // Filter out tasks for plants that aren't actively growing
+  const INACTIVE_STATUSES = new Set(["planned", "dead", "removed"]);
+  const livingTasks = activeTasks.filter((task) => {
+    if (!task.plantInstance) return true; // zone-only or location-only tasks
+    return !INACTIVE_STATUSES.has(task.plantInstance.status);
+  });
+
+  if (livingTasks.length === 0) return null;
 
   // Resolve notification preferences for each task
   const notifyTasks = [];
-  for (const task of activeTasks) {
+  for (const task of livingTasks) {
     const should = await shouldNotify(
       task,
       task.plantInstance,

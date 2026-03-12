@@ -131,6 +131,13 @@ export function generateDefaultCareTasks(
   options: GenerateOptions = {},
 ): NewCareTask[] {
   const tasks: NewCareTask[] = [];
+
+  // Don't generate tasks for plants that aren't alive/planted
+  const SKIP_STATUSES = new Set(["dead", "removed"]);
+  if (SKIP_STATUSES.has(plantInstance.status)) {
+    return [];
+  }
+
   const today = new Date();
   const plantName = plantInstance.nickname ?? plantRef.commonName;
   const existingTypes = new Set(options.existingTaskTypes ?? []);

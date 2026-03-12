@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { db } from "../db/index.js";
-import { careTasks, careTaskLogs, plantInstances } from "../db/schema.js";
+import { careTasks, careTaskLogs, plantInstances, zones } from "../db/schema.js";
 import { eq, and, sql, inArray, count } from "drizzle-orm";
 import { z } from "zod";
 import { generateDefaultCareTasks } from "../services/care-tasks.js";
@@ -70,7 +70,16 @@ export async function careTaskRoutes(app: FastifyInstance) {
       );
     }
 
-    const where = conditions.length > 0 ? and(...conditions) : undefined;
+    // Add status filter: exclude tasks for planned/dead/removed plants
+    // Zone-only tasks (no plantInstanceId) are always included
+    conditions.push(
+      sql`(${careTasks.plantInstanceId} IS NULL OR ${careTasks.plantInstanceId} NOT IN (
+        SELECT ${plantInstances.id} FROM ${plantInstances}
+        WHERE ${plantInstances.status} IN ('planned', 'dead', 'removed')
+      ))`,
+    );
+
+    const where = and(...conditions);
 
     if (pagination) {
       const [{ total }] = db
