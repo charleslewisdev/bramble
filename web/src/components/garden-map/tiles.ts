@@ -38,6 +38,7 @@ export enum TileType {
   STRUCTURE_ROOF = "structure_roof",
   STRUCTURE_WALL = "structure_wall",
   PERGOLA_BEAM = "pergola_beam",
+  FLOOR_WOOD = "floor_wood",
 
   // Fencing
   FENCE_H = "fence_h",
@@ -124,6 +125,12 @@ const COLORS = {
   pergolaBeamDark: "#6a4a2a",
   pergolaBeamLight: "#9a7a5a",
   pergolaShadow: "rgba(0,0,0,0.15)",
+
+  // Floor — warm hardwood
+  floorWood1: "#c4a882",
+  floorWood2: "#b89c76",
+  floorWood3: "#d4b892",
+  floorGrain: "#a88c66",
 };
 
 /** Seeded pseudo-random for deterministic tile variation */
@@ -386,6 +393,25 @@ export function generateTilePattern(type: TileType, seed: number = 0): string[] 
     case TileType.STRUCTURE_WALL: {
       for (let i = 0; i < pixels.length; i++) {
         pixels[i] = r(i) > 0.8 ? COLORS.roof2 : COLORS.wall;
+      }
+      break;
+    }
+
+    case TileType.FLOOR_WOOD: {
+      // Warm horizontal hardwood planks with subtle grain
+      for (let y = 0; y < TILE_SIZE; y++) {
+        for (let x = 0; x < TILE_SIZE; x++) {
+          const plankIndex = Math.floor(y / 5);
+          const isJoint = y % 5 === 0;
+          const isGrain = (x + plankIndex * 5) % 9 === 0;
+          if (isJoint) {
+            pixels[y * TILE_SIZE + x] = COLORS.floorGrain;
+          } else if (isGrain) {
+            pixels[y * TILE_SIZE + x] = COLORS.floorWood3;
+          } else {
+            pixels[y * TILE_SIZE + x] = r(y * TILE_SIZE + x) > 0.5 ? COLORS.floorWood1 : COLORS.floorWood2;
+          }
+        }
       }
       break;
     }
