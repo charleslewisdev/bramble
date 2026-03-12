@@ -253,6 +253,12 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
       viewportRef.current = null;
     }
     plantHitAreasRef.current = [];
+    houseSpriteRef.current = null;
+    houseFloorRef.current = null;
+    indoorPlantContainerRef.current = null;
+    enclosureOverlaysRef.current = new Map();
+    enclosureHitAreasRef.current = [];
+    fadeTargetsRef.current.clear();
 
     const width = container.clientWidth;
     const height = container.clientHeight;
@@ -393,8 +399,14 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
 
     viewport.addChild(tileContainer);
 
-    // ---- LAYER 2: House sprite ----
+    // ---- LAYER 2: House sprite + interior floor ----
     if (map.houseArea && structures.length > 0) {
+      // Floor (hidden, shown on peek)
+      const floor = createHouseFloor(map.houseArea);
+      viewport.addChild(floor);
+      houseFloorRef.current = floor;
+
+      // House exterior
       const mainStruct = structures[0]!;
       const ha = map.houseArea;
       const houseTexture = await loadHouseTexture(ha.w, ha.h, mainStruct);
@@ -404,6 +416,7 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
       houseSprite.width = ha.w * TILE_SIZE;
       houseSprite.height = ha.h * TILE_SIZE;
       viewport.addChild(houseSprite);
+      houseSpriteRef.current = houseSprite;
     }
 
     // ---- LAYER 3: Zone borders + labels ----
@@ -470,6 +483,32 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
     }
 
     viewport.addChild(zoneContainer);
+
+    // ---- LAYER 3.5: Enclosure overlays (greenhouse/covered) ----
+    const enclosureContainer = new Container();
+    enclosureContainer.label = "enclosures";
+    const overlayMap = new Map<number, Container>();
+
+    for (const zone of mapZones) {
+      if (zone.exposure !== "greenhouse" && zone.exposure !== "covered") continue;
+      const zoneArea = map.zoneAreas.get(zone.id);
+      if (!zoneArea) continue;
+
+      const zx = zoneArea.x * TILE_SIZE;
+      const zy = zoneArea.y * TILE_SIZE;
+      const zw = zoneArea.w * TILE_SIZE;
+      const zh = zoneArea.h * TILE_SIZE;
+
+      const overlay = zone.exposure === "greenhouse"
+        ? createGreenhouseOverlay(zx, zy, zw, zh)
+        : createCoveredOverlay(zx, zy, zw, zh);
+
+      enclosureContainer.addChild(overlay);
+      overlayMap.set(zone.id, overlay);
+    }
+
+    viewport.addChild(enclosureContainer);
+    enclosureOverlaysRef.current = overlayMap;
 
     // ---- LAYER 4: Structure labels (for non-primary structures) ----
     if (structures.length > 1) {
@@ -632,6 +671,75 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
     animsRef.current = plantAnims;
     emittersRef.current = particleEmitters;
     zoneRotationsRef.current = zoneRotations;
+
+    // ---- Indoor plants (hidden, shown on house peek) ----
+    const indoorPlants = plants.filter(p => p.zoneId && indoorZoneIds.has(p.zoneId));
+    if (indoorPlants.length > 0 && map.houseArea) {
+      const indoorContainer = new Container();
+      indoorContainer.label = "indoor-plants";
+      indoorContainer.alpha = 0;
+
+      // Position indoor plants inside the house footprint
+      const housePixelX = map.houseArea.x * TILE_SIZE;
+      const housePixelY = map.houseArea.y * TILE_SIZE;
+      const housePixelW = map.houseArea.w * TILE_SIZE;
+      const housePixelH = map.houseArea.h * TILE_SIZE;
+
+      const INDOOR_SLOT_SIZE = 36;
+      const inset = TILE_SIZE * 0.5;
+      const innerW = Math.max(housePixelW - inset * 2, INDOOR_SLOT_SIZE);
+      const innerH = Math.max(housePixelH - inset * 2, INDOOR_SLOT_SIZE);
+      const cols = Math.max(1, Math.floor(innerW / INDOOR_SLOT_SIZE));
+      const rows = Math.max(1, Math.floor(innerH / INDOOR_SLOT_SIZE));
+      const maxSlots = cols * rows;
+      const visibleCount = Math.min(indoorPlants.length, maxSlots);
+      const cellW = innerW / cols;
+      const cellH = innerH / rows;
+
+      for (let i = 0; i < visibleCount; i++) {
+        const plant = indoorPlants[i]!;
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const pos = {
+          x: housePixelX + inset + cellW * (col + 0.5),
+          y: housePixelY + inset + cellH * (row + 0.5),
+        };
+        await addPlantAtPosition(plant, pos, indoorContainer);
+      }
+
+      viewport.addChild(indoorContainer);
+      indoorPlantContainerRef.current = indoorContainer;
+    }
+
+    // Register enclosure hit areas for peek interaction
+    const enclosureHitAreas: typeof enclosureHitAreasRef.current = [];
+
+    if (map.houseArea && indoorPlants.length > 0) {
+      enclosureHitAreas.push({
+        type: "house" as const,
+        id: "house" as const,
+        x: map.houseArea.x * TILE_SIZE,
+        y: map.houseArea.y * TILE_SIZE,
+        w: map.houseArea.w * TILE_SIZE,
+        h: map.houseArea.h * TILE_SIZE,
+      });
+    }
+
+    for (const zone of mapZones) {
+      if (zone.exposure !== "greenhouse" && zone.exposure !== "covered") continue;
+      const zoneArea = map.zoneAreas.get(zone.id);
+      if (!zoneArea) continue;
+      enclosureHitAreas.push({
+        type: "zone" as const,
+        id: zone.id,
+        x: zoneArea.x * TILE_SIZE,
+        y: zoneArea.y * TILE_SIZE,
+        w: zoneArea.w * TILE_SIZE,
+        h: zoneArea.h * TILE_SIZE,
+      });
+    }
+
+    enclosureHitAreasRef.current = enclosureHitAreas;
 
     // ---- LAYER 5b: Speech bubbles (above plants) ----
     const speechBubbleManager = new SpeechBubbleManager(viewport);
