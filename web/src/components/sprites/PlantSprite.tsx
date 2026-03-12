@@ -107,54 +107,55 @@ export default function PlantSprite({
   );
 }
 
+// UI status messages — short first-person check-ins (distinct from canvas speech bubbles)
 const happyMessages = [
-  "Life is good!",
-  "I'm thriving over here!",
-  "Feeling fantastic today!",
-  "Sun's out, leaves out!",
-  "Photosynthesis is *chef's kiss*",
+  "Soaking up the sun!",
+  "Roots deep, vibes high.",
+  "Couldn't be better.",
+  "Growing strong today!",
+  "Green and grateful.",
 ];
 
 const thirstyMessages = [
-  "Could use a drink...",
-  "Getting a bit parched!",
-  "Water me? Pretty please?",
-  "My soil is looking dusty...",
+  "Could really go for a drink.",
+  "Feeling a little dry...",
+  "Soil's getting dusty.",
+  "A splash of water would be nice.",
 ];
 
 const coldMessages = [
-  "Brr, it's chilly!",
-  "Can someone grab me a blanket?",
-  "Is it frost season already?!",
-  "I'm shivering over here!",
+  "Brrr. Bit nippy out here.",
+  "Wishing for a warm front.",
+  "These roots are chilly.",
+  "Not my favorite weather.",
 ];
 
 const hotMessages = [
-  "Whew, it's toasty!",
-  "I need some shade!",
-  "Melting... literally melting...",
-  "Who turned up the thermostat?",
+  "It's scorching out here.",
+  "Shade would be lovely.",
+  "Running hot today.",
+  "Could use a cool breeze.",
 ];
 
 const wiltingMessages = [
-  "I'm not feeling so great...",
-  "Help! I need attention!",
-  "Things have been better...",
-  "SOS! Plant down!",
+  "Not my best day...",
+  "Could use some TLC.",
+  "Hanging in there, barely.",
+  "A little help would go a long way.",
 ];
 
 const sleepingMessages = [
-  "Zzz...",
-  "Shhh, I'm resting...",
-  "Dormancy is self-care.",
-  "*snores in chlorophyll*",
+  "Resting up...",
+  "Gone dormant. Back soon.",
+  "Conserving energy.",
+  "Quietly recharging.",
 ];
 
 const newMessages = [
-  "Hi! I'm new here!",
-  "Nice to meet you!",
-  "Just planted, feeling great!",
-  "First day in the garden!",
+  "Just getting settled in!",
+  "Putting down roots.",
+  "Brand new and ready to grow!",
+  "Fresh out of the nursery.",
 ];
 
 const moodMessageMap: Record<PlantMood, string[]> = {
@@ -184,13 +185,13 @@ export function getMoodMessage(mood: PlantMood, nickname?: string): string {
   const msg = messages[index] ?? messages[0]!;
   if (nickname) {
     const personalPrefixes: Record<PlantMood, string> = {
-      happy: `I'm ${nickname} and I'm thriving!`,
-      thirsty: `${nickname} here... could use a drink!`,
-      cold: `${nickname} is freezing!`,
-      hot: `${nickname} needs shade ASAP!`,
-      wilting: `${nickname} needs help...`,
-      sleeping: `${nickname} is resting... zzz`,
-      new: `Hi! I'm ${nickname}, nice to meet you!`,
+      happy: `${nickname}, living the dream.`,
+      thirsty: `${nickname} is parched.`,
+      cold: `${nickname} is shivering.`,
+      hot: `${nickname} needs shade, stat.`,
+      wilting: `${nickname} could use some love.`,
+      sleeping: `${nickname} is resting.`,
+      new: `${nickname}, reporting for duty!`,
     };
     // Use deterministic selection for personalized vs generic
     if (hashCode(seed + "personal") % 2 === 0) {

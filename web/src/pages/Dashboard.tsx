@@ -302,7 +302,7 @@ export default function Dashboard() {
           {getWelcomeMessage()}
         </h1>
         <p className="text-stone-400 mt-1 font-display">
-          Here's what's happening in your garden
+          Here's the latest from your garden
         </p>
       </div>
 
@@ -313,7 +313,7 @@ export default function Dashboard() {
             Let's get growing!
           </h2>
           <p className="text-stone-400 mt-2 max-w-md mx-auto">
-            Bramble helps you manage your garden, track your plants, and stay on top of care tasks. Here's how to get started:
+            Track your plants, stay on top of care tasks, and watch your garden come to life. Three steps to get started:
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
             <div className="flex flex-col items-center gap-2">
@@ -603,11 +603,11 @@ export default function Dashboard() {
           ) : (
             <Card className="text-center py-12">
               <PlantSprite type="flower" mood="new" size={64} className="mx-auto" />
-              <p className="text-lg font-semibold font-display text-stone-200 mt-4">
-                No plants yet? Let's fix that!
+          <p className="text-lg font-semibold font-display text-stone-200 mt-4">
+                Your garden's waiting!
               </p>
               <p className="text-stone-400 text-sm mt-1">
-                Start by browsing the plant database and adding some to your zones.
+                Browse the plant database and add your first green friend.
               </p>
               <button
                 onClick={() => navigate("/plants")}

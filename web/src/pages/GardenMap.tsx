@@ -101,11 +101,10 @@ export default function GardenMap() {
         <div className="text-center max-w-md">
           <MapPin size={48} className="text-stone-500 mx-auto" />
           <h1 className="mt-4 text-xl font-bold font-display text-stone-100">
-            Set up your property first
+            Your map is almost ready!
           </h1>
           <p className="mt-2 text-stone-400 text-sm">
-            The garden map needs lot dimensions and zone positions. Set up your
-            property details on the location page first.
+            Add lot dimensions and zone positions to bring your garden map to life.
           </p>
           <Link
             to={`/locations/${location.id}`}

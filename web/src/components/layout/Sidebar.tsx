@@ -101,7 +101,7 @@ export default function Sidebar() {
             </span>
           </div>
           <p className="text-xs text-stone-500 mt-1 font-mono">
-            garden management
+            your garden, your way
           </p>
         </header>
 
