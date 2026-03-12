@@ -9,37 +9,65 @@ import { TILE_SIZE, TileType, generateTilePattern, renderTileToCanvas } from "./
 // Cached floor texture (created once, reused for all tiles)
 let floorTextureCache: Texture | null = null;
 
+export type Season = "spring" | "summer" | "fall" | "winter";
+
 /**
  * Create a greenhouse overlay container with glass panes and frame.
- * @param x - Left edge in pixels
- * @param y - Top edge in pixels
- * @param w - Width in pixels
- * @param h - Height in pixels
+ * Appearance varies by season:
+ * - Winter: frosted/condensation effect, snow on roof edges
+ * - Summer: more transparent glass, open vent panels
+ * - Spring/Fall: default appearance
  */
-export function createGreenhouseOverlay(x: number, y: number, w: number, h: number): Container {
+export function createGreenhouseOverlay(
+  x: number, y: number, w: number, h: number,
+  season: Season = "spring",
+): Container {
   const container = new Container();
   container.label = "greenhouse-overlay";
 
-  // Semi-transparent green-tinted glass fill
+  // Glass fill — tint and opacity vary by season
   const glass = new Graphics();
   glass.rect(x, y, w, h);
-  glass.fill({ color: 0x88ccaa, alpha: 0.3 });
+  if (season === "winter") {
+    // Frosted/foggy glass — cooler tint, higher opacity
+    glass.fill({ color: 0xaabbcc, alpha: 0.4 });
+  } else if (season === "summer") {
+    // More transparent, warmer tint — vents are open
+    glass.fill({ color: 0x99ddbb, alpha: 0.18 });
+  } else {
+    glass.fill({ color: 0x88ccaa, alpha: 0.3 });
+  }
   container.addChild(glass);
 
   // Glass pane divider lines (vertical + horizontal every ~24px)
+  const paneSpacing = 24;
   const dividers = new Graphics();
-  // Vertical dividers
-  for (let dx = 24; dx < w; dx += 24) {
+  for (let dx = paneSpacing; dx < w; dx += paneSpacing) {
+    // In summer, skip every other vertical divider to show open vent panels
+    if (season === "summer" && Math.floor(dx / paneSpacing) % 3 === 0) continue;
     dividers.moveTo(x + dx, y);
     dividers.lineTo(x + dx, y + h);
   }
-  // Horizontal dividers
-  for (let dy = 24; dy < h; dy += 24) {
+  for (let dy = paneSpacing; dy < h; dy += paneSpacing) {
     dividers.moveTo(x, y + dy);
     dividers.lineTo(x + w, y + dy);
   }
-  dividers.stroke({ width: 1, color: 0x667766, alpha: 0.25 });
+  dividers.stroke({ width: 1, color: 0x667766, alpha: season === "winter" ? 0.15 : 0.25 });
   container.addChild(dividers);
+
+  // Winter: condensation droplets scattered across the glass
+  if (season === "winter") {
+    const condensation = new Graphics();
+    const dropCount = Math.floor((w * h) / 200);
+    for (let i = 0; i < dropCount; i++) {
+      // Deterministic positions using simple hash
+      const fx = x + ((i * 137 + 29) % Math.floor(w));
+      const fy = y + ((i * 97 + 43) % Math.floor(h));
+      condensation.circle(fx, fy, 1);
+    }
+    condensation.fill({ color: 0xddeeff, alpha: 0.35 });
+    container.addChild(condensation);
+  }
 
   // Frame border
   const frame = new Graphics();
@@ -47,19 +75,32 @@ export function createGreenhouseOverlay(x: number, y: number, w: number, h: numb
   frame.stroke({ width: 2, color: 0x667766, alpha: 1 });
   container.addChild(frame);
 
-  // Corner posts (small filled rects at corners)
+  // Corner posts
   const postSize = 4;
   const posts = new Graphics();
-  // Top-left
   posts.rect(x, y, postSize, postSize);
-  // Top-right
   posts.rect(x + w - postSize, y, postSize, postSize);
-  // Bottom-left
   posts.rect(x, y + h - postSize, postSize, postSize);
-  // Bottom-right
   posts.rect(x + w - postSize, y + h - postSize, postSize, postSize);
   posts.fill({ color: 0x556655, alpha: 1 });
   container.addChild(posts);
+
+  // Winter: snow on top and bottom edges
+  if (season === "winter") {
+    const snow = new Graphics();
+    // Top edge snow — irregular bumps
+    for (let sx = 0; sx < w; sx += 6) {
+      const bumpH = 2 + ((sx * 31) % 3);
+      snow.rect(x + sx, y - 1, 6, bumpH);
+    }
+    // Bottom edge snow — thinner accumulation
+    for (let sx = 0; sx < w; sx += 8) {
+      const bumpH = 1 + ((sx * 17) % 2);
+      snow.rect(x + sx, y + h - bumpH, 8, bumpH);
+    }
+    snow.fill({ color: 0xeef4ff, alpha: 0.7 });
+    container.addChild(snow);
+  }
 
   return container;
 }

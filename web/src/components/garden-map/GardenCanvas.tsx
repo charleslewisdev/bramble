@@ -37,7 +37,7 @@ import type { PlantAnimator } from "./sprite-animation";
 import { ParticleEmitter, getMoodParticleType, getMoodParticleRate } from "./particles";
 import { SpeechBubbleManager } from "./speech-bubbles";
 import { loadHouseTexture, clearHouseTextureCache } from "./house-sprite";
-import { createGreenhouseOverlay, createCoveredOverlay, createHouseFloor, clearEnclosureCache } from "./enclosure-overlays";
+import { createGreenhouseOverlay, createCoveredOverlay, createHouseFloor, clearEnclosureCache, type Season } from "./enclosure-overlays";
 import { WeatherEffectSystem } from "./weather-effects";
 import { WildlifeSystem } from "./wildlife";
 import type { PlantMood } from "../../api";
@@ -222,6 +222,14 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
     const container = containerRef.current;
     const app = appRef.current;
     if (!container || !app) return;
+
+    // Compute season once for the entire build
+    const month = new Date().getMonth() + 1;
+    const season: Season =
+      month >= 3 && month <= 5 ? "spring" :
+      month >= 6 && month <= 8 ? "summer" :
+      month >= 9 && month <= 11 ? "fall" :
+      "winter";
 
     // Filter out indoor zones — they don't belong on the outdoor garden map
     const mapZones = zones.filter((z) => z.exposure !== "indoor");
@@ -511,7 +519,7 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
       const zh = zoneArea.h * TILE_SIZE;
 
       const overlay = zone.exposure === "greenhouse"
-        ? createGreenhouseOverlay(zx, zy, zw, zh)
+        ? createGreenhouseOverlay(zx, zy, zw, zh, season)
         : createCoveredOverlay(zx, zy, zw, zh);
 
       enclosureContainer.addChild(overlay);
@@ -822,13 +830,6 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
     // ---- LAYER 7: Wildlife ----
     const wildlifeSystem = new WildlifeSystem(viewport, map.pixelWidth, map.pixelHeight);
     wildlifeSystemRef.current = wildlifeSystem;
-
-    const month = new Date().getMonth() + 1;
-    const season: "spring" | "summer" | "fall" | "winter" =
-      month >= 3 && month <= 5 ? "spring" :
-      month >= 6 && month <= 8 ? "summer" :
-      month >= 9 && month <= 11 ? "fall" :
-      "winter";
 
     wildlifeSystem.configure({
       season,
