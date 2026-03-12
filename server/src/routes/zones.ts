@@ -9,7 +9,8 @@ const sunExposureEnum = z.enum(["full_sun", "partial_sun", "partial_shade", "ful
 const soilTypeEnum = z.enum(["clay", "sandy", "loamy", "silty", "peaty", "chalky", "mixed"]);
 const moistureLevelEnum = z.enum(["dry", "moderate", "moist", "wet"]);
 const windExposureEnum = z.enum(["sheltered", "moderate", "exposed"]);
-const zoneTypeEnum = z.enum(["bed", "container", "raised_bed", "lawn", "patio", "path"]);
+const zoneTypeEnum = z.enum(["bed", "container", "raised_bed", "lawn", "patio", "path", "indoor", "greenhouse"]);
+const exposureEnum = z.enum(["outdoor", "covered", "indoor", "greenhouse"]);
 const climbingStructureEnum = z.enum(["trellis", "arbor", "pergola", "wall_mount", "fence"]);
 
 const createZoneSchema = z.object({
@@ -24,7 +25,7 @@ const createZoneSchema = z.object({
   soilType: soilTypeEnum.optional(),
   moistureLevel: moistureLevelEnum.optional(),
   windExposure: windExposureEnum.optional(),
-  isIndoor: z.boolean().optional(),
+  exposure: exposureEnum.optional(),
   notes: z.string().optional(),
   color: z.string().optional(),
   zoneType: zoneTypeEnum.optional(),

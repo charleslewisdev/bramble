@@ -64,6 +64,13 @@
       "when": 1773234095336,
       "tag": "0008_secret_whiplash",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1773300000000,
+      "tag": "0009_care_task_overhaul",
+      "breakpoints": true
     }
   ]
 }

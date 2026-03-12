@@ -187,8 +187,15 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
     const app = appRef.current;
     if (!container || !app) return;
 
+    // Filter out indoor zones — they don't belong on the outdoor garden map
+    const mapZones = zones.filter((z) => z.exposure !== "indoor");
+    const indoorZoneIds = new Set(
+      zones.filter((z) => z.exposure === "indoor").map((z) => z.id),
+    );
+    const mapPlants = plants.filter((p) => !p.zoneId || !indoorZoneIds.has(p.zoneId));
+
     // Don't build until we have actual data
-    if (zones.length === 0 && plants.length === 0) {
+    if (mapZones.length === 0 && mapPlants.length === 0) {
       console.log("[GardenMap] Skipping build — no data yet");
       return;
     }
@@ -215,7 +222,7 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
     const height = container.clientHeight;
 
     // Generate tile map
-    const map = generateMap(location, structures, zones);
+    const map = generateMap(location, structures, mapZones);
 
     // Create viewport for pan/zoom
     const viewport = new Viewport({
@@ -367,7 +374,7 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
     const zoneContainer = new Container();
     zoneContainer.label = "zones";
 
-    for (const zone of zones) {
+    for (const zone of mapZones) {
       const zoneArea = map.zoneAreas.get(zone.id);
       if (!zoneArea) continue;
 
@@ -461,7 +468,7 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
 
     // Group plants by zone
     const plantsByZone = new Map<number, PlantInstance[]>();
-    for (const plant of plants) {
+    for (const plant of mapPlants) {
       if (plant.zoneId) {
         const list = plantsByZone.get(plant.zoneId) ?? [];
         list.push(plant);
@@ -475,7 +482,7 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
 
     // Preload all plant textures so createPlantSprite hits cache (effectively sync)
     await preloadPlantTextures(
-      plants.map((p) => ({ plantType: p.plantReference?.plantType })),
+      mapPlants.map((p) => ({ plantType: p.plantReference?.plantType })),
     );
 
     /** Create and add a single plant sprite at a position */
@@ -542,7 +549,7 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
       return plantSprite;
     }
 
-    for (const zone of zones) {
+    for (const zone of mapZones) {
       const zonePlants = plantsByZone.get(zone.id) ?? [];
       if (zonePlants.length === 0) continue;
 

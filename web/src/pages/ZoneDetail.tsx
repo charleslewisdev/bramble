@@ -144,7 +144,7 @@ export default function ZoneDetail() {
         </h1>
         <p className="text-stone-400 text-sm mt-1 font-mono">
           {zone.width}x{zone.depth}ft
-          {zone.isIndoor ? " · indoor" : ""}
+          {zone.exposure && zone.exposure !== "outdoor" ? ` · ${zone.exposure}` : ""}
         </p>
         {zone.description && (
           <p className="text-stone-400 text-sm mt-1">{zone.description}</p>

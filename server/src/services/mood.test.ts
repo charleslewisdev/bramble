@@ -106,6 +106,7 @@ function makeWaterLog(completedAt: string): CareTaskLog {
     action: "completed",
     notes: null,
     photoId: null,
+    rainProvisional: false,
     completedAt,
   };
 }
@@ -366,6 +367,64 @@ describe("calculatePlantMood", () => {
         },
       );
       expect(result).toBe("thirsty");
+    });
+  });
+
+  describe("rain awareness", () => {
+    it("returns happy when overdue but rain today (above threshold)", () => {
+      const longAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const result = calculatePlantMood(
+        makeInstance(),
+        makeRef(),
+        {
+          lastWaterLog: makeWaterLog(longAgo),
+          waterIntervalDays: 7,
+          dailyPrecipitation: 0.5,
+        },
+      );
+      expect(result).toBe("happy");
+    });
+
+    it("returns thirsty when overdue and rain below threshold", () => {
+      const longAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const result = calculatePlantMood(
+        makeInstance(),
+        makeRef(),
+        {
+          lastWaterLog: makeWaterLog(longAgo),
+          waterIntervalDays: 7,
+          dailyPrecipitation: 0.1,
+        },
+      );
+      expect(result).toBe("thirsty");
+    });
+
+    it("returns thirsty when overdue and dailyPrecipitation is null", () => {
+      const longAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const result = calculatePlantMood(
+        makeInstance(),
+        makeRef(),
+        {
+          lastWaterLog: makeWaterLog(longAgo),
+          waterIntervalDays: 7,
+          dailyPrecipitation: null,
+        },
+      );
+      expect(result).toBe("thirsty");
+    });
+
+    it("returns happy when exactly at rain threshold", () => {
+      const longAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const result = calculatePlantMood(
+        makeInstance(),
+        makeRef(),
+        {
+          lastWaterLog: makeWaterLog(longAgo),
+          waterIntervalDays: 7,
+          dailyPrecipitation: 0.25,
+        },
+      );
+      expect(result).toBe("happy");
     });
   });
 

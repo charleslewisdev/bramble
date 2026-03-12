@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { db } from "../db/index.js";
-import { locations, structures } from "../db/schema.js";
+import { locations, structures, zones } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { geocodeAddress } from "../services/geocoding.js";
 import {
@@ -213,6 +213,16 @@ export async function locationRoutes(app: FastifyInstance) {
       })
       .returning()
       .get();
+
+    // Auto-create "Indoors" zone for the new location
+    db.insert(zones)
+      .values({
+        locationId: result.id,
+        name: "Indoors",
+        zoneType: "indoor",
+        exposure: "indoor",
+      })
+      .run();
 
     return reply.status(201).send(result);
   });

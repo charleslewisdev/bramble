@@ -11,6 +11,7 @@ export interface MoodContext {
   weather?: WeatherCacheEntry | null;
   lastWaterLog?: CareTaskLog | null;
   waterIntervalDays?: number | null;
+  dailyPrecipitation?: number | null;
 }
 
 export function calculatePlantMood(
@@ -47,7 +48,10 @@ export function calculatePlantMood(
     const now = new Date();
     const daysSinceWatered = (now.getTime() - lastWatered.getTime()) / (1000 * 60 * 60 * 24);
     if (daysSinceWatered > context.waterIntervalDays * 2) {
-      return "thirsty";
+      // Don't show thirsty if it rained today
+      if (!context.dailyPrecipitation || context.dailyPrecipitation < 0.25) {
+        return "thirsty";
+      }
     }
   }
 

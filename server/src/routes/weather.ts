@@ -7,6 +7,7 @@ import {
   careTasks,
   careTaskLogs,
   zones,
+  dailyWeather,
 } from "../db/schema.js";
 import { eq, desc, and, inArray } from "drizzle-orm";
 import { fetchWeather } from "../services/weather.js";
@@ -70,6 +71,15 @@ async function refreshMoodsForLocation(locationId: number) {
     .all();
   const weather = cached[0] ?? null;
 
+  // Get today's daily weather record for rain awareness
+  const todayStr = new Date().toISOString().split("T")[0]!;
+  const todayWeatherRecord = db.select().from(dailyWeather)
+    .where(and(
+      eq(dailyWeather.locationId, locationId),
+      eq(dailyWeather.date, todayStr),
+    )).limit(1).all();
+  const todayPrecip = todayWeatherRecord[0]?.precipitationActual ?? todayWeatherRecord[0]?.precipitationForecast ?? null;
+
   // Batch-fetch all water care tasks for these instances
   const instanceIds = allInstances.map((inst) => inst.id);
   const allWaterTasks = db
@@ -120,6 +130,7 @@ async function refreshMoodsForLocation(locationId: number) {
       weather,
       lastWaterLog,
       waterIntervalDays,
+      dailyPrecipitation: todayPrecip,
     });
 
     if (newMood !== instance.mood) {

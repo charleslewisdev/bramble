@@ -425,7 +425,7 @@ export async function plantRoutes(app: FastifyInstance) {
       }
 
       const results = await db.query.plantInstances.findMany({
-        with: { plantReference: true },
+        with: { plantReference: true, zone: true },
         ...(pagination && { limit: pagination.limit, offset: pagination.offset }),
       });
       if (pagination) {

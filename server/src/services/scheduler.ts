@@ -1,21 +1,28 @@
 import { db } from "../db/index.js";
 import {
   careTasks,
+  careTaskLogs,
+  dailyWeather,
+  locations,
   notificationChannels,
   notificationLogs,
+  plantInstances,
+  weatherCache,
+  zones,
 } from "../db/schema.js";
-import { eq, lte } from "drizzle-orm";
+import { eq, lte, and, desc, inArray, sql } from "drizzle-orm";
 import { shouldNotify } from "./notification-preferences.js";
 import { sendNotification } from "./notifications.js";
+import { fetchWeather } from "./weather.js";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const ONE_HOUR_MS = 60 * 60 * 1000;
 const ONE_MINUTE_MS = 60 * 1000;
 
 // Rain-related weather codes from Open-Meteo
 const RAIN_CODES = new Set([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82]);
 const FROST_TEMP_F = 32;
+const RAIN_THRESHOLD_INCHES = 0.25;
 
 // ─── Daily digest ────────────────────────────────────────────────────────────
 
@@ -53,11 +60,18 @@ async function buildDigest(): Promise<{
     return !hasRecentCompletion;
   });
 
-  if (activeTasks.length === 0) return null;
+  // Filter out tasks for plants that aren't actively growing
+  const INACTIVE_STATUSES = new Set(["planned", "dead", "removed"]);
+  const livingTasks = activeTasks.filter((task) => {
+    if (!task.plantInstance) return true; // zone-only or location-only tasks
+    return !INACTIVE_STATUSES.has(task.plantInstance.status);
+  });
+
+  if (livingTasks.length === 0) return null;
 
   // Resolve notification preferences for each task
   const notifyTasks = [];
-  for (const task of activeTasks) {
+  for (const task of livingTasks) {
     const should = await shouldNotify(
       task,
       task.plantInstance,
@@ -217,69 +231,278 @@ async function sendDigest(): Promise<void> {
 
 export { sendDigest };
 
+// ─── Rain auto-completion ─────────────────────────────────────────────────────
+
+async function autoCompleteRainTasks(): Promise<void> {
+  const todayStr = new Date().toISOString().split("T")[0]!;
+  const allLocations = db.select().from(locations).all();
+
+  for (const location of allLocations) {
+    try {
+      // Get latest weather cache for this location
+      const cached = db.select().from(weatherCache)
+        .where(eq(weatherCache.locationId, location.id))
+        .orderBy(desc(weatherCache.fetchedAt))
+        .limit(1).all();
+
+      const latest = cached[0];
+      if (!latest?.forecastJson) continue;
+
+      const forecast = latest.forecastJson as Array<{
+        date: string;
+        precipitationSum: number;
+        temperatureMax?: number;
+        temperatureMin?: number;
+        conditions?: string;
+      }>;
+
+      const todayForecast = forecast.find((d) => d.date === todayStr);
+      if (!todayForecast) continue;
+
+      // Upsert daily weather record with forecast data
+      const existing = db.select().from(dailyWeather)
+        .where(and(
+          eq(dailyWeather.locationId, location.id),
+          eq(dailyWeather.date, todayStr),
+        )).all();
+
+      if (existing.length === 0) {
+        db.insert(dailyWeather).values({
+          locationId: location.id,
+          date: todayStr,
+          precipitationForecast: todayForecast.precipitationSum,
+          temperatureHigh: todayForecast.temperatureMax ?? null,
+          temperatureLow: todayForecast.temperatureMin ?? null,
+          conditions: todayForecast.conditions ?? null,
+        }).run();
+      } else {
+        db.update(dailyWeather).set({
+          precipitationForecast: todayForecast.precipitationSum,
+        }).where(eq(dailyWeather.id, existing[0]!.id)).run();
+      }
+
+      // If forecast precipitation below threshold, skip
+      if (todayForecast.precipitationSum < RAIN_THRESHOLD_INCHES) continue;
+
+      // Find outdoor zones for this location
+      const locationZones = db.select().from(zones)
+        .where(and(
+          eq(zones.locationId, location.id),
+          eq(zones.exposure, "outdoor"),
+        )).all();
+
+      const zoneIds = locationZones.map((z) => z.id);
+      if (zoneIds.length === 0) continue;
+
+      // Get plant instances in outdoor zones (exclude inactive)
+      const outdoorPlants = db.select().from(plantInstances)
+        .where(inArray(plantInstances.zoneId, zoneIds)).all();
+
+      const plantIds = outdoorPlants
+        .filter((p) => !["planned", "dead", "removed"].includes(p.status))
+        .map((p) => p.id);
+      if (plantIds.length === 0) continue;
+
+      // Find due/overdue water tasks for these plants
+      const waterTasks = db.select().from(careTasks)
+        .where(and(
+          inArray(careTasks.plantInstanceId, plantIds),
+          eq(careTasks.taskType, "water"),
+          lte(careTasks.dueDate, todayStr),
+        )).all();
+
+      if (waterTasks.length === 0) continue;
+
+      let completedCount = 0;
+      db.transaction((tx) => {
+        for (const task of waterTasks) {
+          // Check for existing completion on/after due date
+          const existingLog = db.select().from(careTaskLogs)
+            .where(and(
+              eq(careTaskLogs.careTaskId, task.id),
+              sql`date(${careTaskLogs.completedAt}) >= ${task.dueDate}`,
+            )).limit(1).all();
+
+          if (existingLog.length > 0) continue;
+
+          // Auto-complete with rain provisional flag
+          tx.insert(careTaskLogs).values({
+            careTaskId: task.id,
+            action: "completed",
+            notes: `Auto-watered: rain forecasted (${todayForecast.precipitationSum.toFixed(2)}" expected)`,
+            rainProvisional: true,
+          }).run();
+
+          // Advance due date if recurring
+          if (task.isRecurring && task.intervalDays && task.dueDate) {
+            const baseDate = new Date(task.dueDate) < new Date() ? new Date() : new Date(task.dueDate);
+            const nextDue = new Date(baseDate);
+            nextDue.setDate(nextDue.getDate() + task.intervalDays);
+            tx.update(careTasks).set({
+              dueDate: nextDue.toISOString().split("T")[0],
+              updatedAt: new Date().toISOString(),
+            }).where(eq(careTasks.id, task.id)).run();
+          }
+
+          completedCount++;
+        }
+      });
+
+      if (completedCount > 0) {
+        console.log(`[Scheduler] Rain auto-completed ${completedCount} water tasks for location ${location.name}`);
+      }
+    } catch (err) {
+      console.error(`[Scheduler] Rain auto-complete error for location ${location.id}:`, err);
+    }
+  }
+}
+
+// ─── Evening rain verification ────────────────────────────────────────────────
+
+async function verifyRainCompletion(): Promise<void> {
+  const todayStr = new Date().toISOString().split("T")[0]!;
+  const allLocations = db.select().from(locations).all();
+
+  for (const location of allLocations) {
+    try {
+      // Fetch fresh weather to get actual precipitation
+      const weather = await fetchWeather(location.latitude, location.longitude);
+      const todayForecast = weather.forecast.find((d) => d.date === todayStr);
+      const actualPrecip = todayForecast?.precipitationSum ?? weather.current.precipitation;
+
+      // Update daily weather record with actual data
+      const record = db.select().from(dailyWeather)
+        .where(and(
+          eq(dailyWeather.locationId, location.id),
+          eq(dailyWeather.date, todayStr),
+        )).limit(1).all();
+
+      if (record.length > 0) {
+        db.update(dailyWeather).set({
+          precipitationActual: actualPrecip,
+          temperatureHigh: weather.daily.temperatureMax,
+          temperatureLow: weather.daily.temperatureMin,
+        }).where(eq(dailyWeather.id, record[0]!.id)).run();
+      }
+
+      // Find provisional logs from today
+      // We need to filter by location — get care task IDs linked to this location's outdoor zones
+      const locationZones = db.select().from(zones)
+        .where(and(
+          eq(zones.locationId, location.id),
+          eq(zones.exposure, "outdoor"),
+        )).all();
+      const zoneIds = locationZones.map((z) => z.id);
+      if (zoneIds.length === 0) continue;
+
+      const outdoorPlants = db.select().from(plantInstances)
+        .where(inArray(plantInstances.zoneId, zoneIds)).all();
+      const plantIds = outdoorPlants.map((p) => p.id);
+      if (plantIds.length === 0) continue;
+
+      const locationTaskIds = db.select({ id: careTasks.id }).from(careTasks)
+        .where(inArray(careTasks.plantInstanceId, plantIds)).all()
+        .map((t) => t.id);
+      if (locationTaskIds.length === 0) continue;
+
+      const provisionalLogs = db.select().from(careTaskLogs)
+        .where(and(
+          eq(careTaskLogs.rainProvisional, true),
+          sql`date(${careTaskLogs.completedAt}) = ${todayStr}`,
+          inArray(careTaskLogs.careTaskId, locationTaskIds),
+        )).all();
+
+      if (provisionalLogs.length === 0) continue;
+
+      if (actualPrecip >= RAIN_THRESHOLD_INCHES) {
+        // Rain confirmed — clear provisional flag
+        db.update(careTaskLogs).set({
+          rainProvisional: false,
+          notes: `Watered by rain (${actualPrecip.toFixed(2)}" recorded)`,
+        }).where(and(
+          eq(careTaskLogs.rainProvisional, true),
+          sql`date(${careTaskLogs.completedAt}) = ${todayStr}`,
+          inArray(careTaskLogs.careTaskId, locationTaskIds),
+        )).run();
+
+        console.log(`[Scheduler] Rain confirmed for ${location.name} — ${provisionalLogs.length} tasks verified`);
+      } else {
+        // Rain didn't materialize — undo provisional completions
+        db.transaction((tx) => {
+          for (const log of provisionalLogs) {
+            const task = db.select().from(careTasks)
+              .where(eq(careTasks.id, log.careTaskId)).limit(1).all()[0];
+
+            if (task?.isRecurring && task.intervalDays && task.dueDate) {
+              // Rewind due date back
+              const currentDue = new Date(task.dueDate);
+              currentDue.setDate(currentDue.getDate() - task.intervalDays);
+              tx.update(careTasks).set({
+                dueDate: currentDue.toISOString().split("T")[0],
+                updatedAt: new Date().toISOString(),
+              }).where(eq(careTasks.id, task.id)).run();
+            }
+
+            // Delete the provisional log
+            tx.delete(careTaskLogs).where(eq(careTaskLogs.id, log.id)).run();
+          }
+        });
+
+        console.log(`[Scheduler] Rain didn't materialize for ${location.name} — undid ${provisionalLogs.length} provisional completions`);
+      }
+    } catch (err) {
+      console.error(`[Scheduler] Rain verification error for location ${location.id}:`, err);
+    }
+  }
+}
+
 // ─── Scheduler ───────────────────────────────────────────────────────────────
 
-let digestIntervalId: ReturnType<typeof setInterval> | null = null;
-let weatherIntervalId: ReturnType<typeof setInterval> | null = null;
+let schedulerIntervalId: ReturnType<typeof setInterval> | null = null;
 let digestSentToday = false;
+let rainVerifiedToday = false;
 let lastDigestDate = "";
 
 export function startScheduler(): void {
   console.log("[Scheduler] Starting scheduler...");
 
-  // Check every minute if it's time for the daily digest
-  digestIntervalId = setInterval(() => {
+  schedulerIntervalId = setInterval(() => {
     const now = new Date();
     const todayStr = now.toISOString().split("T")[0]!;
     const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 
-    // Reset flag at midnight
+    // Reset flags at midnight
     if (todayStr !== lastDigestDate) {
       digestSentToday = false;
+      rainVerifiedToday = false;
       lastDigestDate = todayStr;
     }
 
-    // Default digest time is 08:00
+    // Morning digest + rain auto-completion (default 08:00)
     const digestTime = process.env.BRAMBLE_DIGEST_TIME ?? "08:00";
-
     if (!digestSentToday && currentTime >= digestTime) {
       digestSentToday = true;
-      sendDigest().catch((err) => {
-        console.error("[Scheduler] Digest error:", err);
-      });
+      autoCompleteRainTasks()
+        .then(() => sendDigest())
+        .catch((err) => console.error("[Scheduler] Morning pass error:", err));
+    }
+
+    // Evening rain verification (default 20:00)
+    const verifyTime = process.env.BRAMBLE_VERIFY_TIME ?? "20:00";
+    if (!rainVerifiedToday && currentTime >= verifyTime) {
+      rainVerifiedToday = true;
+      verifyRainCompletion()
+        .catch((err) => console.error("[Scheduler] Evening verification error:", err));
     }
   }, ONE_MINUTE_MS);
 
-  // Weather-reactive check every 6 hours
-  weatherIntervalId = setInterval(() => {
-    // The weather hints are already integrated into the digest
-    // This interval ensures we log weather-reactive observations
-    console.log("[Scheduler] Weather-reactive check running...");
-    getWeatherHints()
-      .then((hints) => {
-        if (hints.frostWarning) {
-          console.log("[Scheduler] Frost warning detected — protect task reminders will be included in next digest.");
-        }
-        if (hints.rainForecast) {
-          console.log("[Scheduler] Rain forecasted — water tasks will be marked as skippable in next digest.");
-        }
-      })
-      .catch((err) => {
-        console.error("[Scheduler] Weather check error:", err);
-      });
-  }, 6 * ONE_HOUR_MS);
-
-  console.log("[Scheduler] Scheduler started. Digest will run daily, weather checks every 6 hours.");
+  console.log("[Scheduler] Scheduler started. Morning digest + rain check, evening verification.");
 }
 
 export function stopScheduler(): void {
-  if (digestIntervalId) {
-    clearInterval(digestIntervalId);
-    digestIntervalId = null;
-  }
-  if (weatherIntervalId) {
-    clearInterval(weatherIntervalId);
-    weatherIntervalId = null;
+  if (schedulerIntervalId) {
+    clearInterval(schedulerIntervalId);
+    schedulerIntervalId = null;
   }
   console.log("[Scheduler] Scheduler stopped.");
 }
