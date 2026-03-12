@@ -518,6 +518,36 @@ function paintClimbingStructure(
   }
 }
 
+/** Zone types that get automatic decorative fence corner posts */
+const FENCED_ZONE_TYPES = new Set(["bed"]);
+
+function paintZoneFence(
+  tiles: TileCell[][],
+  pz: PlacedZone,
+): void {
+  // Skip zones that already have climbing structure fences or aren't eligible
+  if (pz.zone.climbingStructure) return;
+  if (!FENCED_ZONE_TYPES.has(pz.zone.zoneType)) return;
+
+  // Paint fence corner posts at the four corners
+  const corners = [
+    { x: pz.x, y: pz.y },
+    { x: pz.x + pz.w - 1, y: pz.y },
+    { x: pz.x, y: pz.y + pz.h - 1 },
+    { x: pz.x + pz.w - 1, y: pz.y + pz.h - 1 },
+  ];
+  for (const c of corners) {
+    if (tiles[c.y]?.[c.x]) {
+      tiles[c.y]![c.x] = {
+        type: TileType.FENCE_CORNER,
+        seed: hashCoord(c.x, c.y),
+        zoneId: pz.zone.id,
+        zoneColor: pz.zone.color ?? "#8b7355",
+      };
+    }
+  }
+}
+
 // ──────────────────────────────────────────────
 // Main generator
 // ──────────────────────────────────────────────
@@ -637,6 +667,11 @@ export function generateMap(
   // Paint climbing structure overlays
   for (const pz of placedZones) {
     paintClimbingStructure(tiles, pz);
+  }
+
+  // Paint decorative fences on bed zones (corner posts only, skip zones with climbing structures)
+  for (const pz of placedZones) {
+    paintZoneFence(tiles, pz);
   }
 
   // Generate and paint paths

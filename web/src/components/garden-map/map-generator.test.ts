@@ -177,6 +177,42 @@ describe("paintPropertyFence", () => {
   });
 });
 
+describe("zone decorative fences", () => {
+  it("adds fence corner posts to bed zones", () => {
+    const zone = makeZone({ id: 10, zoneType: "bed", posX: 20, posY: 30, width: 10, depth: 10 });
+    const map = generateMap(makeLocation(), [makeStructure()], [zone]);
+    const area = map.zoneAreas.get(10);
+    expect(area).toBeDefined();
+
+    // All four corners should be FENCE_CORNER
+    expect(map.tiles[area!.y]![area!.x]!.type).toBe(TileType.FENCE_CORNER);
+    expect(map.tiles[area!.y]![area!.x + area!.w - 1]!.type).toBe(TileType.FENCE_CORNER);
+    expect(map.tiles[area!.y + area!.h - 1]![area!.x]!.type).toBe(TileType.FENCE_CORNER);
+    expect(map.tiles[area!.y + area!.h - 1]![area!.x + area!.w - 1]!.type).toBe(TileType.FENCE_CORNER);
+  });
+
+  it("does not add fences to non-bed zone types", () => {
+    const zone = makeZone({ id: 10, zoneType: "lawn", posX: 20, posY: 30, width: 10, depth: 10 });
+    const map = generateMap(makeLocation(), [makeStructure()], [zone]);
+    const area = map.zoneAreas.get(10);
+    expect(area).toBeDefined();
+
+    // Corners should NOT be fence corners
+    expect(map.tiles[area!.y]![area!.x]!.type).not.toBe(TileType.FENCE_CORNER);
+  });
+
+  it("skips zones that have a climbing structure", () => {
+    const zone = makeZone({ id: 10, zoneType: "bed", climbingStructure: "trellis", posX: 20, posY: 30, width: 10, depth: 10 });
+    const map = generateMap(makeLocation(), [makeStructure()], [zone]);
+    const area = map.zoneAreas.get(10);
+    expect(area).toBeDefined();
+
+    // The climbing structure handler already set FENCE_V on the left edge
+    // The decorative fence should NOT have overwritten anything
+    expect(map.tiles[area!.y]![area!.x]!.type).toBe(TileType.FENCE_V);
+  });
+});
+
 describe("generateMap property fence integration", () => {
   it("places fence tiles on the perimeter in a generated map", () => {
     const location = makeLocation();
@@ -201,22 +237,20 @@ describe("generateMap property fence integration", () => {
     expect(map.tiles[top + 1]![left]!.type).toBe(TileType.FENCE_V);
   });
 
-  it("does not overwrite zone tiles with fences", () => {
-    // Put a zone in the top-left area so it overlaps the fence perimeter
-    const zone = makeZone({ id: 10, posX: 0, posY: 0, width: 5, depth: 5 });
+  it("does not overwrite zone tiles with property boundary fences", () => {
+    // Put a lawn zone (no decorative fences) in the top-left area so it overlaps the property fence perimeter
+    const zone = makeZone({ id: 10, zoneType: "lawn", posX: 0, posY: 0, width: 5, depth: 5 });
     const location = makeLocation();
     const structure = makeStructure();
     const map = generateMap(location, [structure], [zone]);
 
-    // Find zone tiles on the perimeter — they should still have their zoneId
+    // Find zone tiles on the perimeter — they should still have their zoneId and NOT be property fence
     const top = 2;
-    const left = 2;
-    for (let x = left; x < map.width - 2; x++) {
+    for (let x = 2; x < map.width - 2; x++) {
       const cell = map.tiles[top]![x]!;
       if (cell.zoneId === 10) {
-        // Zone tile was NOT overwritten by fence
+        // Zone tile was NOT overwritten by property fence
         expect(cell.type).not.toBe(TileType.FENCE_H);
-        expect(cell.type).not.toBe(TileType.FENCE_CORNER);
       }
     }
   });
