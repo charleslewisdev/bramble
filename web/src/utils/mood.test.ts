@@ -248,22 +248,22 @@ describe("getCurrentSeason", () => {
 describe("getSeasonalSummary", () => {
   it("returns early spring message for month 2 (March)", () => {
     const msg = getSeasonalSummary(2);
-    expect(msg).toContain("early spring");
+    expect(msg).toContain("waking up");
   });
 
   it("returns mid-spring message for month 3 (April)", () => {
     const msg = getSeasonalSummary(3);
-    expect(msg).toContain("Mid-spring");
+    expect(msg).toContain("warming up");
   });
 
   it("returns late spring message for month 4 (May)", () => {
     const msg = getSeasonalSummary(4);
-    expect(msg).toContain("Late spring");
+    expect(msg).toContain("Frost risk is fading");
   });
 
   it("returns early summer message for month 5 (June)", () => {
     const msg = getSeasonalSummary(5);
-    expect(msg).toContain("Early summer");
+    expect(msg).toContain("full swing");
   });
 
   it("returns peak summer message for month 6 (July)", () => {
@@ -273,37 +273,37 @@ describe("getSeasonalSummary", () => {
 
   it("returns late summer message for month 7 (August)", () => {
     const msg = getSeasonalSummary(7);
-    expect(msg).toContain("Late summer");
+    expect(msg).toContain("still going strong");
   });
 
   it("returns early fall message for month 8 (September)", () => {
     const msg = getSeasonalSummary(8);
-    expect(msg).toContain("Early fall");
+    expect(msg).toContain("Cooler days");
   });
 
   it("returns mid-fall message for month 9 (October)", () => {
     const msg = getSeasonalSummary(9);
-    expect(msg).toContain("Mid-fall");
+    expect(msg).toContain("Bulb planting");
   });
 
   it("returns late fall message for month 10 (November)", () => {
     const msg = getSeasonalSummary(10);
-    expect(msg).toContain("Late fall");
+    expect(msg).toContain("Tuck your tender plants");
   });
 
   it("returns early winter message for month 11 (December)", () => {
     const msg = getSeasonalSummary(11);
-    expect(msg).toContain("Early winter");
+    expect(msg).toContain("garden is resting");
   });
 
   it("returns mid-winter message for month 0 (January)", () => {
     const msg = getSeasonalSummary(0);
-    expect(msg).toContain("Mid-winter");
+    expect(msg).toContain("Seed catalog");
   });
 
   it("returns late winter message for month 1 (February)", () => {
     const msg = getSeasonalSummary(1);
-    expect(msg).toContain("Late winter");
+    expect(msg).toContain("Spring is close");
   });
 });
 

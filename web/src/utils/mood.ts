@@ -101,33 +101,33 @@ export function getSeasonalSummary(month?: number, hardinessZone?: string | null
     case "spring": {
       const timing = earlyMidLate(2);
       if (timing === "early")
-        return "It's early spring -- time to start planning your beds and checking for frost damage.";
+        return "The garden is waking up! Check for frost damage and start planning your beds.";
       if (timing === "mid")
-        return "Mid-spring is here! Start hardening off seedlings and watch for late frosts.";
-      return "Late spring -- most frost risk is past. Time to plant warm-season crops!";
+        return "Things are warming up! Harden off seedlings and keep an eye on late frosts.";
+      return "Frost risk is fading — time to get warm-season plants in the ground!";
     }
     case "summer": {
       const timing = earlyMidLate(5);
       if (timing === "early")
-        return "Early summer -- keep up with watering and watch for pests.";
+        return "Growing season is in full swing. Water deeply and watch for pests.";
       if (timing === "mid")
-        return "Peak summer! Stay on top of watering and enjoy the harvest.";
-      return "Late summer -- start planning fall plantings and saving seeds.";
+        return "Peak summer! Your plants are working hard — keep them hydrated.";
+      return "The garden's still going strong. Start thinking about fall plantings.";
     }
     case "fall": {
       const timing = earlyMidLate(8);
       if (timing === "early")
-        return "Early fall -- plant cool-season crops and start cleaning up beds.";
+        return "Cooler days ahead. Great time for cool-season crops and bed cleanup.";
       if (timing === "mid")
-        return "Mid-fall -- time for bulb planting and mulching for winter.";
-      return "Late fall -- protect tender plants and finish winterizing the garden.";
+        return "Bulb planting season! Get them in the ground before the freeze.";
+      return "Tuck your tender plants in — winter's almost here.";
     }
     case "winter": {
       if (m === 11)
-        return "Early winter -- the garden rests. Plan next year's layout!";
+        return "The garden is resting. Perfect time to plan next year's layout.";
       if (m === 0)
-        return "Mid-winter -- browse seed catalogs and dream of spring.";
-      return "Late winter -- start seeds indoors and prep your beds.";
+        return "Seed catalog season! Dream big for spring.";
+      return "Spring is close. Start seeds indoors and prep those beds.";
     }
     default:
       return "Time to check on your garden!";
