@@ -66,6 +66,7 @@ export function createTestDb(): { db: ReturnType<typeof drizzle>; sqlite: Instan
       moisture_level TEXT,
       wind_exposure TEXT,
       is_indoor INTEGER NOT NULL DEFAULT 0,
+      exposure TEXT NOT NULL DEFAULT 'outdoor',
       notes TEXT,
       notify_water INTEGER,
       notify_fertilize INTEGER,
@@ -180,6 +181,7 @@ export function createTestDb(): { db: ReturnType<typeof drizzle>; sqlite: Instan
       action TEXT NOT NULL DEFAULT 'completed',
       notes TEXT,
       photo_id INTEGER REFERENCES plant_photos(id) ON DELETE SET NULL,
+      rain_provisional INTEGER NOT NULL DEFAULT 0,
       completed_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -213,6 +215,18 @@ export function createTestDb(): { db: ReturnType<typeof drizzle>; sqlite: Instan
       soil_temperature REAL,
       wind_gust REAL,
       fetched_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS daily_weather (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      location_id INTEGER NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+      date TEXT NOT NULL,
+      precipitation_forecast REAL,
+      precipitation_actual REAL,
+      temperature_high REAL,
+      temperature_low REAL,
+      conditions TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
     CREATE TABLE IF NOT EXISTS notification_channels (
