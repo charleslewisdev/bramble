@@ -5,8 +5,10 @@
 import { describe, it, expect } from "vitest";
 import {
   TileType,
+  generateTilePattern,
   computeWangCorners,
   WANG_TILESET_MAP,
+  TILE_SIZE,
   type WangCorners,
 } from "./tiles";
 
@@ -38,6 +40,15 @@ function setTile(
     grid[y]![x] = { type, zoneId };
   }
 }
+
+describe("generateTilePattern", () => {
+  it("FLOOR_WOOD generates 256 opaque pixels", () => {
+    const pixels = generateTilePattern(TileType.FLOOR_WOOD, 0);
+    expect(pixels).toHaveLength(TILE_SIZE * TILE_SIZE);
+    const transparent = pixels.filter((p) => p === "transparent");
+    expect(transparent).toHaveLength(0);
+  });
+});
 
 describe("computeWangCorners", () => {
   const tilesetName = "grass-dirt";

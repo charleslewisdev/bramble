@@ -664,6 +664,9 @@ export function generateMap(
     }
   }
 
+  // Paint property boundary fence around perimeter
+  paintPropertyFence(tiles, mapWidth, mapHeight, padding);
+
   // Build zone areas map
   const zoneAreas = new Map<number, { x: number; y: number; w: number; h: number }>();
   for (const pz of placedZones) {
@@ -740,6 +743,48 @@ function paintSidewalk(
         }
       }
       break;
+    }
+  }
+}
+
+// ──────────────────────────────────────────────
+// Property fence
+// ──────────────────────────────────────────────
+
+export function paintPropertyFence(
+  tiles: TileCell[][],
+  mapWidth: number,
+  mapHeight: number,
+  padding: number,
+): void {
+  const top = padding;
+  const bottom = mapHeight - padding - 1;
+  const left = padding;
+  const right = mapWidth - padding - 1;
+
+  for (let x = left; x <= right; x++) {
+    for (const y of [top, bottom]) {
+      const cell = tiles[y]?.[x];
+      if (!cell || cell.zoneId || cell.type === TileType.SIDEWALK) continue;
+
+      const isCorner = (x === left || x === right);
+      tiles[y]![x] = {
+        type: isCorner ? TileType.FENCE_CORNER : TileType.FENCE_H,
+        seed: hashCoord(x, y),
+      };
+    }
+  }
+
+  // Left and right edges (excluding corners already painted)
+  for (let y = top + 1; y < bottom; y++) {
+    for (const x of [left, right]) {
+      const cell = tiles[y]?.[x];
+      if (!cell || cell.zoneId || cell.type === TileType.SIDEWALK) continue;
+
+      tiles[y]![x] = {
+        type: TileType.FENCE_V,
+        seed: hashCoord(x, y),
+      };
     }
   }
 }
