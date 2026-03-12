@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   XCircle,
   X,
+  CloudRain,
 } from "lucide-react";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
@@ -27,6 +28,8 @@ import {
   useBulkDeleteCareTasks,
   usePlantInstances,
   useZones,
+  useLocations,
+  useWeather,
 } from "../api/hooks";
 import type { CareTaskType, PlantType, CareTask } from "../api";
 import { taskTypes, taskTypeIcons, monthNames } from "../utils/constants";
@@ -42,7 +45,15 @@ export default function CareTasks() {
   const bulkDelete = useBulkDeleteCareTasks();
   const { data: plantInstances } = usePlantInstances();
   const { data: zones } = useZones();
+  const { data: locations } = useLocations();
+  const primaryLocationId = locations?.[0]?.id;
+  const { data: weather } = useWeather(primaryLocationId);
   const { showToast } = useToast();
+
+  // Rain detection for informational banner
+  const hasRainToday = weather
+    ? (weather.precipitation ?? 0) > 0 || (weather.precipitationProbability ?? 0) >= 50
+    : false;
   const [showAdd, setShowAdd] = useState(false);
   const [editingTask, setEditingTask] = useState<CareTask | null>(null);
   const [confirmDeleteTask, setConfirmDeleteTask] = useState<number | null>(null);
@@ -63,6 +74,7 @@ export default function CareTasks() {
   });
 
   const upcoming = tasks ?? [];
+  const hasWaterTasks = upcoming.some((t) => t.taskType === "water");
   const allIds = useMemo(() => upcoming.map((t) => t.id), [upcoming]);
   const allSelected = allIds.length > 0 && allIds.every((id) => selectedIds.has(id));
 
@@ -296,6 +308,18 @@ export default function CareTasks() {
               <X size={14} /> Clear
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* Rain info banner — shown when rain detected and water tasks exist */}
+      {hasRainToday && hasWaterTasks && (
+        <div className="flex items-center gap-3 rounded-lg border border-sky-800/40 bg-sky-950/30 px-4 py-3">
+          <CloudRain size={18} className="text-sky-400 shrink-0" />
+          <p className="text-sm text-sky-300">
+            Rain {(weather?.precipitation ?? 0) > 0 ? "is falling" : "is expected"} today
+            {weather?.precipitationProbability != null && ` (${weather.precipitationProbability}% chance)`}.
+            Outdoor water tasks may be handled automatically.
+          </p>
         </div>
       )}
 
