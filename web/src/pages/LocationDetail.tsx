@@ -117,7 +117,7 @@ export default function LocationDetail() {
     soilType: "",
     moistureLevel: "",
     windExposure: "",
-    isIndoor: false,
+    exposure: "outdoor",
     width: "10",
     depth: "10",
     posX: "0",
@@ -192,7 +192,7 @@ export default function LocationDetail() {
       soilType: z.soilType ?? "",
       moistureLevel: z.moistureLevel ?? "",
       windExposure: z.windExposure ?? "",
-      isIndoor: z.isIndoor ?? false,
+      exposure: z.exposure ?? "outdoor",
       width: String(z.width),
       depth: String(z.depth),
       posX: String(z.posX),
@@ -1056,7 +1056,7 @@ export default function LocationDetail() {
                       <p className="text-xs text-stone-500 font-mono mt-0.5">
                         {zone.width}x{zone.depth}ft
                         {zone.sunExposure ? ` · ${zone.sunExposure.replace("_", " ")}` : ""}
-                        {zone.isIndoor ? " · indoor" : ""}
+                        {zone.exposure && zone.exposure !== "outdoor" ? ` · ${zone.exposure}` : ""}
                       </p>
                     </div>
                   </div>
@@ -1360,7 +1360,7 @@ export default function LocationDetail() {
               soilType: (zoneForm.soilType || undefined) as Zone["soilType"],
               moistureLevel: (zoneForm.moistureLevel || undefined) as Zone["moistureLevel"],
               windExposure: (zoneForm.windExposure || undefined) as Zone["windExposure"],
-              isIndoor: zoneForm.isIndoor,
+              exposure: zoneForm.exposure as "outdoor" | "covered" | "indoor" | "greenhouse",
               width: Number(zoneForm.width) || 10,
               depth: Number(zoneForm.depth) || 10,
               posX: Number(zoneForm.posX) || 0,
@@ -1380,7 +1380,7 @@ export default function LocationDetail() {
                 soilType: "",
                 moistureLevel: "",
                 windExposure: "",
-                isIndoor: false,
+                exposure: "outdoor",
                 width: "10",
                 depth: "10",
                 posX: "0",
@@ -1512,15 +1512,18 @@ export default function LocationDetail() {
             <option value="chalky">Chalky</option>
             <option value="mixed">Mixed</option>
           </Select>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={zoneForm.isIndoor}
-              onChange={(e) => setZoneForm({ ...zoneForm, isIndoor: e.target.checked })}
-              className="rounded border-stone-600 bg-stone-800 text-emerald-500 focus:ring-emerald-500/40"
-            />
-            <span className="text-sm text-stone-300 font-display">Indoor zone</span>
-          </label>
+          <div>
+            <label className="block text-sm font-display text-stone-300 mb-1">Exposure</label>
+            <Select
+              value={zoneForm.exposure}
+              onChange={(e) => setZoneForm({ ...zoneForm, exposure: e.target.value })}
+            >
+              <option value="outdoor">Outdoor</option>
+              <option value="covered">Covered (pergola, patio roof)</option>
+              <option value="indoor">Indoor</option>
+              <option value="greenhouse">Greenhouse</option>
+            </Select>
+          </div>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
