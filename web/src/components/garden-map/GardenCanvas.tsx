@@ -37,6 +37,7 @@ import type { PlantAnimator } from "./sprite-animation";
 import { ParticleEmitter, getMoodParticleType, getMoodParticleRate } from "./particles";
 import { SpeechBubbleManager } from "./speech-bubbles";
 import { loadHouseTexture, clearHouseTextureCache } from "./house-sprite";
+import { createGreenhouseOverlay, createCoveredOverlay, createHouseFloor, clearEnclosureCache } from "./enclosure-overlays";
 import { WeatherEffectSystem } from "./weather-effects";
 import { WildlifeSystem } from "./wildlife";
 import type { PlantMood } from "../../api";
@@ -123,6 +124,14 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
   const speechBubbleRef = useRef<SpeechBubbleManager | null>(null);
   const tickerCallbackRef = useRef<((dt: { deltaTime: number }) => void) | null>(null);
   const appInitFailedRef = useRef(false);
+  const [openEnclosure, setOpenEnclosure] = useState<null | "house" | number>(null);
+  const openEnclosureRef = useRef<null | "house" | number>(null);
+  const houseSpriteRef = useRef<Sprite | null>(null);
+  const houseFloorRef = useRef<Container | null>(null);
+  const indoorPlantContainerRef = useRef<Container | null>(null);
+  const enclosureOverlaysRef = useRef<Map<number, Container>>(new Map());
+  const enclosureHitAreasRef = useRef<Array<{ type: "house" | "zone"; id: "house" | number; x: number; y: number; w: number; h: number }>>([]);
+  const fadeTargetsRef = useRef<Map<string, { current: { alpha: number }; target: number }>>(new Map());
   const [ready, setReady] = useState(false);
   const [webglFailed, setWebglFailed] = useState(false);
 
@@ -180,6 +189,33 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
       cancelled = true;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- app init runs once
+
+  // Keep openEnclosure ref in sync with state
+  useEffect(() => { openEnclosureRef.current = openEnclosure; }, [openEnclosure]);
+
+  // Fade animation speed (alpha units per second)
+  const FADE_SPEED = 4;
+
+  /** Register an object for smooth alpha fade toward a target. */
+  function registerFade(key: string, obj: { alpha: number }, target: number): void {
+    fadeTargetsRef.current.set(key, { current: obj, target });
+  }
+
+  /** Lerp all registered fade targets toward their goals. Returns true if any are still active. */
+  function updateFades(dt: number): boolean {
+    let anyActive = false;
+    for (const [key, entry] of fadeTargetsRef.current) {
+      const diff = entry.target - entry.current.alpha;
+      if (Math.abs(diff) < 0.01) {
+        entry.current.alpha = entry.target;
+        fadeTargetsRef.current.delete(key);
+      } else {
+        entry.current.alpha += Math.sign(diff) * Math.min(Math.abs(diff), FADE_SPEED * dt);
+        anyActive = true;
+      }
+    }
+    return anyActive;
+  }
 
   // Build the scene contents (reuses existing app)
   const buildScene = useCallback(async () => {
@@ -877,6 +913,7 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
       clearHouseTextureCache();
       clearWangTilesetCache();
       clearFenceTextureCache();
+      clearEnclosureCache();
     };
   }, [buildScene, ready]);
 
