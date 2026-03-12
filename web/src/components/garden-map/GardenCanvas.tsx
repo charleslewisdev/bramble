@@ -37,7 +37,7 @@ import type { PlantAnimator } from "./sprite-animation";
 import { ParticleEmitter, getMoodParticleType, getMoodParticleRate } from "./particles";
 import { SpeechBubbleManager } from "./speech-bubbles";
 import { loadHouseTexture, clearHouseTextureCache } from "./house-sprite";
-import { createGreenhouseOverlay, createCoveredOverlay, createHouseFloor, clearEnclosureCache, type Season } from "./enclosure-overlays";
+import { createGreenhouseOverlay, createCoveredOverlay, createHouseFloor, clearEnclosureCache, loadEnclosureTextures, type Season } from "./enclosure-overlays";
 import { WeatherEffectSystem } from "./weather-effects";
 import { WildlifeSystem } from "./wildlife";
 import type { PlantMood } from "../../api";
@@ -332,11 +332,12 @@ const GardenCanvas = forwardRef<GardenCanvasHandle, GardenCanvasProps>(function 
     const tileContainer = new Container();
     tileContainer.label = "tiles";
 
-    // Preload Wang tilesets and fence textures, then render all tiles
+    // Preload Wang tilesets, fence textures, and enclosure sprites
     const [wangTilesets, fenceH, fenceCorner] = await Promise.all([
       preloadWangTilesets(),
       loadFenceTexture("horizontal"),
       loadFenceTexture("corner"),
+      loadEnclosureTextures(),
     ]);
 
     // Create tile textures (cache by type+seed combos for procedural fallback)
