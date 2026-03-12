@@ -35,6 +35,7 @@ export const locationsRelations = relations(locations, ({ many }) => ({
   structures: many(structures),
   zones: many(zones),
   weatherCache: many(weatherCache),
+  dailyWeather: many(dailyWeather),
 }));
 
 // ─── Structures (buildings on a location) ────────────────────────────────────
@@ -78,7 +79,7 @@ export const zones = sqliteTable("zones", {
   name: text("name").notNull(),
   description: text("description"),
   zoneType: text("zone_type", {
-    enum: ["bed", "container", "raised_bed", "lawn", "patio", "path"],
+    enum: ["bed", "container", "raised_bed", "lawn", "patio", "path", "indoor", "greenhouse"],
   }).notNull().default("bed"),
   climbingStructure: text("climbing_structure", {
     enum: ["trellis", "arbor", "pergola", "wall_mount", "fence"],
@@ -100,7 +101,9 @@ export const zones = sqliteTable("zones", {
   windExposure: text("wind_exposure", {
     enum: ["sheltered", "moderate", "exposed"],
   }),
-  isIndoor: integer("is_indoor", { mode: "boolean" }).notNull().default(false),
+  exposure: text("exposure", {
+    enum: ["outdoor", "covered", "indoor", "greenhouse"],
+  }).notNull().default("outdoor"),
   notes: text("notes"),
   // Notification overrides (null = inherit global defaults)
   notifyWater: integer("notify_water", { mode: "boolean" }),
@@ -430,6 +433,7 @@ export const careTaskLogs = sqliteTable("care_task_logs", {
   photoId: integer("photo_id").references(() => plantPhotos.id, {
     onDelete: "set null",
   }),
+  rainProvisional: integer("rain_provisional", { mode: "boolean" }).notNull().default(false),
   completedAt: text("completed_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
@@ -511,6 +515,33 @@ export const weatherCache = sqliteTable("weather_cache", {
 export const weatherCacheRelations = relations(weatherCache, ({ one }) => ({
   location: one(locations, {
     fields: [weatherCache.locationId],
+    references: [locations.id],
+  }),
+}));
+
+// ─── Daily Weather Records ──────────────────────────────────────────────────
+
+export const dailyWeather = sqliteTable("daily_weather", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  locationId: integer("location_id")
+    .notNull()
+    .references(() => locations.id, { onDelete: "cascade" }),
+  date: text("date").notNull(), // YYYY-MM-DD
+  precipitationForecast: real("precipitation_forecast"), // inches, from morning forecast
+  precipitationActual: real("precipitation_actual"), // inches, verified evening
+  temperatureHigh: real("temperature_high"),
+  temperatureLow: real("temperature_low"),
+  conditions: text("conditions"),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+}, (table) => [
+  index("daily_weather_location_date_idx").on(table.locationId, table.date),
+]);
+
+export const dailyWeatherRelations = relations(dailyWeather, ({ one }) => ({
+  location: one(locations, {
+    fields: [dailyWeather.locationId],
     references: [locations.id],
   }),
 }));
@@ -600,6 +631,7 @@ export type CareTaskLog = typeof careTaskLogs.$inferSelect;
 export type ShoppingListItem = typeof shoppingListItems.$inferSelect;
 export type NewShoppingListItem = typeof shoppingListItems.$inferInsert;
 export type WeatherCacheEntry = typeof weatherCache.$inferSelect;
+export type DailyWeatherRecord = typeof dailyWeather.$inferSelect;
 export type NotificationChannel = typeof notificationChannels.$inferSelect;
 export type NewNotificationChannel = typeof notificationChannels.$inferInsert;
 export type Setting = typeof settings.$inferSelect;

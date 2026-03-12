@@ -98,7 +98,9 @@ export type SunRequirement = "full_sun" | "partial_sun" | "partial_shade" | "ful
 
 export type WaterNeeds = "low" | "moderate" | "high" | "aquatic";
 
-export type ZoneType = "bed" | "container" | "raised_bed" | "lawn" | "patio" | "path";
+export type ZoneType = "bed" | "container" | "raised_bed" | "lawn" | "patio" | "path" | "indoor" | "greenhouse";
+
+export type ZoneExposure = "outdoor" | "covered" | "indoor" | "greenhouse";
 
 export type RoofType = "flat" | "gable" | "hip" | "shed" | "gambrel" | "pergola" | "gazebo" | "open" | "canopy";
 
