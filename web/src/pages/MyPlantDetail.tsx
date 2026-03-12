@@ -16,6 +16,7 @@ import {
   Bell,
   ChevronDown,
   ChevronRight,
+  ArrowRightLeft,
 } from "lucide-react";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
@@ -41,6 +42,7 @@ import {
   useDeletePhoto,
   usePhotos,
   useGeneratePlantTasks,
+  useZones,
 } from "../api/hooks";
 import type { PlantType, PlantStatus, PlantMood, CareTaskType, CareTask, SpriteType } from "../api";
 import { getInstanceSpriteType } from "../api";
@@ -67,6 +69,8 @@ export default function MyPlantDetail() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const healthCheckFileRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast();
+  // Fetch zones for zone-move dropdown (needs locationId from plant.zone)
+  const { data: allZones } = useZones();
 
   const [showEditNickname, setShowEditNickname] = useState(false);
   const [showEditNotes, setShowEditNotes] = useState(false);
@@ -86,6 +90,8 @@ export default function MyPlantDetail() {
   const [healthCheckSubmitting, setHealthCheckSubmitting] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSpritePicker, setShowSpritePicker] = useState(false);
+  const [showMoveZone, setShowMoveZone] = useState(false);
+  const [moveTargetZone, setMoveTargetZone] = useState("");
   const [taskForm, setTaskForm] = useState({
     title: "",
     taskType: "water" as CareTaskType,
@@ -295,9 +301,9 @@ export default function MyPlantDetail() {
             </p>
           )}
 
-          <div className="flex items-center gap-2 mt-3 justify-center sm:justify-start">
+          <div className="flex items-center gap-2 mt-3 justify-center sm:justify-start flex-wrap">
             <StatusBadge status={plant.status} />
-            {plant.zone && (
+            {plant.zone ? (
               <Link
                 to={`/zones/${plant.zoneId}`}
                 className="flex items-center gap-1 text-xs text-stone-400 hover:text-emerald-400 transition-colors"
@@ -305,7 +311,23 @@ export default function MyPlantDetail() {
                 <MapPin size={12} />
                 {plant.zone.name}
               </Link>
+            ) : (
+              <span className="flex items-center gap-1 text-xs text-stone-500">
+                <MapPin size={12} />
+                No zone assigned
+              </span>
             )}
+            <button
+              onClick={() => {
+                setMoveTargetZone(plant.zoneId ? String(plant.zoneId) : "");
+                setShowMoveZone(true);
+              }}
+              className="flex items-center gap-1 text-xs text-stone-500 hover:text-emerald-400 transition-colors"
+              title="Move to another zone"
+            >
+              <ArrowRightLeft size={12} />
+              Move
+            </button>
             {plant.isContainer && (
               <span className="text-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-400">container</span>
             )}
@@ -1134,6 +1156,64 @@ export default function MyPlantDetail() {
             </Button>
             <Button variant="secondary" size="sm" onClick={() => setShowSpritePicker(false)}>
               Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Move Zone Modal */}
+      <Modal
+        open={showMoveZone}
+        onClose={() => setShowMoveZone(false)}
+        title="Move to Zone"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-stone-500">
+            Move this plant to a different zone, or remove it from its current zone.
+          </p>
+          <Select
+            label="Zone"
+            value={moveTargetZone}
+            onChange={(e) => setMoveTargetZone(e.target.value)}
+          >
+            <option value="">No zone (unassigned)</option>
+            {allZones?.map((z) => (
+              <option key={z.id} value={z.id}>
+                {z.name}
+              </option>
+            ))}
+          </Select>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={() => setShowMoveZone(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={updatePlant.isPending || moveTargetZone === String(plant.zoneId ?? "")}
+              onClick={() => {
+                if (!plantId) return;
+                const newZoneId = moveTargetZone ? Number(moveTargetZone) : null;
+                updatePlant.mutate(
+                  { id: plantId, data: { zoneId: newZoneId } },
+                  {
+                    onSuccess: () => {
+                      setShowMoveZone(false);
+                      showToast(
+                        newZoneId
+                          ? `Moved to ${allZones?.find((z) => z.id === newZoneId)?.name ?? "zone"}!`
+                          : "Removed from zone.",
+                        "success",
+                      );
+                    },
+                    onError: (err) => showToast(`Failed: ${(err as Error).message}`, "error"),
+                  },
+                );
+              }}
+            >
+              {updatePlant.isPending ? "Moving..." : "Move Plant"}
             </Button>
           </div>
         </div>
