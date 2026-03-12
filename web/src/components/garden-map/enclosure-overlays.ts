@@ -3,11 +3,37 @@
  * Returns PixiJS Containers that can be alpha-animated for the peek interaction.
  */
 
-import { Container, Graphics, Sprite, Texture, CanvasSource } from "pixi.js";
-import { TILE_SIZE, TileType, generateTilePattern, renderTileToCanvas } from "./tiles";
+import { Assets, Container, Graphics, Sprite, Texture } from "pixi.js";
+import { TILE_SIZE } from "./tiles";
 
-// Cached floor texture (created once, reused for all tiles)
-let floorTextureCache: Texture | null = null;
+// Sprite-based texture caches (loaded from PNGs)
+let floorLightCache: Texture | null = null;
+let floorDarkCache: Texture | null = null;
+let glassCache: Texture | null = null;
+let glassWinterCache: Texture | null = null;
+let rugCache: Texture | null = null;
+
+/** Load and cache all enclosure sprite textures. Call once before building scene. */
+export async function loadEnclosureTextures(): Promise<void> {
+  const [floorLight, floorDark, glass, glassWinter, rug] = await Promise.all([
+    Assets.load<Texture>("/sprites/tiles/floor-wood-light.png"),
+    Assets.load<Texture>("/sprites/tiles/floor-wood-dark.png"),
+    Assets.load<Texture>("/sprites/tiles/greenhouse-glass.png"),
+    Assets.load<Texture>("/sprites/tiles/greenhouse-glass-winter.png"),
+    Assets.load<Texture>("/sprites/objects/interior-rug.png"),
+  ]);
+  floorLight.source.scaleMode = "nearest";
+  floorDark.source.scaleMode = "nearest";
+  glass.source.scaleMode = "nearest";
+  glassWinter.source.scaleMode = "nearest";
+  rug.source.scaleMode = "nearest";
+
+  floorLightCache = floorLight;
+  floorDarkCache = floorDark;
+  glassCache = glass;
+  glassWinterCache = glassWinter;
+  rugCache = rug;
+}
 
 export type Season = "spring" | "summer" | "fall" | "winter";
 
@@ -25,19 +51,36 @@ export function createGreenhouseOverlay(
   const container = new Container();
   container.label = "greenhouse-overlay";
 
-  // Glass fill — tint and opacity vary by season
-  const glass = new Graphics();
-  glass.rect(x, y, w, h);
-  if (season === "winter") {
-    // Frosted/foggy glass — cooler tint, higher opacity
-    glass.fill({ color: 0xaabbcc, alpha: 0.4 });
-  } else if (season === "summer") {
-    // More transparent, warmer tint — vents are open
-    glass.fill({ color: 0x99ddbb, alpha: 0.18 });
+  // Glass tile grid — use sprite tiles when loaded, fall back to Graphics
+  const glassTex = season === "winter" ? glassWinterCache : glassCache;
+  if (glassTex) {
+    const tilesW = Math.ceil(w / TILE_SIZE);
+    const tilesH = Math.ceil(h / TILE_SIZE);
+    for (let ty = 0; ty < tilesH; ty++) {
+      for (let tx = 0; tx < tilesW; tx++) {
+        const sprite = new Sprite(glassTex);
+        sprite.x = x + tx * TILE_SIZE;
+        sprite.y = y + ty * TILE_SIZE;
+        sprite.width = TILE_SIZE;
+        sprite.height = TILE_SIZE;
+        // Summer: more transparent
+        if (season === "summer") sprite.alpha = 0.6;
+        container.addChild(sprite);
+      }
+    }
   } else {
-    glass.fill({ color: 0x88ccaa, alpha: 0.3 });
+    // Fallback: Graphics-based glass fill
+    const glass = new Graphics();
+    glass.rect(x, y, w, h);
+    if (season === "winter") {
+      glass.fill({ color: 0xaabbcc, alpha: 0.4 });
+    } else if (season === "summer") {
+      glass.fill({ color: 0x99ddbb, alpha: 0.18 });
+    } else {
+      glass.fill({ color: 0x88ccaa, alpha: 0.3 });
+    }
+    container.addChild(glass);
   }
-  container.addChild(glass);
 
   // Glass pane divider lines (vertical + horizontal every ~24px)
   const paneSpacing = 24;
@@ -149,8 +192,9 @@ export function createCoveredOverlay(x: number, y: number, w: number, h: number)
 }
 
 /**
- * Create the house floor overlay — a grid of FLOOR_WOOD tile sprites
- * filling the house footprint. Starts hidden (alpha=0).
+ * Create the house floor overlay — a grid of sprite-based floor tiles
+ * filling the house footprint with alternating light/dark hardwood.
+ * Includes a centered rug accent. Starts hidden (alpha=0).
  * @param houseArea - House bounds in TILE coordinates (will be multiplied by TILE_SIZE)
  */
 export function createHouseFloor(houseArea: { x: number; y: number; w: number; h: number }): Container {
@@ -158,31 +202,35 @@ export function createHouseFloor(houseArea: { x: number; y: number; w: number; h
   container.label = "house-floor";
   container.alpha = 0; // Hidden by default
 
-  // Create or reuse the floor texture
-  if (!floorTextureCache) {
-    const pixels = generateTilePattern(TileType.FLOOR_WOOD, 0);
-    const canvas = renderTileToCanvas(pixels);
-    const source = new CanvasSource({
-      resource: canvas,
-      resolution: 1,
-      scaleMode: "nearest",
-    });
-    floorTextureCache = new Texture({ source });
-  }
-
-  // Fill the house area with floor tiles
   const px = houseArea.x * TILE_SIZE;
   const py = houseArea.y * TILE_SIZE;
 
+  // Fill the house area with alternating light/dark floor tiles
   for (let ty = 0; ty < houseArea.h; ty++) {
     for (let tx = 0; tx < houseArea.w; tx++) {
-      const sprite = new Sprite(floorTextureCache);
+      // Checkerboard pattern with light/dark variants
+      const isLight = (tx + ty) % 2 === 0;
+      const tex = isLight ? floorLightCache : floorDarkCache;
+      if (!tex) continue;
+
+      const sprite = new Sprite(tex);
       sprite.x = px + tx * TILE_SIZE;
       sprite.y = py + ty * TILE_SIZE;
       sprite.width = TILE_SIZE;
       sprite.height = TILE_SIZE;
       container.addChild(sprite);
     }
+  }
+
+  // Centered rug accent (if house is large enough and texture loaded)
+  if (rugCache && houseArea.w >= 4 && houseArea.h >= 4) {
+    const rug = new Sprite(rugCache);
+    const rugSize = TILE_SIZE * 2; // 2x2 tile rug
+    rug.x = px + Math.floor((houseArea.w * TILE_SIZE - rugSize) / 2);
+    rug.y = py + Math.floor((houseArea.h * TILE_SIZE - rugSize) / 2);
+    rug.width = rugSize;
+    rug.height = rugSize;
+    container.addChild(rug);
   }
 
   // Wall outline border
@@ -195,11 +243,13 @@ export function createHouseFloor(houseArea: { x: number; y: number; w: number; h
 }
 
 /**
- * Clear the cached floor texture. Call on cleanup.
+ * Clear all cached enclosure textures. Call on cleanup.
  */
 export function clearEnclosureCache(): void {
-  if (floorTextureCache) {
-    floorTextureCache.destroy(true);
-    floorTextureCache = null;
-  }
+  // Sprite textures are managed by Assets loader — just clear references
+  floorLightCache = null;
+  floorDarkCache = null;
+  glassCache = null;
+  glassWinterCache = null;
+  rugCache = null;
 }
