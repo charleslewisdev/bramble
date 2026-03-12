@@ -10,6 +10,7 @@ export interface WeatherAlert {
 
 export interface PlantInstanceWithRef extends PlantInstance {
   plantReference?: PlantReference | null;
+  zone?: { exposure: string } | null;
 }
 
 export function checkWeatherAlerts(
@@ -24,7 +25,8 @@ export function checkWeatherAlerts(
     (p) =>
       p.status !== "dead" &&
       p.status !== "removed" &&
-      p.status !== "planned",
+      p.status !== "planned" &&
+      p.zone?.exposure !== "indoor",
   );
 
   // ── Frost warning ─────────────────────────────────────────────────────────

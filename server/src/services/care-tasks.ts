@@ -60,7 +60,7 @@ const DORMANT_MONTHS = [11, 12, 1, 2];
 const ALL_MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
 function isIndoorOrEvergreen(plantRef: PlantReference, zone?: Zone | null): boolean {
-  if (zone?.isIndoor) return true;
+  if (zone?.exposure === "indoor" || zone?.exposure === "greenhouse") return true;
   if (plantRef.foliageType === "evergreen" || plantRef.foliageType === "semi-evergreen") return true;
   return false;
 }
@@ -164,7 +164,7 @@ export function generateDefaultCareTasks(
 
       // Adjust for zone conditions
       if (zone) {
-        if (zone.isIndoor || zone.moistureLevel === "moist" || zone.moistureLevel === "wet") {
+        if (zone.exposure === "indoor" || zone.exposure === "greenhouse" || zone.moistureLevel === "moist" || zone.moistureLevel === "wet") {
           // Less frequent watering for indoor/moist
           intervalDays = Math.round(intervalDays * 1.3);
         } else if (zone.sunExposure === "full_sun" && (zone.moistureLevel === "dry")) {
