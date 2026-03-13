@@ -71,6 +71,13 @@
       "when": 1773300000000,
       "tag": "0009_care_task_overhaul",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1773400000000,
+      "tag": "0010_fertilizer_system",
+      "breakpoints": true
     }
   ]
 }

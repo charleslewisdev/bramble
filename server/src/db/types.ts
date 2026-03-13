@@ -22,6 +22,8 @@ export type {
   ShoppingListItem,
   NewShoppingListItem,
   WeatherCacheEntry,
+  Fertilizer,
+  NewFertilizer,
   NotificationChannel,
   NewNotificationChannel,
   NotificationPreference,
@@ -107,6 +109,10 @@ export type RoofType = "flat" | "gable" | "hip" | "shed" | "gambrel" | "pergola"
 export type NotificationChannelType = "slack" | "discord" | "email" | "pushover" | "ntfy" | "homeassistant";
 
 export type CareTaskLogAction = "completed" | "skipped" | "deferred";
+
+export type FertilizerType = "liquid" | "granular" | "slow_release" | "compost" | "compost_tea" | "fish_emulsion" | "other";
+
+export type FertilizerStatus = "have_it" | "running_low" | "out";
 
 export type NotificationFrequency = "immediate" | "daily_digest" | "weekly_digest";
 

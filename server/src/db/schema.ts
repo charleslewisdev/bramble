@@ -227,6 +227,13 @@ export const plantReferences = sqliteTable("plant_references", {
   externalId: text("external_id"),
   description: text("description"),
   careNotes: text("care_notes"),
+  // Fertilizer guidance
+  fertilizerType: text("fertilizer_type", {
+    enum: ["liquid", "granular", "slow_release", "compost", "compost_tea", "fish_emulsion", "other"],
+  }),
+  fertilizerNpk: text("fertilizer_npk"), // "10-10-10" format
+  fertilizerFrequency: text("fertilizer_frequency"), // "Monthly during growing season"
+  fertilizerNotes: text("fertilizer_notes"), // "Acid-loving, avoid alkaline"
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
@@ -486,6 +493,42 @@ export const shoppingListItemsRelations = relations(
   }),
 );
 
+// ─── Fertilizer Inventory ───────────────────────────────────────────────────
+
+export const fertilizers = sqliteTable("fertilizers", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  locationId: integer("location_id")
+    .notNull()
+    .references(() => locations.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  type: text("type", {
+    enum: ["liquid", "granular", "slow_release", "compost", "compost_tea", "fish_emulsion", "other"],
+  }).notNull(),
+  npkN: real("npk_n"),
+  npkP: real("npk_p"),
+  npkK: real("npk_k"),
+  organic: integer("organic", { mode: "boolean" }).notNull().default(false),
+  status: text("status", {
+    enum: ["have_it", "running_low", "out"],
+  }).notNull().default("have_it"),
+  notes: text("notes"),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+}, (table) => [
+  index("fertilizers_location_id_idx").on(table.locationId),
+]);
+
+export const fertilizersRelations = relations(fertilizers, ({ one }) => ({
+  location: one(locations, {
+    fields: [fertilizers.locationId],
+    references: [locations.id],
+  }),
+}));
+
 // ─── Weather Cache ───────────────────────────────────────────────────────────
 
 export const weatherCache = sqliteTable("weather_cache", {
@@ -637,3 +680,5 @@ export type NewNotificationChannel = typeof notificationChannels.$inferInsert;
 export type Setting = typeof settings.$inferSelect;
 export type NotificationPreference = typeof notificationPreferences.$inferSelect;
 export type NotificationLog = typeof notificationLogs.$inferSelect;
+export type Fertilizer = typeof fertilizers.$inferSelect;
+export type NewFertilizer = typeof fertilizers.$inferInsert;

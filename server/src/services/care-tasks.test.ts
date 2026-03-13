@@ -67,6 +67,10 @@ describe("generateDefaultCareTasks", () => {
     externalId: null,
     description: null,
     careNotes: null,
+    fertilizerType: null,
+    fertilizerNpk: null,
+    fertilizerFrequency: null,
+    fertilizerNotes: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
