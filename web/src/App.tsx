@@ -10,7 +10,10 @@ import MyPlants from "./pages/MyPlants";
 import MyPlantDetail from "./pages/MyPlantDetail";
 import CareTasks from "./pages/CareTasks";
 import ShoppingList from "./pages/ShoppingList";
+import Shed from "./pages/Shed";
 import Settings from "./pages/Settings";
+import Almanac from "./pages/Almanac";
+import CompostingGuide from "./pages/almanac/CompostingGuide";
 import PlantSprite from "./components/sprites/PlantSprite";
 import { lazy, Suspense } from "react";
 
@@ -51,7 +54,10 @@ export default function App() {
         <Route path="/my-plants/:id" element={<MyPlantDetail />} />
         <Route path="/care" element={<CareTasks />} />
         <Route path="/shopping" element={<ShoppingList />} />
+        <Route path="/locations/:id/shed" element={<Shed />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/almanac" element={<Almanac />} />
+        <Route path="/almanac/composting" element={<CompostingGuide />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>

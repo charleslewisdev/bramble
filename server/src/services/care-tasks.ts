@@ -261,6 +261,26 @@ export function generateDefaultCareTasks(
         plantMessage: randomMessage(FERTILIZE_MESSAGES),
       });
     }
+  } else if (!existingTypes.has("fertilize") && (plantRef.fertilizerType || plantRef.fertilizerFrequency)) {
+    const desc = [
+      plantRef.fertilizerFrequency ?? "Feed during growing season",
+      plantRef.fertilizerNpk ? `Use ${plantRef.fertilizerNpk} ratio` : null,
+      plantRef.fertilizerType ? `Preferred type: ${plantRef.fertilizerType.replace(/_/g, " ")}` : null,
+      plantRef.fertilizerNotes,
+    ].filter(Boolean).join(". ") + ".";
+
+    tasks.push({
+      plantInstanceId: plantInstance.id,
+      taskType: "fertilize",
+      title: `Fertilize ${plantName}`,
+      description: desc,
+      dueDate: nextDateForMonth(4), // April
+      isRecurring: true,
+      intervalDays: 30,
+      activeMonths: GROWING_SEASON,
+      sendNotification: true,
+      plantMessage: randomMessage(FERTILIZE_MESSAGES),
+    });
   }
 
   // ── Repot task for container plants ────────────────────────────────────────

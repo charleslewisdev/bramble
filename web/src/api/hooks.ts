@@ -26,6 +26,7 @@ import type {
   PlantSearchResponse,
   AlertsResponse,
   DashboardData,
+  Fertilizer,
 } from "./index";
 
 // ---------- Locations ----------
@@ -440,6 +441,41 @@ export function useClearCheckedItems() {
   return useMutation({
     mutationFn: () => api.clearCheckedItems(),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["shopping"] }),
+  });
+}
+
+// ---------- Fertilizers (Shed) ----------
+
+export function useFertilizers(locationId: number | undefined) {
+  return useQuery<Fertilizer[]>({
+    queryKey: ["fertilizers", locationId],
+    queryFn: () => api.getFertilizers(locationId!),
+    enabled: locationId !== undefined,
+  });
+}
+
+export function useCreateFertilizer(locationId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<Fertilizer>) => api.createFertilizer(locationId, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["fertilizers", locationId] }),
+  });
+}
+
+export function useUpdateFertilizer(locationId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<Fertilizer> }) =>
+      api.updateFertilizer(locationId, id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["fertilizers", locationId] }),
+  });
+}
+
+export function useDeleteFertilizer(locationId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.deleteFertilizer(locationId, id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["fertilizers", locationId] }),
   });
 }
 

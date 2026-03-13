@@ -6,6 +6,8 @@ import {
   Sprout,
   CalendarCheck,
   ShoppingCart,
+  Warehouse,
+  BookOpen,
   Settings,
   Menu,
   X,
@@ -23,6 +25,8 @@ const navItems = [
   { to: "/my-plants", icon: Sprout, label: "My Plants" },
   { to: "/care", icon: CalendarCheck, label: "Care Tasks" },
   { to: "/shopping", icon: ShoppingCart, label: "Shopping" },
+  { to: "/locations/2/shed", icon: Warehouse, label: "Shed" },
+  { to: "/almanac", icon: BookOpen, label: "Almanac" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 

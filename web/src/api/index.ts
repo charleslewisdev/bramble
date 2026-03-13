@@ -68,6 +68,7 @@ export type {
   NotificationPreference,
   WeatherCacheEntry as Weather,
   ShoppingListItem,
+  Fertilizer,
 } from "server/types";
 
 import type { PlantType, SpriteType } from "server/types";
@@ -85,6 +86,7 @@ import type {
   NotificationPreference,
   WeatherCacheEntry as Weather,
   PlantStatus,
+  Fertilizer,
 } from "server/types";
 
 /** Shopping item with optional joined plant reference */
@@ -359,6 +361,24 @@ export function deleteShoppingItem(id: number) {
 
 export function clearCheckedItems() {
   return del("/shopping-list/clear-checked");
+}
+
+// ---------- Fertilizers (Shed) ----------
+
+export function getFertilizers(locationId: number) {
+  return request<Fertilizer[]>(`/locations/${locationId}/fertilizers`);
+}
+
+export function createFertilizer(locationId: number, data: Partial<Fertilizer>) {
+  return post<Fertilizer>(`/locations/${locationId}/fertilizers`, data);
+}
+
+export function updateFertilizer(locationId: number, id: number, data: Partial<Fertilizer>) {
+  return put<Fertilizer>(`/locations/${locationId}/fertilizers/${id}`, data);
+}
+
+export function deleteFertilizer(locationId: number, id: number) {
+  return del(`/locations/${locationId}/fertilizers/${id}`);
 }
 
 // ---------- Weather ----------
