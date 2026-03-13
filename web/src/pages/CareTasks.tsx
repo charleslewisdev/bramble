@@ -17,6 +17,7 @@ import { Input, Select, Textarea } from "../components/ui/Input";
 import Modal from "../components/ui/Modal";
 import ConfirmModal from "../components/ui/ConfirmModal";
 import PlantSprite from "../components/sprites/PlantSprite";
+import FertilizerNudge from "../components/FertilizerNudge";
 import { useToast } from "../components/ui/Toast";
 import {
   useCareTasks,
@@ -398,6 +399,20 @@ export default function CareTasks() {
                               ))}
                             </div>
                           )}
+                          {task.taskType === "fertilize" &&
+                            task.plantInstance?.plantReference?.fertilizerType &&
+                            primaryLocationId && (
+                              <FertilizerNudge
+                                fertilizerType={task.plantInstance.plantReference.fertilizerType}
+                                locationId={primaryLocationId}
+                                plantName={
+                                  task.plantInstance.nickname ??
+                                  task.plantInstance.plantReference.commonName ??
+                                  `Plant #${task.plantInstance.id}`
+                                }
+                                fertilizerNotes={task.plantInstance.plantReference.fertilizerNotes ?? null}
+                              />
+                            )}
                         </div>
                       </div>
                       <div className="flex gap-1.5 shrink-0">
