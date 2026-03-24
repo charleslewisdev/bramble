@@ -7,6 +7,7 @@ import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { randomUUID } from "crypto";
 import { z } from "zod";
+import { generateThumbnail } from "../services/thumbnails.js";
 
 const __photos_dirname = dirname(fileURLToPath(import.meta.url));
 const PHOTOS_DIR = process.env.PHOTOS_DIR ?? resolve(__photos_dirname, "../../data/photos");
@@ -111,11 +112,20 @@ export async function photoRoutes(app: FastifyInstance) {
     ensurePhotosDir();
     writeFileSync(resolve(PHOTOS_DIR, filename), buffer);
 
+    // Generate thumbnail
+    let thumbnailFilename: string | null = null;
+    try {
+      thumbnailFilename = await generateThumbnail(PHOTOS_DIR, filename);
+    } catch (err) {
+      request.log.warn({ err, filename }, "Thumbnail generation failed");
+    }
+
     const result = db
       .insert(plantPhotos)
       .values({
         plantInstanceId,
         filename,
+        thumbnailFilename,
         caption: caption ?? null,
       })
       .returning()
