@@ -32,6 +32,7 @@ COPY --from=base /app/web/dist web/dist/
 
 ENV NODE_ENV=production
 ENV DATABASE_URL=/data/bramble.db
+ENV PHOTOS_DIR=/data/photos
 ENV PORT=3000
 EXPOSE 3000
 
