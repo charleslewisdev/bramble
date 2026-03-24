@@ -1,4 +1,4 @@
-import { Routes, Route, Link } from "react-router-dom";
+import { Routes, Route, Link, useMatch } from "react-router-dom";
 import Layout from "./components/layout/Layout";
 import Dashboard from "./pages/Dashboard";
 import LocationList from "./pages/LocationList";
@@ -10,6 +10,7 @@ import MyPlants from "./pages/MyPlants";
 import MyPlantDetail from "./pages/MyPlantDetail";
 import CareTasks from "./pages/CareTasks";
 import ShoppingList from "./pages/ShoppingList";
+import ShoppingListPrint from "./pages/ShoppingListPrint";
 import Shed from "./pages/Shed";
 import Settings from "./pages/Settings";
 import Almanac from "./pages/Almanac";
@@ -39,27 +40,39 @@ function NotFound() {
   );
 }
 
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<Dashboard />} />
+      <Route path="/locations" element={<LocationList />} />
+      <Route path="/locations/:id" element={<LocationDetail />} />
+      <Route path="/locations/:id/map" element={<Suspense fallback={<div className="fixed inset-0 bg-stone-950 flex items-center justify-center"><p className="text-stone-400">Loading garden map...</p></div>}><GardenMap /></Suspense>} />
+      <Route path="/zones/:id" element={<ZoneDetail />} />
+      <Route path="/plants" element={<PlantBrowser />} />
+      <Route path="/plants/:id" element={<PlantDetail />} />
+      <Route path="/my-plants" element={<MyPlants />} />
+      <Route path="/my-plants/:id" element={<MyPlantDetail />} />
+      <Route path="/care" element={<CareTasks />} />
+      <Route path="/shopping" element={<ShoppingList />} />
+      <Route path="/locations/:id/shed" element={<Shed />} />
+      <Route path="/settings" element={<Settings />} />
+      <Route path="/almanac" element={<Almanac />} />
+      <Route path="/almanac/composting" element={<CompostingGuide />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+
 export default function App() {
+  const isPrintPage = useMatch("/shopping/print");
+
+  if (isPrintPage) {
+    return <ShoppingListPrint />;
+  }
+
   return (
     <Layout>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/locations" element={<LocationList />} />
-        <Route path="/locations/:id" element={<LocationDetail />} />
-        <Route path="/locations/:id/map" element={<Suspense fallback={<div className="fixed inset-0 bg-stone-950 flex items-center justify-center"><p className="text-stone-400">Loading garden map...</p></div>}><GardenMap /></Suspense>} />
-        <Route path="/zones/:id" element={<ZoneDetail />} />
-        <Route path="/plants" element={<PlantBrowser />} />
-        <Route path="/plants/:id" element={<PlantDetail />} />
-        <Route path="/my-plants" element={<MyPlants />} />
-        <Route path="/my-plants/:id" element={<MyPlantDetail />} />
-        <Route path="/care" element={<CareTasks />} />
-        <Route path="/shopping" element={<ShoppingList />} />
-        <Route path="/locations/:id/shed" element={<Shed />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/almanac" element={<Almanac />} />
-        <Route path="/almanac/composting" element={<CompostingGuide />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <AppRoutes />
     </Layout>
   );
 }
