@@ -15,6 +15,7 @@ import { fertilizerRoutes } from "./routes/fertilizers.js";
 import { weatherRoutes } from "./routes/weather.js";
 import { sunRoutes } from "./routes/sun.js";
 import { photoRoutes } from "./routes/photos.js";
+import { journalRoutes } from "./routes/journal.js";
 import { notificationRoutes } from "./routes/notifications.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { wildlifeRoutes } from "./routes/wildlife.js";
@@ -59,6 +60,7 @@ await app.register(fertilizerRoutes, { prefix: "/api/locations/:locationId/ferti
 await app.register(weatherRoutes, { prefix: "/api/weather" });
 await app.register(sunRoutes, { prefix: "/api/sun" });
 await app.register(photoRoutes, { prefix: "/api/photos" });
+await app.register(journalRoutes, { prefix: "/api/journal" });
 await app.register(notificationRoutes, { prefix: "/api/notifications" });
 await app.register(settingsRoutes, { prefix: "/api/settings" });
 await app.register(wildlifeRoutes, { prefix: "/api/wildlife" });
