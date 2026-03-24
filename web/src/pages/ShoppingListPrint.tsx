@@ -44,7 +44,12 @@ export default function ShoppingListPrint() {
 
   useEffect(() => {
     if (!isLoading && items) {
-      setTimeout(() => window.print(), 600);
+      // Use requestAnimationFrame + setTimeout to ensure the DOM is fully
+      // painted before triggering print. Plain setTimeout can hang Firefox
+      // on Windows when called during React's commit phase.
+      requestAnimationFrame(() => {
+        setTimeout(() => window.print(), 300);
+      });
     }
   }, [isLoading, items]);
 
