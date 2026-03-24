@@ -8,6 +8,7 @@ services:
       - bramble-data:/data
     environment:
       - DATABASE_URL=/data/bramble.db
+      - PHOTOS_DIR=/data/photos
       - PORT=3000
       - PERENUAL_API_KEY=${PERENUAL_API_KEY:-}  # Optional: enables online plant search
     restart: unless-stopped

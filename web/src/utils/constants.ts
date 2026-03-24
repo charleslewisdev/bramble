@@ -20,6 +20,7 @@ export const taskTypes: CareTaskType[] = [
   "move",
   "repot",
   "inspect",
+  "status_check",
   "custom",
 ];
 
@@ -33,6 +34,7 @@ export const taskTypeIcons: Record<CareTaskType, string> = {
   move: "\u{1f504}",
   repot: "\u{1fab4}",
   inspect: "\u{1f50d}",
+  status_check: "\u{1f4f8}",
   custom: "\u{1f4cb}",
 };
 

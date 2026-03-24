@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { db } from "../db/index.js";
-import { careTasks, careTaskLogs, plantInstances, zones } from "../db/schema.js";
+import { careTasks, careTaskLogs, plantInstances, zones, journalEntries, journalPhotos } from "../db/schema.js";
 import { eq, and, sql, inArray, count } from "drizzle-orm";
 import { z } from "zod";
 import { generateDefaultCareTasks } from "../services/care-tasks.js";
@@ -8,7 +8,7 @@ import { idParamSchema, parsePagination, paginatedResult } from "../lib/validati
 
 const taskTypeEnum = z.enum([
   "water", "fertilize", "prune", "mulch", "harvest",
-  "protect", "move", "repot", "inspect", "custom",
+  "protect", "move", "repot", "inspect", "status_check", "custom",
 ]);
 const actionEnum = z.enum(["completed", "skipped", "deferred"]);
 
@@ -228,6 +228,34 @@ export async function careTaskRoutes(app: FastifyInstance) {
       .returning()
       .get();
 
+    // Auto-create journal entry for care task completion
+    if (bodyParsed.data.action === "completed") {
+      const journalEntry = db
+        .insert(journalEntries)
+        .values({
+          plantInstanceId: existing.plantInstanceId,
+          zoneId: existing.zoneId,
+          locationId: existing.locationId,
+          entryType: "care_log",
+          title: existing.title || existing.taskType,
+          body: bodyParsed.data.notes || null,
+          careTaskLogId: log.id,
+        })
+        .returning()
+        .get();
+
+      // Link photo to journal entry if provided
+      if (bodyParsed.data.photoId) {
+        db.insert(journalPhotos)
+          .values({
+            journalEntryId: journalEntry.id,
+            plantPhotoId: bodyParsed.data.photoId,
+            sortOrder: 0,
+          })
+          .run();
+      }
+    }
+
     // If recurring and completed, advance the due date
     if (
       bodyParsed.data.action === "completed" &&
@@ -276,15 +304,30 @@ export async function careTaskRoutes(app: FastifyInstance) {
       return reply.status(404).send({ error: "No matching care tasks found" });
     }
 
-    // Insert log entries and advance recurring tasks in a transaction
+    // Insert log entries, create journal entries, and advance recurring tasks
     db.transaction((tx) => {
       for (const task of tasks) {
-        tx.insert(careTaskLogs)
+        const log = tx.insert(careTaskLogs)
           .values({
             careTaskId: task.id,
             action,
           })
-          .run();
+          .returning()
+          .get();
+
+        // Auto-create journal entry for completed tasks
+        if (action === "completed") {
+          tx.insert(journalEntries)
+            .values({
+              plantInstanceId: task.plantInstanceId,
+              zoneId: task.zoneId,
+              locationId: task.locationId,
+              entryType: "care_log",
+              title: task.title || task.taskType,
+              careTaskLogId: log.id,
+            })
+            .run();
+        }
 
         // If recurring and completed, advance the due date
         if (

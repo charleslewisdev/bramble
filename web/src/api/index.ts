@@ -488,6 +488,65 @@ export function getPhotos(plantInstanceId: number) {
   return request<PlantPhoto[]>(`/photos?plantInstanceId=${plantInstanceId}`);
 }
 
+// ---------- Journal ----------
+
+export interface JournalPhoto {
+  id: number;
+  journalEntryId: number;
+  plantPhotoId: number;
+  sortOrder: number;
+  plantPhoto?: PlantPhoto;
+}
+
+export interface JournalEntry {
+  id: number;
+  plantInstanceId: number | null;
+  zoneId: number | null;
+  locationId: number | null;
+  entryType: "observation" | "status_check" | "care_log" | "milestone" | "identification";
+  title: string | null;
+  body: string | null;
+  careTaskLogId: number | null;
+  photos?: JournalPhoto[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function getJournalEntries(plantInstanceId: number, limit?: number, offset?: number) {
+  const sp = new URLSearchParams({ plantInstanceId: String(plantInstanceId) });
+  if (limit) sp.set("limit", String(limit));
+  if (offset) sp.set("offset", String(offset));
+  return request<JournalEntry[]>(`/journal?${sp}`);
+}
+
+export function getJournalEntry(id: number) {
+  return request<JournalEntry>(`/journal/${id}`);
+}
+
+export function createJournalEntry(data: {
+  plantInstanceId?: number | null;
+  zoneId?: number | null;
+  locationId?: number | null;
+  entryType: string;
+  title?: string | null;
+  body?: string | null;
+  photoIds?: number[];
+}) {
+  return post<JournalEntry>("/journal", data);
+}
+
+export function updateJournalEntry(id: number, data: {
+  title?: string | null;
+  body?: string | null;
+  photoIds?: number[];
+}) {
+  return put<JournalEntry>(`/journal/${id}`, data);
+}
+
+export function deleteJournalEntry(id: number) {
+  return del(`/journal/${id}`);
+}
+
 // ---------- Notifications ----------
 
 export function getNotificationChannels() {

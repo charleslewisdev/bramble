@@ -373,7 +373,10 @@ export function useLogCareTask() {
   return useMutation({
     mutationFn: ({ id, action, notes, photoId }: { id: number; action: "completed" | "skipped" | "deferred"; notes?: string; photoId?: number }) =>
       api.logCareTask(id, action, notes, photoId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["careTasks"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["careTasks"] });
+      qc.invalidateQueries({ queryKey: ["journal"] });
+    },
   });
 }
 
@@ -382,7 +385,10 @@ export function useBulkLogCareTasks() {
   return useMutation({
     mutationFn: (data: { ids: number[]; action: "completed" | "skipped" }) =>
       api.bulkLogCareTasks(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["careTasks"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["careTasks"] });
+      qc.invalidateQueries({ queryKey: ["journal"] });
+    },
   });
 }
 
@@ -563,6 +569,45 @@ export function usePhotos(plantInstanceId: number | undefined) {
     queryKey: ["photos", plantInstanceId],
     queryFn: () => api.getPhotos(plantInstanceId!),
     enabled: plantInstanceId !== undefined,
+  });
+}
+
+// ---------- Journal ----------
+
+export function useJournalEntries(plantInstanceId: number | undefined, limit?: number) {
+  return useQuery<api.JournalEntry[]>({
+    queryKey: ["journal", plantInstanceId, limit],
+    queryFn: () => api.getJournalEntries(plantInstanceId!, limit),
+    enabled: plantInstanceId !== undefined,
+  });
+}
+
+export function useCreateJournalEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Parameters<typeof api.createJournalEntry>[0]) =>
+      api.createJournalEntry(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["journal"] });
+      qc.invalidateQueries({ queryKey: ["plantInstances"] });
+    },
+  });
+}
+
+export function useUpdateJournalEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Parameters<typeof api.updateJournalEntry>[1] }) =>
+      api.updateJournalEntry(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["journal"] }),
+  });
+}
+
+export function useDeleteJournalEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.deleteJournalEntry(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["journal"] }),
   });
 }
 

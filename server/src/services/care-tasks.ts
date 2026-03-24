@@ -345,5 +345,21 @@ export function generateDefaultCareTasks(
     });
   }
 
+  // ── Status check — recurring every 90 days ────────────────────────────────
+  if (!existingTypes.has("status_check")) {
+    tasks.push({
+      plantInstanceId: plantInstance.id,
+      zoneId: plantInstance.zoneId,
+      taskType: "status_check",
+      title: `Status check: ${plantName}`,
+      description: "Time to check on this plant! Update its status and snap a photo.",
+      dueDate: addDaysToDate(today, 90),
+      isRecurring: true,
+      intervalDays: 90,
+      sendNotification: true,
+      plantMessage: "How am I doing? Take a look and let me know!",
+    });
+  }
+
   return tasks;
 }

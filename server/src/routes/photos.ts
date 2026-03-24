@@ -7,6 +7,7 @@ import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { randomUUID } from "crypto";
 import { z } from "zod";
+import { generateThumbnail } from "../services/thumbnails.js";
 
 const __photos_dirname = dirname(fileURLToPath(import.meta.url));
 const PHOTOS_DIR = process.env.PHOTOS_DIR ?? resolve(__photos_dirname, "../../data/photos");
@@ -58,6 +59,24 @@ const filenameParamSchema = z.object({
 });
 
 export async function photoRoutes(app: FastifyInstance) {
+  // GET / - list photos for a plant instance
+  app.get<{ Querystring: { plantInstanceId?: string } }>("/", async (request, reply) => {
+    const { plantInstanceId } = request.query;
+    if (!plantInstanceId) {
+      return reply.status(400).send({ error: "plantInstanceId query parameter is required" });
+    }
+    const id = Number(plantInstanceId);
+    if (isNaN(id) || id <= 0) {
+      return reply.status(400).send({ error: "Invalid plantInstanceId" });
+    }
+    const photos = db
+      .select()
+      .from(plantPhotos)
+      .where(eq(plantPhotos.plantInstanceId, id))
+      .all();
+    return photos;
+  });
+
   // POST / - upload photo as base64
   app.post("/", { bodyLimit: 10 * 1024 * 1024 }, async (request, reply) => {
     const parsed = uploadPhotoSchema.safeParse(request.body);
@@ -93,11 +112,20 @@ export async function photoRoutes(app: FastifyInstance) {
     ensurePhotosDir();
     writeFileSync(resolve(PHOTOS_DIR, filename), buffer);
 
+    // Generate thumbnail
+    let thumbnailFilename: string | null = null;
+    try {
+      thumbnailFilename = await generateThumbnail(PHOTOS_DIR, filename);
+    } catch (err) {
+      request.log.warn({ err, filename }, "Thumbnail generation failed");
+    }
+
     const result = db
       .insert(plantPhotos)
       .values({
         plantInstanceId,
         filename,
+        thumbnailFilename,
         caption: caption ?? null,
       })
       .returning()
@@ -150,11 +178,17 @@ export async function photoRoutes(app: FastifyInstance) {
       return reply.status(404).send({ error: "Photo not found" });
     }
 
-    // Delete file if it exists
-    const filepath = resolve(PHOTOS_DIR, photo.filename);
+    // Delete file and thumbnail if they exist
     const canonicalPhotosDir = resolve(PHOTOS_DIR);
+    const filepath = resolve(PHOTOS_DIR, photo.filename);
     if (filepath.startsWith(canonicalPhotosDir + "/") && existsSync(filepath)) {
       unlinkSync(filepath);
+    }
+    if (photo.thumbnailFilename) {
+      const thumbPath = resolve(PHOTOS_DIR, photo.thumbnailFilename);
+      if (thumbPath.startsWith(canonicalPhotosDir + "/") && existsSync(thumbPath)) {
+        unlinkSync(thumbPath);
+      }
     }
 
     db.delete(plantPhotos).where(eq(plantPhotos.id, id)).run();
