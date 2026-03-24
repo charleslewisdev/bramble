@@ -26,6 +26,7 @@ import ConfirmModal from "../components/ui/ConfirmModal";
 import PlantSprite, {
   getMoodMessage,
 } from "../components/sprites/PlantSprite";
+import JournalTimeline from "../components/journal/JournalTimeline";
 import StatusBadge from "../components/ui/StatusBadge";
 import SafetyBadge from "../components/ui/SafetyBadge";
 import { useToast } from "../components/ui/Toast";
@@ -459,16 +460,9 @@ export default function MyPlantDetail() {
                 onClick={() => setShowPhotoModal(photo.id)}
               >
                 <img
-                  src={`/api/photos/${photo.id}/file`}
+                  src={`/api/photos/file/${(photo as any).thumbnailFilename || photo.filename}`}
                   alt={photo.caption ?? "Plant photo"}
                   className="w-full h-32 object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    if (!target.dataset.fallback) {
-                      target.dataset.fallback = "1";
-                      target.src = `/uploads/${photo.filename}`;
-                    }
-                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="absolute bottom-0 left-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -505,6 +499,9 @@ export default function MyPlantDetail() {
         )}
       </Card>
 
+      {/* Journal Timeline */}
+      {plantId && <JournalTimeline plantInstanceId={plantId} />}
+
       {/* Photo View Modal */}
       <Modal
         open={showPhotoModal !== null}
@@ -514,16 +511,9 @@ export default function MyPlantDetail() {
         {viewingPhoto && (
           <div className="space-y-3">
             <img
-              src={`/api/photos/${viewingPhoto.id}/file`}
+              src={`/api/photos/file/${viewingPhoto.filename}`}
               alt={viewingPhoto.caption ?? "Plant photo"}
               className="w-full rounded-lg"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                if (!target.dataset.fallback) {
-                  target.dataset.fallback = "1";
-                  target.src = `/uploads/${viewingPhoto.filename}`;
-                }
-              }}
             />
             {viewingPhoto.caption && (
               <p className="text-sm text-stone-300">{viewingPhoto.caption}</p>
