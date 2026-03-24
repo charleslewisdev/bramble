@@ -339,6 +339,7 @@ export const plantPhotos = sqliteTable("plant_photos", {
     .references(() => plantInstances.id, { onDelete: "cascade" }),
   filename: text("filename").notNull(),
   caption: text("caption"),
+  thumbnailFilename: text("thumbnail_filename"),
   takenAt: text("taken_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
@@ -379,6 +380,7 @@ export const careTasks = sqliteTable("care_tasks", {
       "move",
       "repot",
       "inspect",
+      "status_check",
       "custom",
     ],
   }).notNull(),
@@ -455,6 +457,80 @@ export const careTaskLogsRelations = relations(careTaskLogs, ({ one }) => ({
   }),
   photo: one(plantPhotos, {
     fields: [careTaskLogs.photoId],
+    references: [plantPhotos.id],
+  }),
+}));
+
+// ─── Journal Entries ──────────────────────────────────────────────────────────
+
+export const journalEntries = sqliteTable("journal_entries", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  plantInstanceId: integer("plant_instance_id").references(() => plantInstances.id, {
+    onDelete: "cascade",
+  }),
+  zoneId: integer("zone_id").references(() => zones.id, { onDelete: "set null" }),
+  locationId: integer("location_id").references(() => locations.id, { onDelete: "set null" }),
+  entryType: text("entry_type", {
+    enum: ["observation", "status_check", "care_log", "milestone", "identification"],
+  }).notNull(),
+  title: text("title"),
+  body: text("body"),
+  careTaskLogId: integer("care_task_log_id").references(() => careTaskLogs.id, {
+    onDelete: "set null",
+  }),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+}, (table) => [
+  index("journal_entries_plant_instance_id_idx").on(table.plantInstanceId),
+  index("journal_entries_zone_id_idx").on(table.zoneId),
+  index("journal_entries_location_id_idx").on(table.locationId),
+  index("journal_entries_created_at_idx").on(table.createdAt),
+]);
+
+export const journalEntriesRelations = relations(journalEntries, ({ one, many }) => ({
+  plantInstance: one(plantInstances, {
+    fields: [journalEntries.plantInstanceId],
+    references: [plantInstances.id],
+  }),
+  zone: one(zones, {
+    fields: [journalEntries.zoneId],
+    references: [zones.id],
+  }),
+  location: one(locations, {
+    fields: [journalEntries.locationId],
+    references: [locations.id],
+  }),
+  careTaskLog: one(careTaskLogs, {
+    fields: [journalEntries.careTaskLogId],
+    references: [careTaskLogs.id],
+  }),
+  photos: many(journalPhotos),
+}));
+
+// ─── Journal Photos (join table) ─────────────────────────────────────────────
+
+export const journalPhotos = sqliteTable("journal_photos", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  journalEntryId: integer("journal_entry_id")
+    .notNull()
+    .references(() => journalEntries.id, { onDelete: "cascade" }),
+  plantPhotoId: integer("plant_photo_id")
+    .notNull()
+    .references(() => plantPhotos.id, { onDelete: "cascade" }),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
+export const journalPhotosRelations = relations(journalPhotos, ({ one }) => ({
+  journalEntry: one(journalEntries, {
+    fields: [journalPhotos.journalEntryId],
+    references: [journalEntries.id],
+  }),
+  plantPhoto: one(plantPhotos, {
+    fields: [journalPhotos.plantPhotoId],
     references: [plantPhotos.id],
   }),
 }));
@@ -615,7 +691,7 @@ export const notificationPreferences = sqliteTable("notification_preferences", {
   taskType: text("task_type", {
     enum: [
       "water", "fertilize", "prune", "mulch", "harvest",
-      "protect", "move", "repot", "inspect", "custom",
+      "protect", "move", "repot", "inspect", "status_check", "custom",
     ],
   }).notNull().unique(),
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
@@ -682,3 +758,6 @@ export type NotificationPreference = typeof notificationPreferences.$inferSelect
 export type NotificationLog = typeof notificationLogs.$inferSelect;
 export type Fertilizer = typeof fertilizers.$inferSelect;
 export type NewFertilizer = typeof fertilizers.$inferInsert;
+export type JournalEntry = typeof journalEntries.$inferSelect;
+export type NewJournalEntry = typeof journalEntries.$inferInsert;
+export type JournalPhoto = typeof journalPhotos.$inferSelect;

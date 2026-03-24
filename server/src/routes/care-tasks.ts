@@ -8,7 +8,7 @@ import { idParamSchema, parsePagination, paginatedResult } from "../lib/validati
 
 const taskTypeEnum = z.enum([
   "water", "fertilize", "prune", "mulch", "harvest",
-  "protect", "move", "repot", "inspect", "custom",
+  "protect", "move", "repot", "inspect", "status_check", "custom",
 ]);
 const actionEnum = z.enum(["completed", "skipped", "deferred"]);
 

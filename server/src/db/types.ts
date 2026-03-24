@@ -29,6 +29,9 @@ export type {
   NotificationPreference,
   NotificationLog,
   Setting,
+  JournalEntry,
+  NewJournalEntry,
+  JournalPhoto,
 } from "./schema.js";
 
 // ─── Enum-like union types extracted from schema columns ──────────────────────
@@ -92,6 +95,7 @@ export type CareTaskType =
   | "move"
   | "repot"
   | "inspect"
+  | "status_check"
   | "custom";
 
 export type SafetyLevel = "safe" | "caution" | "toxic" | "highly_toxic";
@@ -116,6 +120,8 @@ export type FertilizerStatus = "have_it" | "running_low" | "out";
 
 export type NotificationFrequency = "immediate" | "daily_digest" | "weekly_digest";
 
+export type JournalEntryType = "observation" | "status_check" | "care_log" | "milestone" | "identification";
+
 // ─── Extended client types (with optional joined relations) ───────────────────
 
 import type {
@@ -123,7 +129,10 @@ import type {
   PlantReference,
   PlantPhoto,
   CareTask,
+  CareTaskLog,
   Zone,
+  JournalEntry,
+  JournalPhoto,
 } from "./schema.js";
 
 /** PlantInstance with optional eagerly-loaded relations */
@@ -138,4 +147,10 @@ export interface PlantInstanceWithRelations extends PlantInstance {
 export interface CareTaskWithRelations extends CareTask {
   plantInstance?: PlantInstanceWithRelations;
   zone?: Zone;
+}
+
+/** JournalEntry with optional eagerly-loaded relations */
+export interface JournalEntryWithRelations extends JournalEntry {
+  photos?: (JournalPhoto & { plantPhoto?: PlantPhoto })[];
+  careTaskLog?: CareTaskLog;
 }

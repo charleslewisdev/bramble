@@ -22,7 +22,7 @@ const TASK_TYPE_TO_FIELD: Record<string, NotifyField> = {
 
 const ALL_TASK_TYPES = [
   "water", "fertilize", "prune", "mulch", "harvest",
-  "protect", "move", "repot", "inspect", "custom",
+  "protect", "move", "repot", "inspect", "status_check", "custom",
 ] as const;
 
 // ─── Resolve whether a notification should be sent ───────────────────────────

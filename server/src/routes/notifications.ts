@@ -146,7 +146,7 @@ export async function notificationRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const taskTypes = [
         "water", "fertilize", "prune", "mulch", "harvest",
-        "protect", "move", "repot", "inspect", "custom",
+        "protect", "move", "repot", "inspect", "status_check", "custom",
       ];
       const { taskType } = request.params;
       if (!taskTypes.includes(taskType)) {
