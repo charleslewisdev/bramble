@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { db } from "../db/index.js";
-import { careTasks, careTaskLogs, plantInstances, zones } from "../db/schema.js";
+import { careTasks, careTaskLogs, plantInstances, zones, journalEntries, journalPhotos } from "../db/schema.js";
 import { eq, and, sql, inArray, count } from "drizzle-orm";
 import { z } from "zod";
 import { generateDefaultCareTasks } from "../services/care-tasks.js";
@@ -227,6 +227,34 @@ export async function careTaskRoutes(app: FastifyInstance) {
       })
       .returning()
       .get();
+
+    // Auto-create journal entry for care task completion
+    if (bodyParsed.data.action === "completed") {
+      const journalEntry = db
+        .insert(journalEntries)
+        .values({
+          plantInstanceId: existing.plantInstanceId,
+          zoneId: existing.zoneId,
+          locationId: existing.locationId,
+          entryType: "care_log",
+          title: existing.title || existing.taskType,
+          body: bodyParsed.data.notes || null,
+          careTaskLogId: log.id,
+        })
+        .returning()
+        .get();
+
+      // Link photo to journal entry if provided
+      if (bodyParsed.data.photoId) {
+        db.insert(journalPhotos)
+          .values({
+            journalEntryId: journalEntry.id,
+            plantPhotoId: bodyParsed.data.photoId,
+            sortOrder: 0,
+          })
+          .run();
+      }
+    }
 
     // If recurring and completed, advance the due date
     if (
