@@ -64,7 +64,6 @@ export default function JournalTimeline({ plantInstanceId }: Props) {
       </h2>
 
       <AddObservationForm
-        plantInstanceId={plantInstanceId}
         onSubmit={handleAddObservation}
         isSubmitting={isSubmitting}
       />

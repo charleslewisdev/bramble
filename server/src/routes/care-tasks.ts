@@ -304,15 +304,30 @@ export async function careTaskRoutes(app: FastifyInstance) {
       return reply.status(404).send({ error: "No matching care tasks found" });
     }
 
-    // Insert log entries and advance recurring tasks in a transaction
+    // Insert log entries, create journal entries, and advance recurring tasks
     db.transaction((tx) => {
       for (const task of tasks) {
-        tx.insert(careTaskLogs)
+        const log = tx.insert(careTaskLogs)
           .values({
             careTaskId: task.id,
             action,
           })
-          .run();
+          .returning()
+          .get();
+
+        // Auto-create journal entry for completed tasks
+        if (action === "completed") {
+          tx.insert(journalEntries)
+            .values({
+              plantInstanceId: task.plantInstanceId,
+              zoneId: task.zoneId,
+              locationId: task.locationId,
+              entryType: "care_log",
+              title: task.title || task.taskType,
+              careTaskLogId: log.id,
+            })
+            .run();
+        }
 
         // If recurring and completed, advance the due date
         if (

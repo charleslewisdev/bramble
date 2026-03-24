@@ -373,7 +373,10 @@ export function useLogCareTask() {
   return useMutation({
     mutationFn: ({ id, action, notes, photoId }: { id: number; action: "completed" | "skipped" | "deferred"; notes?: string; photoId?: number }) =>
       api.logCareTask(id, action, notes, photoId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["careTasks"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["careTasks"] });
+      qc.invalidateQueries({ queryKey: ["journal"] });
+    },
   });
 }
 
@@ -382,7 +385,10 @@ export function useBulkLogCareTasks() {
   return useMutation({
     mutationFn: (data: { ids: number[]; action: "completed" | "skipped" }) =>
       api.bulkLogCareTasks(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["careTasks"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["careTasks"] });
+      qc.invalidateQueries({ queryKey: ["journal"] });
+    },
   });
 }
 

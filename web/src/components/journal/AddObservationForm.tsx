@@ -4,7 +4,6 @@ import Button from "../ui/Button";
 import { Textarea } from "../ui/Input";
 
 interface Props {
-  plantInstanceId: number;
   onSubmit: (data: { body: string; imageData?: string }) => void;
   isSubmitting?: boolean;
 }

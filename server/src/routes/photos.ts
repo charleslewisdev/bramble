@@ -178,11 +178,17 @@ export async function photoRoutes(app: FastifyInstance) {
       return reply.status(404).send({ error: "Photo not found" });
     }
 
-    // Delete file if it exists
-    const filepath = resolve(PHOTOS_DIR, photo.filename);
+    // Delete file and thumbnail if they exist
     const canonicalPhotosDir = resolve(PHOTOS_DIR);
+    const filepath = resolve(PHOTOS_DIR, photo.filename);
     if (filepath.startsWith(canonicalPhotosDir + "/") && existsSync(filepath)) {
       unlinkSync(filepath);
+    }
+    if (photo.thumbnailFilename) {
+      const thumbPath = resolve(PHOTOS_DIR, photo.thumbnailFilename);
+      if (thumbPath.startsWith(canonicalPhotosDir + "/") && existsSync(thumbPath)) {
+        unlinkSync(thumbPath);
+      }
     }
 
     db.delete(plantPhotos).where(eq(plantPhotos.id, id)).run();
