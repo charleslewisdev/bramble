@@ -58,6 +58,24 @@ const filenameParamSchema = z.object({
 });
 
 export async function photoRoutes(app: FastifyInstance) {
+  // GET / - list photos for a plant instance
+  app.get<{ Querystring: { plantInstanceId?: string } }>("/", async (request, reply) => {
+    const { plantInstanceId } = request.query;
+    if (!plantInstanceId) {
+      return reply.status(400).send({ error: "plantInstanceId query parameter is required" });
+    }
+    const id = Number(plantInstanceId);
+    if (isNaN(id) || id <= 0) {
+      return reply.status(400).send({ error: "Invalid plantInstanceId" });
+    }
+    const photos = db
+      .select()
+      .from(plantPhotos)
+      .where(eq(plantPhotos.plantInstanceId, id))
+      .all();
+    return photos;
+  });
+
   // POST / - upload photo as base64
   app.post("/", { bodyLimit: 10 * 1024 * 1024 }, async (request, reply) => {
     const parsed = uploadPhotoSchema.safeParse(request.body);
