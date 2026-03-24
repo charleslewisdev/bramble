@@ -566,6 +566,45 @@ export function usePhotos(plantInstanceId: number | undefined) {
   });
 }
 
+// ---------- Journal ----------
+
+export function useJournalEntries(plantInstanceId: number | undefined, limit?: number) {
+  return useQuery<api.JournalEntry[]>({
+    queryKey: ["journal", plantInstanceId, limit],
+    queryFn: () => api.getJournalEntries(plantInstanceId!, limit),
+    enabled: plantInstanceId !== undefined,
+  });
+}
+
+export function useCreateJournalEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Parameters<typeof api.createJournalEntry>[0]) =>
+      api.createJournalEntry(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["journal"] });
+      qc.invalidateQueries({ queryKey: ["plantInstances"] });
+    },
+  });
+}
+
+export function useUpdateJournalEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Parameters<typeof api.updateJournalEntry>[1] }) =>
+      api.updateJournalEntry(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["journal"] }),
+  });
+}
+
+export function useDeleteJournalEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.deleteJournalEntry(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["journal"] }),
+  });
+}
+
 // ---------- Notifications ----------
 
 export function useNotificationChannels() {
