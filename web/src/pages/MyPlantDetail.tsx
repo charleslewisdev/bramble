@@ -341,19 +341,65 @@ export default function MyPlantDetail() {
               {ref.latinName}
             </p>
           )}
-          {ref?.cultivar && (
-            <p className="text-stone-400 text-sm">
-              <span className="text-stone-500 font-display">Cultivar:</span> '{ref.cultivar}'
-            </p>
+          {ref?.cultivar ? (
+            <button
+              onClick={() => {
+                if (ref) {
+                  setPlantInfoForm({
+                    commonName: ref.commonName ?? "",
+                    latinName: ref.latinName ?? "",
+                    cultivar: ref.cultivar ?? "",
+                    sunRequirement: ref.sunRequirement ?? "",
+                    waterNeeds: ref.waterNeeds ?? "",
+                    matureHeight: ref.matureHeight ?? "",
+                    matureSpread: ref.matureSpread ?? "",
+                    minTempF: ref.minTempF != null ? String(ref.minTempF) : "",
+                    maxTempF: ref.maxTempF != null ? String(ref.maxTempF) : "",
+                  });
+                  setShowEditPlantInfo(true);
+                }
+              }}
+              className="group flex items-center gap-1.5 mt-0.5 text-left"
+              title="Edit cultivar"
+            >
+              <p className="text-stone-400 text-sm">
+                <span className="text-stone-500 font-display">Cultivar:</span> '{ref.cultivar}'
+              </p>
+              <Pencil size={11} className="text-stone-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                if (ref) {
+                  setPlantInfoForm({
+                    commonName: ref.commonName ?? "",
+                    latinName: ref.latinName ?? "",
+                    cultivar: "",
+                    sunRequirement: ref.sunRequirement ?? "",
+                    waterNeeds: ref.waterNeeds ?? "",
+                    matureHeight: ref.matureHeight ?? "",
+                    matureSpread: ref.matureSpread ?? "",
+                    minTempF: ref.minTempF != null ? String(ref.minTempF) : "",
+                    maxTempF: ref.maxTempF != null ? String(ref.maxTempF) : "",
+                  });
+                  setShowEditPlantInfo(true);
+                }
+              }}
+              className="text-stone-600 text-sm italic hover:text-stone-400 transition-colors mt-0.5"
+              title="Add cultivar"
+            >
+              + Add cultivar
+            </button>
           )}
 
-          <div className="flex items-center gap-2 mt-3 justify-center sm:justify-start flex-wrap">
+          <div className="flex items-center gap-4 mt-5 justify-center sm:justify-start flex-wrap">
             <div className="relative" ref={statusMenuRef}>
               <button
                 onClick={() => setShowStatusMenu(!showStatusMenu)}
-                className="flex items-center gap-1 hover:opacity-80 transition-opacity"
+                className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
                 title="Change status"
               >
+                <span className="text-xs text-stone-500 font-display">Status:</span>
                 <StatusBadge status={plant.status} />
                 <ChevronDown size={12} className="text-stone-500" />
               </button>
@@ -378,52 +424,69 @@ export default function MyPlantDetail() {
                 </div>
               )}
             </div>
+            <span className="text-stone-700">|</span>
             {plant.zone ? (
-              <Link
-                to={`/zones/${plant.zoneId}`}
-                className="flex items-center gap-1 text-xs text-stone-400 hover:text-emerald-400 transition-colors"
-              >
-                <MapPin size={12} />
-                <span className="text-stone-500 font-display">Zone:</span> {plant.zone.name}
-              </Link>
+              <div className="flex items-center gap-1.5">
+                <Link
+                  to={`/zones/${plant.zoneId}`}
+                  className="flex items-center gap-1 text-xs text-stone-400 hover:text-emerald-400 transition-colors"
+                >
+                  <MapPin size={12} />
+                  <span className="text-stone-500 font-display">Zone:</span> {plant.zone.name}
+                </Link>
+                <button
+                  onClick={() => {
+                    setMoveTargetZone(plant.zoneId ? String(plant.zoneId) : "");
+                    setShowMoveZone(true);
+                  }}
+                  className="text-xs text-stone-600 hover:text-emerald-400 transition-colors"
+                  title="Move to another zone"
+                >
+                  <ArrowRightLeft size={12} />
+                </button>
+              </div>
             ) : (
-              <span className="flex items-center gap-1 text-xs text-stone-500">
-                <MapPin size={12} />
-                No zone assigned
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="flex items-center gap-1 text-xs text-stone-500">
+                  <MapPin size={12} />
+                  No zone
+                </span>
+                <button
+                  onClick={() => {
+                    setMoveTargetZone("");
+                    setShowMoveZone(true);
+                  }}
+                  className="text-xs text-stone-600 hover:text-emerald-400 transition-colors"
+                  title="Assign to a zone"
+                >
+                  <ArrowRightLeft size={12} />
+                </button>
+              </div>
             )}
-            <button
-              onClick={() => {
-                setMoveTargetZone(plant.zoneId ? String(plant.zoneId) : "");
-                setShowMoveZone(true);
-              }}
-              className="flex items-center gap-1 text-xs text-stone-500 hover:text-emerald-400 transition-colors"
-              title="Move to another zone"
-            >
-              <ArrowRightLeft size={12} />
-              Move
-            </button>
-            {plant.isContainer && (
-              <span className="text-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-400">
-                <span className="font-display">Type:</span> Container
+            <span className="text-stone-700">|</span>
+            {plant.isContainer ? (
+              <span className="text-xs px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-400 font-display">
+                Container
               </span>
-            )}
-            {!plant.isContainer && (
-              <span className="text-xs px-2 py-0.5 rounded bg-stone-800 text-stone-400">
-                <span className="font-display">Type:</span> In-ground
+            ) : (
+              <span className="text-xs px-2.5 py-1 rounded-md bg-stone-800 text-stone-400 font-display">
+                In-ground
               </span>
             )}
             {plant.datePlanted && (
-              <span className="text-xs text-stone-500">
-                <span className="font-display">Planted:</span>{" "}
-                <span className="font-mono">
-                  {new Date(plant.datePlanted + "T00:00:00").toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
+              <>
+                <span className="text-stone-700">|</span>
+                <span className="text-xs text-stone-500">
+                  <span className="font-display">Planted:</span>{" "}
+                  <span className="font-mono">
+                    {new Date(plant.datePlanted + "T00:00:00").toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
                 </span>
-              </span>
+              </>
             )}
           </div>
 
