@@ -32,6 +32,7 @@ import SafetyBadge from "../components/ui/SafetyBadge";
 import { useToast } from "../components/ui/Toast";
 import {
   usePlantInstance,
+  usePlantInstances,
   useUpdatePlantInstance,
   useDeletePlantInstance,
   useCareTasks,
@@ -74,6 +75,8 @@ export default function MyPlantDetail() {
   const { showToast } = useToast();
   // Fetch zones for zone-move dropdown (needs locationId from plant.zone)
   const { data: allZones } = useZones();
+  // Fetch all instances to count how many share this plant reference
+  const { data: allInstances } = usePlantInstances();
 
   const [showEditNickname, setShowEditNickname] = useState(false);
   const [showEditNotes, setShowEditNotes] = useState(false);
@@ -86,7 +89,6 @@ export default function MyPlantDetail() {
   const [nickname, setNickname] = useState("");
   const [notes, setNotes] = useState("");
   const [photoCaption, setPhotoCaption] = useState("");
-  const [containerDescription, setContainerDescription] = useState("");
   const [showEditContainer, setShowEditContainer] = useState(false);
   const [containerForm, setContainerForm] = useState({
     size: "",
@@ -116,6 +118,7 @@ export default function MyPlantDetail() {
     maxTempF: "",
   });
   const [showStatusMenu, setShowStatusMenu] = useState(false);
+  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
   const statusMenuRef = useRef<HTMLDivElement>(null);
   const [taskForm, setTaskForm] = useState({
     title: "",
@@ -811,100 +814,147 @@ export default function MyPlantDetail() {
             </Button>
           </div>
         </div>
-        {upcomingTasks.length > 0 ? (
-          <div className="space-y-2">
-            {upcomingTasks.map((task) => (
-              <Card key={task.id}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-base">
-                      {taskTypeIcons[task.taskType] ?? "\u{1f4cb}"}
-                    </span>
-                    <div>
-                      <p className="text-sm font-medium text-stone-200 font-display">
-                        {task.title}
-                      </p>
-                      <p className="text-xs text-stone-500 font-mono">
-                        {task.dueDate ? `Due: ${task.dueDate}` : "No due date"}
-                        {task.isRecurring && ` \u{00b7} every ${task.intervalDays ?? "?"}d`}
-                      </p>
-                      {task.plantMessage && (
-                        <p className="text-xs text-stone-400 italic mt-0.5">"{task.plantMessage}"</p>
-                      )}
-                      {task.activeMonths && task.activeMonths.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {task.activeMonths.map((m) => (
-                            <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-stone-800 text-stone-400 font-mono">
-                              {monthNames[m - 1]}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex gap-1.5">
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        if (task.taskType === "inspect") {
-                          setHealthCheckTask(task);
-                          setHealthCheckNotes("");
-                          setHealthCheckPhoto(null);
-                        } else {
-                          logTask.mutate(
-                            { id: task.id, action: "completed" },
-                            {
-                              onSuccess: () => showToast("Task completed!", "success"),
-                              onError: (err) => showToast(`Failed: ${(err as Error).message}`, "error"),
-                            }
-                          );
-                        }
-                      }}
-                    >
-                      {task.taskType === "inspect" ? "Check" : "Done"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() =>
-                        logTask.mutate({
-                          id: task.id,
-                          action: "skipped",
-                        })
-                      }
-                    >
-                      Skip
-                    </Button>
-                    <button
-                      onClick={() => openEditTask(task)}
-                      className="p-1.5 rounded-lg text-stone-600 hover:text-stone-200 hover:bg-stone-800 transition-colors"
-                      title="Edit task"
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    <button
-                      onClick={() => setConfirmDeleteTask(task.id)}
-                      className="p-1.5 rounded-lg text-stone-600 hover:text-red-400 hover:bg-stone-800 transition-colors"
-                      title="Delete task"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+        {(() => {
+          const today = new Date().toISOString().split("T")[0]!;
+          const overdueTasks = upcomingTasks.filter(t => t.dueDate && t.dueDate < today);
+          const todayTasks = upcomingTasks.filter(t => t.dueDate === today);
+          const futureTasks = upcomingTasks.filter(t => !t.dueDate || t.dueDate > today);
+
+          const renderTask = (task: CareTask) => (
+            <Card key={task.id}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-base">
+                    {taskTypeIcons[task.taskType] ?? "\u{1f4cb}"}
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-stone-200 font-display">
+                      {task.title}
+                    </p>
+                    <p className="text-xs text-stone-500 font-mono">
+                      {task.dueDate ? `Due: ${task.dueDate}` : "No due date"}
+                      {task.isRecurring && ` \u{00b7} every ${task.intervalDays ?? "?"}d`}
+                    </p>
+                    {task.plantMessage && (
+                      <p className="text-xs text-stone-400 italic mt-0.5">"{task.plantMessage}"</p>
+                    )}
+                    {task.activeMonths && task.activeMonths.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {task.activeMonths.map((m) => (
+                          <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-stone-800 text-stone-400 font-mono">
+                            {monthNames[m - 1]}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card className="text-center py-6">
-            <CalendarCheck
-              className="mx-auto text-stone-600 mb-2"
-              size={24}
-            />
-            <p className="text-stone-400 text-sm font-display">
-              No upcoming care tasks
-            </p>
-          </Card>
-        )}
+                <div className="flex gap-1.5">
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (task.taskType === "inspect") {
+                        setHealthCheckTask(task);
+                        setHealthCheckNotes("");
+                        setHealthCheckPhoto(null);
+                      } else {
+                        logTask.mutate(
+                          { id: task.id, action: "completed" },
+                          {
+                            onSuccess: () => showToast("Task completed!", "success"),
+                            onError: (err) => showToast(`Failed: ${(err as Error).message}`, "error"),
+                          }
+                        );
+                      }
+                    }}
+                  >
+                    {task.taskType === "inspect" ? "Check" : "Done"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() =>
+                      logTask.mutate({
+                        id: task.id,
+                        action: "skipped",
+                      })
+                    }
+                  >
+                    Skip
+                  </Button>
+                  <button
+                    onClick={() => openEditTask(task)}
+                    className="p-1.5 rounded-lg text-stone-600 hover:text-stone-200 hover:bg-stone-800 transition-colors"
+                    title="Edit task"
+                  >
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    onClick={() => setConfirmDeleteTask(task.id)}
+                    className="p-1.5 rounded-lg text-stone-600 hover:text-red-400 hover:bg-stone-800 transition-colors"
+                    title="Delete task"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            </Card>
+          );
+
+          const visibleFuture = showAllUpcoming ? futureTasks : futureTasks.slice(0, 3);
+          const hiddenCount = futureTasks.length - 3;
+
+          return upcomingTasks.length > 0 ? (
+            <div className="space-y-4">
+              {overdueTasks.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-semibold font-display text-stone-400 uppercase tracking-wider">Overdue</h3>
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-400">{overdueTasks.length}</span>
+                  </div>
+                  {overdueTasks.map(renderTask)}
+                </div>
+              )}
+              {todayTasks.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-semibold font-display text-stone-400 uppercase tracking-wider">Today</h3>
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">{todayTasks.length}</span>
+                  </div>
+                  {todayTasks.map(renderTask)}
+                </div>
+              )}
+              {futureTasks.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-semibold font-display text-stone-400 uppercase tracking-wider">Upcoming</h3>
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-stone-700 text-stone-400">{futureTasks.length}</span>
+                  </div>
+                  {visibleFuture.map(renderTask)}
+                  {hiddenCount > 0 && (
+                    <button
+                      onClick={() => setShowAllUpcoming(!showAllUpcoming)}
+                      className="flex items-center gap-1 text-xs text-stone-500 hover:text-stone-300 font-display transition-colors px-2 py-1"
+                    >
+                      {showAllUpcoming ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                      {showAllUpcoming ? "Show less" : `Show ${hiddenCount} more`}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <Card className="text-center py-6">
+              <CalendarCheck
+                className="mx-auto text-stone-600 mb-2"
+                size={24}
+              />
+              <p className="text-stone-400 text-sm font-display">
+                No upcoming care tasks
+              </p>
+            </Card>
+          );
+        })()}
       </div>
 
       {/* Notifications */}
@@ -1361,9 +1411,14 @@ export default function MyPlantDetail() {
         title="Edit Plant Info"
         wide
       >
-        <p className="text-xs text-amber-400 mb-4">
-          Changes here update the plant reference data shared by all instances of this plant.
-        </p>
+        {(() => {
+          const sharedCount = allInstances?.filter(p => p.plantReferenceId === ref?.id).length ?? 0;
+          return sharedCount > 1 ? (
+            <p className="text-xs text-amber-400 mb-4">
+              {sharedCount} plants share this reference — changes will affect all of them.
+            </p>
+          ) : null;
+        })()}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -1375,8 +1430,12 @@ export default function MyPlantDetail() {
                   commonName: plantInfoForm.commonName || undefined,
                   latinName: plantInfoForm.latinName || null,
                   cultivar: plantInfoForm.cultivar || null,
-                  sunRequirement: (plantInfoForm.sunRequirement || null) as any,
-                  waterNeeds: (plantInfoForm.waterNeeds || null) as any,
+                  sunRequirement: plantInfoForm.sunRequirement
+                    ? (plantInfoForm.sunRequirement as "full_sun" | "partial_sun" | "partial_shade" | "full_shade")
+                    : undefined,
+                  waterNeeds: plantInfoForm.waterNeeds
+                    ? (plantInfoForm.waterNeeds as "low" | "moderate" | "high" | "aquatic")
+                    : undefined,
                   matureHeight: plantInfoForm.matureHeight || null,
                   matureSpread: plantInfoForm.matureSpread || null,
                   minTempF: plantInfoForm.minTempF ? Number(plantInfoForm.minTempF) : null,
@@ -1585,8 +1644,12 @@ export default function MyPlantDetail() {
             id: plantId,
             data: {
               containerSize: containerForm.size || null,
-              containerShape: (containerForm.shape || null) as any,
-              containerMaterial: (containerForm.material || null) as any,
+              containerShape: containerForm.shape
+                ? (containerForm.shape as "round" | "square" | "rectangular" | "oval" | "hanging" | "window_box" | "other")
+                : undefined,
+              containerMaterial: containerForm.material
+                ? (containerForm.material as "terracotta" | "ceramic" | "plastic" | "fabric" | "metal" | "wood" | "concrete" | "fiberglass" | "stone")
+                : undefined,
               containerDescription: containerForm.description || null,
               outdoorCandidate: containerForm.outdoorCandidate,
             },

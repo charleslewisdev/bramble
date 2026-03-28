@@ -20,7 +20,7 @@ export async function checkOutdoorMovement(
 ): Promise<{ created: number }> {
   const today = new Date().toISOString().split("T")[0]!;
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0]!;
-  const twoDaysAgo = new Date(Date.now() - 2 * 86400000)
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000)
     .toISOString()
     .split("T")[0]!;
 
@@ -36,7 +36,9 @@ export async function checkOutdoorMovement(
   const weather = cached[0];
   if (!weather?.forecastJson) return { created: 0 };
 
-  const forecast = weather.forecastJson as DayForecast[];
+  const forecastJson = weather.forecastJson;
+  if (!Array.isArray(forecastJson)) return { created: 0 };
+  const forecast = forecastJson as DayForecast[];
   if (forecast.length === 0) return { created: 0 };
 
   // Get next 3 days of forecast (skip today, take tomorrow + 2 more)
@@ -82,7 +84,7 @@ export async function checkOutdoorMovement(
         and(
           eq(careTasks.plantInstanceId, instance.id),
           eq(careTasks.taskType, "move"),
-          gte(careTasks.dueDate, twoDaysAgo),
+          gte(careTasks.dueDate, sevenDaysAgo),
           isNull(careTaskLogs.id),
         ),
       )
