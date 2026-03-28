@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft,
@@ -44,6 +44,7 @@ import {
   usePhotos,
   useGeneratePlantTasks,
   useZones,
+  useUpdatePlantReference,
 } from "../api/hooks";
 import type { PlantType, PlantStatus, PlantMood, CareTaskType, CareTask, SpriteType } from "../api";
 import { getInstanceSpriteType } from "../api";
@@ -67,6 +68,7 @@ export default function MyPlantDetail() {
   const deletePhoto = useDeletePhoto();
   const { data: photos } = usePhotos(plantId);
   const generateTasks = useGeneratePlantTasks();
+  const updateRef = useUpdatePlantReference();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const healthCheckFileRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast();
@@ -85,6 +87,14 @@ export default function MyPlantDetail() {
   const [notes, setNotes] = useState("");
   const [photoCaption, setPhotoCaption] = useState("");
   const [containerDescription, setContainerDescription] = useState("");
+  const [showEditContainer, setShowEditContainer] = useState(false);
+  const [containerForm, setContainerForm] = useState({
+    size: "",
+    shape: "",
+    material: "",
+    description: "",
+    outdoorCandidate: false,
+  });
   const [healthCheckTask, setHealthCheckTask] = useState<CareTask | null>(null);
   const [healthCheckNotes, setHealthCheckNotes] = useState("");
   const [healthCheckPhoto, setHealthCheckPhoto] = useState<string | null>(null);
@@ -93,6 +103,20 @@ export default function MyPlantDetail() {
   const [showSpritePicker, setShowSpritePicker] = useState(false);
   const [showMoveZone, setShowMoveZone] = useState(false);
   const [moveTargetZone, setMoveTargetZone] = useState("");
+  const [showEditPlantInfo, setShowEditPlantInfo] = useState(false);
+  const [plantInfoForm, setPlantInfoForm] = useState({
+    commonName: "",
+    latinName: "",
+    cultivar: "",
+    sunRequirement: "",
+    waterNeeds: "",
+    matureHeight: "",
+    matureSpread: "",
+    minTempF: "",
+    maxTempF: "",
+  });
+  const [showStatusMenu, setShowStatusMenu] = useState(false);
+  const statusMenuRef = useRef<HTMLDivElement>(null);
   const [taskForm, setTaskForm] = useState({
     title: "",
     taskType: "water" as CareTaskType,
@@ -103,6 +127,19 @@ export default function MyPlantDetail() {
     intervalDays: "7",
     sendNotification: true,
   });
+
+  // Close status menu on click outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (statusMenuRef.current && !statusMenuRef.current.contains(e.target as Node)) {
+        setShowStatusMenu(false);
+      }
+    }
+    if (showStatusMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showStatusMenu]);
 
   if (isLoading) {
     return (
@@ -301,16 +338,50 @@ export default function MyPlantDetail() {
               {ref.latinName}
             </p>
           )}
+          {ref?.cultivar && (
+            <p className="text-stone-400 text-sm">
+              <span className="text-stone-500 font-display">Cultivar:</span> '{ref.cultivar}'
+            </p>
+          )}
 
           <div className="flex items-center gap-2 mt-3 justify-center sm:justify-start flex-wrap">
-            <StatusBadge status={plant.status} />
+            <div className="relative" ref={statusMenuRef}>
+              <button
+                onClick={() => setShowStatusMenu(!showStatusMenu)}
+                className="flex items-center gap-1 hover:opacity-80 transition-opacity"
+                title="Change status"
+              >
+                <StatusBadge status={plant.status} />
+                <ChevronDown size={12} className="text-stone-500" />
+              </button>
+              {showStatusMenu && (
+                <div className="absolute top-full left-0 mt-1 z-20 bg-stone-800 border border-stone-700 rounded-lg p-1.5 shadow-xl min-w-[140px]">
+                  {statusOptions.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => {
+                        handleStatusChange(s);
+                        setShowStatusMenu(false);
+                      }}
+                      className={`w-full text-left px-3 py-1.5 rounded text-xs font-medium font-display transition-colors ${
+                        plant.status === s
+                          ? "bg-emerald-600 text-white"
+                          : "text-stone-400 hover:text-stone-200 hover:bg-stone-700"
+                      }`}
+                    >
+                      {s.charAt(0).toUpperCase() + s.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             {plant.zone ? (
               <Link
                 to={`/zones/${plant.zoneId}`}
                 className="flex items-center gap-1 text-xs text-stone-400 hover:text-emerald-400 transition-colors"
               >
                 <MapPin size={12} />
-                {plant.zone.name}
+                <span className="text-stone-500 font-display">Zone:</span> {plant.zone.name}
               </Link>
             ) : (
               <span className="flex items-center gap-1 text-xs text-stone-500">
@@ -330,7 +401,26 @@ export default function MyPlantDetail() {
               Move
             </button>
             {plant.isContainer && (
-              <span className="text-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-400">container</span>
+              <span className="text-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-400">
+                <span className="font-display">Type:</span> Container
+              </span>
+            )}
+            {!plant.isContainer && (
+              <span className="text-xs px-2 py-0.5 rounded bg-stone-800 text-stone-400">
+                <span className="font-display">Type:</span> In-ground
+              </span>
+            )}
+            {plant.datePlanted && (
+              <span className="text-xs text-stone-500">
+                <span className="font-display">Planted:</span>{" "}
+                <span className="font-mono">
+                  {new Date(plant.datePlanted + "T00:00:00").toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </span>
+              </span>
             )}
           </div>
 
@@ -341,50 +431,163 @@ export default function MyPlantDetail() {
             </p>
           </div>
 
-          {ref && (
-            <Link
-              to={`/plants/${ref.id}`}
-              className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 mt-3 transition-colors font-display"
-            >
-              View reference data <ExternalLink size={12} />
-            </Link>
-          )}
         </div>
       </Card>
 
-      {/* Status Controls */}
-      <Card>
-        <h2 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider mb-3">
-          Update Status
-        </h2>
-        <div className="flex flex-wrap gap-2">
-          {statusOptions.map((s) => (
+      {/* Care Profile */}
+      {ref && (
+        <Card>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider">
+              Care Profile
+            </h2>
             <button
-              key={s}
-              onClick={() => handleStatusChange(s)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium font-display transition-colors ${
-                plant.status === s
-                  ? "bg-emerald-600 text-white"
-                  : "bg-stone-800 text-stone-400 hover:text-stone-200 hover:bg-stone-700"
-              }`}
+              onClick={() => {
+                setPlantInfoForm({
+                  commonName: ref.commonName ?? "",
+                  latinName: ref.latinName ?? "",
+                  cultivar: ref.cultivar ?? "",
+                  sunRequirement: ref.sunRequirement ?? "",
+                  waterNeeds: ref.waterNeeds ?? "",
+                  matureHeight: ref.matureHeight ?? "",
+                  matureSpread: ref.matureSpread ?? "",
+                  minTempF: ref.minTempF != null ? String(ref.minTempF) : "",
+                  maxTempF: ref.maxTempF != null ? String(ref.maxTempF) : "",
+                });
+                setShowEditPlantInfo(true);
+              }}
+              className="p-1 text-stone-500 hover:text-stone-300 transition-colors"
+              title="Edit plant info"
             >
-              {s.charAt(0).toUpperCase() + s.slice(1)}
+              <Pencil size={14} />
             </button>
-          ))}
-        </div>
-      </Card>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {ref.sunRequirement && (
+              <div>
+                <p className="text-xs text-stone-500 font-display">Sun</p>
+                <p className="text-sm text-stone-200 font-mono">{ref.sunRequirement.replace(/_/g, " ")}</p>
+              </div>
+            )}
+            {ref.waterNeeds && (
+              <div>
+                <p className="text-xs text-stone-500 font-display">Water</p>
+                <p className="text-sm text-stone-200 font-mono">{ref.waterNeeds}</p>
+              </div>
+            )}
+            {ref.soilPreference && (
+              <div>
+                <p className="text-xs text-stone-500 font-display">Soil</p>
+                <p className="text-sm text-stone-200 font-mono">{ref.soilPreference}</p>
+              </div>
+            )}
+            {ref.hardinessZoneMin != null && (
+              <div>
+                <p className="text-xs text-stone-500 font-display">Hardiness</p>
+                <p className="text-sm text-stone-200 font-mono">Zone {ref.hardinessZoneMin}{ref.hardinessZoneMax ? `-${ref.hardinessZoneMax}` : ""}</p>
+              </div>
+            )}
+            {ref.matureHeight && (
+              <div>
+                <p className="text-xs text-stone-500 font-display">Height</p>
+                <p className="text-sm text-stone-200 font-mono">{ref.matureHeight}</p>
+              </div>
+            )}
+            {ref.matureSpread && (
+              <div>
+                <p className="text-xs text-stone-500 font-display">Spread</p>
+                <p className="text-sm text-stone-200 font-mono">{ref.matureSpread}</p>
+              </div>
+            )}
+            {ref.bloomTime && (
+              <div>
+                <p className="text-xs text-stone-500 font-display">Bloom</p>
+                <p className="text-sm text-stone-200 font-mono">{ref.bloomTime}{ref.bloomColor ? ` (${ref.bloomColor})` : ""}</p>
+              </div>
+            )}
+            {ref.growthRate && (
+              <div>
+                <p className="text-xs text-stone-500 font-display">Growth</p>
+                <p className="text-sm text-stone-200 font-mono">{ref.growthRate}</p>
+              </div>
+            )}
+            {ref.lifecycle && (
+              <div>
+                <p className="text-xs text-stone-500 font-display">Lifecycle</p>
+                <p className="text-sm text-stone-200 font-mono">{ref.lifecycle.replace(/_/g, " ")}</p>
+              </div>
+            )}
+            {ref.minTempF != null && (
+              <div>
+                <p className="text-xs text-stone-500 font-display">Temp Range</p>
+                <p className="text-sm text-stone-200 font-mono">{ref.minTempF}°F{ref.maxTempF != null ? ` – ${ref.maxTempF}°F` : "+"}</p>
+              </div>
+            )}
+          </div>
+          <Link
+            to={`/plants/${ref.id}`}
+            className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 mt-4 transition-colors font-display"
+          >
+            View full reference data <ExternalLink size={12} />
+          </Link>
+        </Card>
+      )}
 
-      {/* Container Description (UX-012) */}
+      {/* Container Details (UX-012) */}
       {plant.isContainer && (
         <Card>
-          <h2 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider mb-3">
-            Container
-          </h2>
-          <p className="text-sm text-stone-300">
-            {plant.containerDescription || (
-              <span className="text-stone-500 italic">No container description</span>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold font-display text-stone-300 uppercase tracking-wider">
+              Container
+            </h2>
+            <button
+              onClick={() => {
+                setContainerForm({
+                  size: plant.containerSize ?? "",
+                  shape: plant.containerShape ?? "",
+                  material: plant.containerMaterial ?? "",
+                  description: plant.containerDescription ?? "",
+                  outdoorCandidate: plant.outdoorCandidate ?? false,
+                });
+                setShowEditContainer(true);
+              }}
+              className="p-1.5 rounded-lg text-stone-500 hover:text-stone-200 hover:bg-stone-800 transition-colors"
+            >
+              <Edit3 size={14} />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {plant.containerSize && (
+              <div>
+                <p className="text-xs text-stone-500 font-display">Size</p>
+                <p className="text-sm text-stone-200 font-mono">{plant.containerSize}</p>
+              </div>
             )}
-          </p>
+            {plant.containerShape && (
+              <div>
+                <p className="text-xs text-stone-500 font-display">Shape</p>
+                <p className="text-sm text-stone-200 font-mono capitalize">{plant.containerShape.replace(/_/g, " ")}</p>
+              </div>
+            )}
+            {plant.containerMaterial && (
+              <div>
+                <p className="text-xs text-stone-500 font-display">Material</p>
+                <p className="text-sm text-stone-200 font-mono capitalize">{plant.containerMaterial}</p>
+              </div>
+            )}
+            {plant.outdoorCandidate && (
+              <div>
+                <p className="text-xs text-stone-500 font-display">Preference</p>
+                <p className="text-sm text-emerald-400 font-mono">Outdoors when safe</p>
+              </div>
+            )}
+          </div>
+          {plant.containerDescription && (
+            <p className="text-sm text-stone-400 mt-3">{plant.containerDescription}</p>
+          )}
+          {!plant.containerSize && !plant.containerShape && !plant.containerMaterial && !plant.containerDescription && (
+            <p className="text-stone-500 italic text-sm">No container details yet. Click edit to add.</p>
+          )}
         </Card>
       )}
 
@@ -1151,6 +1354,166 @@ export default function MyPlantDetail() {
         </div>
       </Modal>
 
+      {/* Edit Plant Info Modal */}
+      <Modal
+        open={showEditPlantInfo}
+        onClose={() => setShowEditPlantInfo(false)}
+        title="Edit Plant Info"
+        wide
+      >
+        <p className="text-xs text-amber-400 mb-4">
+          Changes here update the plant reference data shared by all instances of this plant.
+        </p>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!ref) return;
+            updateRef.mutate(
+              {
+                id: ref.id,
+                data: {
+                  commonName: plantInfoForm.commonName || undefined,
+                  latinName: plantInfoForm.latinName || null,
+                  cultivar: plantInfoForm.cultivar || null,
+                  sunRequirement: (plantInfoForm.sunRequirement || null) as any,
+                  waterNeeds: (plantInfoForm.waterNeeds || null) as any,
+                  matureHeight: plantInfoForm.matureHeight || null,
+                  matureSpread: plantInfoForm.matureSpread || null,
+                  minTempF: plantInfoForm.minTempF ? Number(plantInfoForm.minTempF) : null,
+                  maxTempF: plantInfoForm.maxTempF ? Number(plantInfoForm.maxTempF) : null,
+                },
+              },
+              {
+                onSuccess: () => {
+                  setShowEditPlantInfo(false);
+                  showToast("Plant info updated!", "success");
+                },
+                onError: (err) =>
+                  showToast(`Failed: ${(err as Error).message}`, "error"),
+              },
+            );
+          }}
+          className="space-y-4"
+        >
+          <Input
+            label="Common Name"
+            value={plantInfoForm.commonName}
+            onChange={(e) =>
+              setPlantInfoForm({ ...plantInfoForm, commonName: e.target.value })
+            }
+            required
+          />
+          <Input
+            label="Latin Name"
+            value={plantInfoForm.latinName}
+            onChange={(e) =>
+              setPlantInfoForm({ ...plantInfoForm, latinName: e.target.value })
+            }
+          />
+          <Input
+            label="Cultivar / Variety"
+            value={plantInfoForm.cultivar}
+            onChange={(e) =>
+              setPlantInfoForm({ ...plantInfoForm, cultivar: e.target.value })
+            }
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Sun Requirement"
+              value={plantInfoForm.sunRequirement}
+              onChange={(e) =>
+                setPlantInfoForm({
+                  ...plantInfoForm,
+                  sunRequirement: e.target.value,
+                })
+              }
+            >
+              <option value="">Not set</option>
+              <option value="full_sun">Full sun</option>
+              <option value="partial_sun">Partial sun</option>
+              <option value="partial_shade">Partial shade</option>
+              <option value="full_shade">Full shade</option>
+            </Select>
+            <Select
+              label="Water Needs"
+              value={plantInfoForm.waterNeeds}
+              onChange={(e) =>
+                setPlantInfoForm({
+                  ...plantInfoForm,
+                  waterNeeds: e.target.value,
+                })
+              }
+            >
+              <option value="">Not set</option>
+              <option value="low">Low</option>
+              <option value="moderate">Moderate</option>
+              <option value="high">High</option>
+              <option value="aquatic">Aquatic</option>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Mature Height"
+              placeholder="e.g. 2-4 ft"
+              value={plantInfoForm.matureHeight}
+              onChange={(e) =>
+                setPlantInfoForm({
+                  ...plantInfoForm,
+                  matureHeight: e.target.value,
+                })
+              }
+            />
+            <Input
+              label="Mature Spread"
+              placeholder="e.g. 3-5 ft"
+              value={plantInfoForm.matureSpread}
+              onChange={(e) =>
+                setPlantInfoForm({
+                  ...plantInfoForm,
+                  matureSpread: e.target.value,
+                })
+              }
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Min Temp (&deg;F)"
+              type="number"
+              value={plantInfoForm.minTempF}
+              onChange={(e) =>
+                setPlantInfoForm({
+                  ...plantInfoForm,
+                  minTempF: e.target.value,
+                })
+              }
+            />
+            <Input
+              label="Max Temp (&deg;F)"
+              type="number"
+              value={plantInfoForm.maxTempF}
+              onChange={(e) =>
+                setPlantInfoForm({
+                  ...plantInfoForm,
+                  maxTempF: e.target.value,
+                })
+              }
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={() => setShowEditPlantInfo(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={updateRef.isPending}>
+              {updateRef.isPending ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
       {/* Move Zone Modal */}
       <Modal
         open={showMoveZone}
@@ -1207,6 +1570,92 @@ export default function MyPlantDetail() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Edit Container Modal */}
+      <Modal
+        open={showEditContainer}
+        onClose={() => setShowEditContainer(false)}
+        title="Edit Container"
+      >
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          if (!plantId) return;
+          updatePlant.mutate({
+            id: plantId,
+            data: {
+              containerSize: containerForm.size || null,
+              containerShape: (containerForm.shape || null) as any,
+              containerMaterial: (containerForm.material || null) as any,
+              containerDescription: containerForm.description || null,
+              outdoorCandidate: containerForm.outdoorCandidate,
+            },
+          }, {
+            onSuccess: () => {
+              setShowEditContainer(false);
+              showToast("Container details updated!", "success");
+            },
+            onError: (err) => showToast(`Failed: ${(err as Error).message}`, "error"),
+          });
+        }} className="space-y-4">
+          <Input
+            label="Size"
+            placeholder="e.g. 12 inch, 5 gallon"
+            value={containerForm.size}
+            onChange={(e) => setContainerForm({...containerForm, size: e.target.value})}
+          />
+          <Select
+            label="Shape"
+            value={containerForm.shape}
+            onChange={(e) => setContainerForm({...containerForm, shape: e.target.value})}
+          >
+            <option value="">Not specified</option>
+            <option value="round">Round</option>
+            <option value="square">Square</option>
+            <option value="rectangular">Rectangular</option>
+            <option value="oval">Oval</option>
+            <option value="hanging">Hanging</option>
+            <option value="window_box">Window Box</option>
+            <option value="other">Other</option>
+          </Select>
+          <Select
+            label="Material"
+            value={containerForm.material}
+            onChange={(e) => setContainerForm({...containerForm, material: e.target.value})}
+          >
+            <option value="">Not specified</option>
+            <option value="terracotta">Terracotta</option>
+            <option value="ceramic">Ceramic</option>
+            <option value="plastic">Plastic</option>
+            <option value="fabric">Fabric</option>
+            <option value="metal">Metal</option>
+            <option value="wood">Wood</option>
+            <option value="concrete">Concrete</option>
+            <option value="fiberglass">Fiberglass</option>
+            <option value="stone">Stone</option>
+          </Select>
+          <Textarea
+            label="Notes"
+            placeholder="Any notes about this container..."
+            value={containerForm.description}
+            onChange={(e) => setContainerForm({...containerForm, description: e.target.value})}
+            rows={3}
+          />
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={containerForm.outdoorCandidate}
+              onChange={(e) => setContainerForm({...containerForm, outdoorCandidate: e.target.checked})}
+              className="rounded border-stone-600 bg-stone-800 text-emerald-500 focus:ring-emerald-500/40"
+            />
+            <span className="text-sm text-stone-300 font-display">Move outdoors when weather allows</span>
+          </label>
+          <p className="text-xs text-stone-500">When enabled, care tasks will remind you to move this plant outdoors during safe weather and back indoors before cold nights.</p>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="secondary" type="button" onClick={() => setShowEditContainer(false)}>Cancel</Button>
+            <Button type="submit" disabled={updatePlant.isPending}>{updatePlant.isPending ? "Saving..." : "Save"}</Button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

@@ -16,7 +16,7 @@ import {
   type PlantSearchResult,
 } from "../services/perenual.js";
 import { z } from "zod";
-import { generateDefaultCareTasks } from "../services/care-tasks.js";
+import { generateDefaultCareTasks, handleStatusTransition } from "../services/care-tasks.js";
 import { calculatePlantMood } from "../services/mood.js";
 import { idParamSchema, parsePagination, paginatedResult } from "../lib/validation.js";
 
@@ -86,6 +86,9 @@ const createReferenceSchema = z.object({
 
 const updateReferenceSchema = createReferenceSchema.partial();
 
+const containerShapeEnum = z.enum(["round", "square", "rectangular", "oval", "hanging", "window_box", "other"]);
+const containerMaterialEnum = z.enum(["terracotta", "ceramic", "plastic", "fabric", "metal", "wood", "concrete", "fiberglass", "stone"]);
+
 const createInstanceSchema = z.object({
   plantReferenceId: z.number().int().positive(),
   zoneId: z.number().int().positive().nullable().optional(),
@@ -93,6 +96,10 @@ const createInstanceSchema = z.object({
   status: statusEnum.optional(),
   isContainer: z.boolean().optional(),
   containerDescription: z.string().nullable().optional(),
+  containerSize: z.string().nullable().optional(),
+  containerShape: containerShapeEnum.nullable().optional(),
+  containerMaterial: containerMaterialEnum.nullable().optional(),
+  outdoorCandidate: z.boolean().optional(),
   datePlanted: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   mood: moodEnum.optional(),
@@ -105,6 +112,10 @@ const updateInstanceSchema = z.object({
   status: statusEnum.optional(),
   isContainer: z.boolean().optional(),
   containerDescription: z.string().nullable().optional(),
+  containerSize: z.string().nullable().optional(),
+  containerShape: containerShapeEnum.nullable().optional(),
+  containerMaterial: containerMaterialEnum.nullable().optional(),
+  outdoorCandidate: z.boolean().optional(),
   datePlanted: z.string().nullable().optional(),
   dateRemoved: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
@@ -525,6 +536,16 @@ export async function plantRoutes(app: FastifyInstance) {
       .where(eq(plantInstances.id, id))
       .returning()
       .get();
+
+    // Handle care task lifecycle when status changes
+    if (bodyParsed.data.status && bodyParsed.data.status !== existing.status) {
+      try {
+        await handleStatusTransition(id, existing.status, bodyParsed.data.status);
+      } catch (err) {
+        console.warn("Failed to handle status transition care tasks:", err);
+        // Non-fatal — still return the updated instance
+      }
+    }
 
     return result;
   });

@@ -74,10 +74,21 @@ export default function CareTasks() {
     sendNotification: true,
   });
 
+  const [showAllFuture, setShowAllFuture] = useState(false);
+
   const upcoming = tasks ?? [];
   const hasWaterTasks = upcoming.some((t) => t.taskType === "water");
   const allIds = useMemo(() => upcoming.map((t) => t.id), [upcoming]);
   const allSelected = allIds.length > 0 && allIds.every((id) => selectedIds.has(id));
+
+  // Split tasks by urgency
+  const today = new Date().toISOString().split("T")[0]!;
+  const overdue = upcoming.filter((t) => t.dueDate && t.dueDate < today);
+  const todayTasks = upcoming.filter((t) => t.dueDate === today);
+  const future = upcoming.filter((t) => !t.dueDate || t.dueDate > today);
+  const nearFuture = future.slice(0, 5);
+  const farFuture = future.slice(5);
+  const actionableCount = overdue.length + todayTasks.length;
 
   function toggleSelect(id: number) {
     setSelectedIds((prev) => {
@@ -143,18 +154,127 @@ export default function CareTasks() {
     });
   }
 
-  // Group upcoming by date
-  const grouped = upcoming.reduce<Record<string, typeof upcoming>>(
-    (acc, task) => {
-      const date = task.dueDate ?? "unscheduled";
-      if (!acc[date]) acc[date] = [];
-      acc[date]!.push(task);
-      return acc;
-    },
-    {}
-  );
-
-  const sortedDates = Object.keys(grouped).sort();
+  function renderTaskCard(task: (typeof upcoming)[number], showDate?: boolean) {
+    return (
+      <Card key={task.id}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              checked={selectedIds.has(task.id)}
+              onChange={() => toggleSelect(task.id)}
+              aria-label={`Select task: ${task.title}`}
+              className="w-4 h-4 shrink-0 rounded border-stone-600 bg-stone-800 text-emerald-500 focus:ring-emerald-500/40 cursor-pointer accent-emerald-500"
+            />
+            <span className="text-lg">
+              {taskTypeIcons[task.taskType] ?? "\u{1f4cb}"}
+            </span>
+            {task.plantInstance?.plantReference && (
+              <PlantSprite
+                type={
+                  task.plantInstance.plantReference
+                    .plantType as PlantType
+                }
+                mood={task.plantInstance.mood}
+                size={28}
+              />
+            )}
+            <div>
+              <p className="text-sm font-medium text-stone-200 font-display">
+                {task.title}
+              </p>
+              <p className="text-xs text-stone-500 font-mono">
+                {task.taskType.replace("_", " ")}
+                {showDate && task.dueDate && ` \u{00b7} ${formatDate(task.dueDate)}`}
+                {task.plantInstance &&
+                  ` \u{00b7} ${task.plantInstance.nickname ?? task.plantInstance.plantReference?.commonName ?? ""}`}
+                {task.isRecurring && ` \u{00b7} every ${task.intervalDays ?? "?"}d`}
+              </p>
+              {task.plantMessage && (
+                <p className="text-xs text-stone-400 mt-1 italic">
+                  "{task.plantMessage}"
+                </p>
+              )}
+              {task.description && (
+                <p className="text-xs text-stone-400 mt-1">
+                  {task.description}
+                </p>
+              )}
+              {task.activeMonths && task.activeMonths.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {task.activeMonths.map((m) => (
+                    <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-stone-800 text-stone-400 font-mono">
+                      {monthNames[m - 1]}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {task.taskType === "fertilize" &&
+                task.plantInstance?.plantReference?.fertilizerType &&
+                primaryLocationId && (
+                  <FertilizerNudge
+                    fertilizerType={task.plantInstance.plantReference.fertilizerType}
+                    locationId={primaryLocationId}
+                    plantName={
+                      task.plantInstance.nickname ??
+                      task.plantInstance.plantReference.commonName ??
+                      `Plant #${task.plantInstance.id}`
+                    }
+                    fertilizerNotes={task.plantInstance.plantReference.fertilizerNotes ?? null}
+                  />
+                )}
+            </div>
+          </div>
+          <div className="flex gap-1.5 shrink-0">
+            <Button
+              size="sm"
+              aria-label="Complete task"
+              onClick={() =>
+                logTask.mutate(
+                  { id: task.id, action: "completed" },
+                  {
+                    onSuccess: () => showToast("Task completed!", "success"),
+                    onError: (err) => showToast(`Failed: ${(err as Error).message}`, "error"),
+                  }
+                )
+              }
+            >
+              <Check size={14} />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-label="Skip task"
+              onClick={() =>
+                logTask.mutate({
+                  id: task.id,
+                  action: "skipped",
+                })
+              }
+            >
+              <SkipForward size={14} />
+            </Button>
+            <button
+              onClick={() => openEditTask(task)}
+              className="p-1.5 rounded-lg text-stone-600 hover:text-stone-200 hover:bg-stone-800 transition-colors"
+              title="Edit task"
+              aria-label="Edit task"
+            >
+              <Pencil size={14} />
+            </button>
+            <button
+              onClick={() => setConfirmDeleteTask(task.id)}
+              className="p-1.5 rounded-lg text-stone-600 hover:text-red-400 hover:bg-stone-800 transition-colors"
+              title="Delete task"
+              aria-label="Delete task"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   function resetForm() {
     setForm({
@@ -252,7 +372,8 @@ export default function CareTasks() {
             Care Tasks
           </h1>
           <p className="text-stone-400 text-sm mt-1">
-            {upcoming.length} task{upcoming.length !== 1 ? "s" : ""} to do
+            {actionableCount} task{actionableCount !== 1 ? "s" : ""} need attention
+            {future.length > 0 && <span className="text-stone-500"> · {future.length} upcoming</span>}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -340,133 +461,64 @@ export default function CareTasks() {
         </div>
       ) : upcoming.length > 0 ? (
         <div className="space-y-6">
-          {sortedDates.map((date) => (
-            <div key={date}>
-              <h3 className="text-sm font-semibold font-mono text-stone-400 mb-2">
-                {date === "unscheduled" ? "Unscheduled" : formatDate(date)}
+          {/* Overdue section */}
+          {overdue.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold font-display text-rose-400 mb-2 flex items-center gap-2">
+                Overdue <span className="text-xs font-mono px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-400">{overdue.length}</span>
               </h3>
               <div className="space-y-2">
-                {grouped[date]!.map((task) => (
-                  <Card key={task.id}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.has(task.id)}
-                          onChange={() => toggleSelect(task.id)}
-                          aria-label={`Select task: ${task.title}`}
-                          className="w-4 h-4 shrink-0 rounded border-stone-600 bg-stone-800 text-emerald-500 focus:ring-emerald-500/40 cursor-pointer accent-emerald-500"
-                        />
-                        <span className="text-lg">
-                          {taskTypeIcons[task.taskType] ?? "\u{1f4cb}"}
-                        </span>
-                        {task.plantInstance?.plantReference && (
-                          <PlantSprite
-                            type={
-                              task.plantInstance.plantReference
-                                .plantType as PlantType
-                            }
-                            mood={task.plantInstance.mood}
-                            size={28}
-                          />
-                        )}
-                        <div>
-                          <p className="text-sm font-medium text-stone-200 font-display">
-                            {task.title}
-                          </p>
-                          <p className="text-xs text-stone-500 font-mono">
-                            {task.taskType.replace("_", " ")}
-                            {task.plantInstance &&
-                              ` \u{00b7} ${task.plantInstance.nickname ?? task.plantInstance.plantReference?.commonName ?? ""}`}
-                            {task.isRecurring && ` \u{00b7} every ${task.intervalDays ?? "?"}d`}
-                          </p>
-                          {task.plantMessage && (
-                            <p className="text-xs text-stone-400 mt-1 italic">
-                              "{task.plantMessage}"
-                            </p>
-                          )}
-                          {task.description && (
-                            <p className="text-xs text-stone-400 mt-1">
-                              {task.description}
-                            </p>
-                          )}
-                          {task.activeMonths && task.activeMonths.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {task.activeMonths.map((m) => (
-                                <span key={m} className="text-[10px] px-1.5 py-0.5 rounded bg-stone-800 text-stone-400 font-mono">
-                                  {monthNames[m - 1]}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                          {task.taskType === "fertilize" &&
-                            task.plantInstance?.plantReference?.fertilizerType &&
-                            primaryLocationId && (
-                              <FertilizerNudge
-                                fertilizerType={task.plantInstance.plantReference.fertilizerType}
-                                locationId={primaryLocationId}
-                                plantName={
-                                  task.plantInstance.nickname ??
-                                  task.plantInstance.plantReference.commonName ??
-                                  `Plant #${task.plantInstance.id}`
-                                }
-                                fertilizerNotes={task.plantInstance.plantReference.fertilizerNotes ?? null}
-                              />
-                            )}
-                        </div>
-                      </div>
-                      <div className="flex gap-1.5 shrink-0">
-                        <Button
-                          size="sm"
-                          aria-label="Complete task"
-                          onClick={() =>
-                            logTask.mutate(
-                              { id: task.id, action: "completed" },
-                              {
-                                onSuccess: () => showToast("Task completed!", "success"),
-                                onError: (err) => showToast(`Failed: ${(err as Error).message}`, "error"),
-                              }
-                            )
-                          }
-                        >
-                          <Check size={14} />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          aria-label="Skip task"
-                          onClick={() =>
-                            logTask.mutate({
-                              id: task.id,
-                              action: "skipped",
-                            })
-                          }
-                        >
-                          <SkipForward size={14} />
-                        </Button>
-                        <button
-                          onClick={() => openEditTask(task)}
-                          className="p-1.5 rounded-lg text-stone-600 hover:text-stone-200 hover:bg-stone-800 transition-colors"
-                          title="Edit task"
-                          aria-label="Edit task"
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        <button
-                          onClick={() => setConfirmDeleteTask(task.id)}
-                          className="p-1.5 rounded-lg text-stone-600 hover:text-red-400 hover:bg-stone-800 transition-colors"
-                          title="Delete task"
-                          aria-label="Delete task"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+                {overdue.map((task) => renderTaskCard(task, true))}
               </div>
             </div>
-          ))}
+          )}
+
+          {/* Today section */}
+          {todayTasks.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold font-display text-emerald-400 mb-2 flex items-center gap-2">
+                Today <span className="text-xs font-mono px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">{todayTasks.length}</span>
+              </h3>
+              <div className="space-y-2">
+                {todayTasks.map((task) => renderTaskCard(task))}
+              </div>
+            </div>
+          )}
+
+          {/* Coming Up section — first 5 future tasks */}
+          {nearFuture.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold font-display text-stone-400 mb-2">
+                Coming Up
+              </h3>
+              <div className="space-y-2">
+                {nearFuture.map((task) => renderTaskCard(task, true))}
+              </div>
+            </div>
+          )}
+
+          {/* Later section — collapsed by default */}
+          {farFuture.length > 0 && !showAllFuture && (
+            <button
+              onClick={() => setShowAllFuture(true)}
+              className="w-full py-3 text-sm text-stone-500 hover:text-stone-300 font-display transition-colors border border-dashed border-stone-800 rounded-lg hover:border-stone-700"
+            >
+              Show {farFuture.length} more upcoming tasks
+            </button>
+          )}
+          {showAllFuture && farFuture.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold font-display text-stone-500">Later</h3>
+                <button onClick={() => setShowAllFuture(false)} className="text-xs text-stone-500 hover:text-stone-300">
+                  Collapse
+                </button>
+              </div>
+              <div className="space-y-2">
+                {farFuture.map((task) => renderTaskCard(task, true))}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <Card className="text-center py-12">
