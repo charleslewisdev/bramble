@@ -280,6 +280,16 @@ export const plantInstances = sqliteTable("plant_instances", {
     .notNull()
     .default(false),
   containerDescription: text("container_description"),
+  containerSize: text("container_size"), // "6 inch", "5 gallon", etc.
+  containerShape: text("container_shape", {
+    enum: ["round", "square", "rectangular", "oval", "hanging", "window_box", "other"],
+  }),
+  containerMaterial: text("container_material", {
+    enum: ["terracotta", "ceramic", "plastic", "fabric", "metal", "wood", "concrete", "fiberglass", "stone"],
+  }),
+  outdoorCandidate: integer("outdoor_candidate", { mode: "boolean" })
+    .notNull()
+    .default(false),
   datePlanted: text("date_planted"),
   dateRemoved: text("date_removed"),
   notes: text("notes"),

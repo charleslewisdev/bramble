@@ -217,6 +217,10 @@ export function createPlantReference(data: Partial<PlantReference>) {
   return post<PlantReference>("/plants/references", data);
 }
 
+export function updatePlantReference(id: number, data: Partial<PlantReference>) {
+  return put<PlantReference>(`/plants/references/${id}`, data);
+}
+
 // ---------- Plant Search (local + Perenual API) ----------
 
 export interface PlantSearchResult {

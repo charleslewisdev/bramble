@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generateDefaultCareTasks } from "./care-tasks.js";
+import { generateDefaultCareTasks, handleStatusTransition } from "./care-tasks.js";
 import type { PlantInstance, PlantReference } from "../db/schema.js";
 
 describe("generateDefaultCareTasks", () => {
@@ -12,6 +12,10 @@ describe("generateDefaultCareTasks", () => {
     isContainer: false,
     mood: "happy",
     containerDescription: null,
+    containerSize: null,
+    containerShape: null,
+    containerMaterial: null,
+    outdoorCandidate: false,
     datePlanted: "2025-01-01",
     dateRemoved: null,
     notes: null,
@@ -122,5 +126,108 @@ describe("generateDefaultCareTasks", () => {
     });
     const waterTask = tasks.find((t) => t.taskType === "water");
     expect(waterTask).toBeUndefined();
+  });
+});
+
+describe("handleStatusTransition", () => {
+  it("is exported and callable", () => {
+    expect(typeof handleStatusTransition).toBe("function");
+  });
+
+  it("generates no planting tasks for established plants", () => {
+    // Verify that generateDefaultCareTasks doesn't create "Plant ..." tasks
+    // for non-planned statuses (this validates the transition logic indirectly)
+    const plant: PlantInstance = {
+      id: 1,
+      plantReferenceId: 1,
+      zoneId: 1,
+      nickname: "Test Plant",
+      status: "established",
+      isContainer: false,
+      mood: "happy",
+      containerDescription: null,
+      containerSize: null,
+      containerShape: null,
+      containerMaterial: null,
+      outdoorCandidate: false,
+      datePlanted: "2025-01-01",
+      dateRemoved: null,
+      notes: null,
+      spriteOverride: null,
+      notifyWater: null,
+      notifyFertilize: null,
+      notifyPrune: null,
+      notifyRepot: null,
+      notifyInspect: null,
+      notifyProtect: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const ref: PlantReference = {
+      id: 1,
+      commonName: "Test Flower",
+      latinName: null,
+      cultivar: null,
+      family: null,
+      plantType: "flower",
+      sunRequirement: "full_sun",
+      waterNeeds: "moderate",
+      soilPreference: null,
+      hardinessZoneMin: null,
+      hardinessZoneMax: null,
+      matureHeight: null,
+      matureSpread: null,
+      growthRate: null,
+      bloomTime: null,
+      bloomColor: null,
+      foliageType: "deciduous",
+      toxicityDogs: "safe",
+      toxicityCats: "safe",
+      toxicityChildren: "safe",
+      toxicityNotes: null,
+      spriteType: "flower",
+      lifecycle: null,
+      plantingNotes: "Plant in spring in well-drained soil",
+      pruningNotes: null,
+      overwinteringNotes: null,
+      nativeRegion: null,
+      deerResistant: null,
+      droughtTolerant: null,
+      containerSuitable: null,
+      attractsPollinators: null,
+      attractsBirds: null,
+      attractsButterflies: null,
+      companionPlants: null,
+      minTempF: null,
+      maxTempF: null,
+      source: "user",
+      externalId: null,
+      description: null,
+      careNotes: null,
+      fertilizerType: null,
+      fertilizerNpk: null,
+      fertilizerFrequency: null,
+      fertilizerNotes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // When status is "established", no custom planting task should be generated
+    const tasks = generateDefaultCareTasks(plant, ref);
+    const plantingTask = tasks.find(
+      (t) => t.taskType === "custom" && t.title?.startsWith("Plant "),
+    );
+    expect(plantingTask).toBeUndefined();
+
+    // But when status is "planned", the planting task should exist
+    const plannedTasks = generateDefaultCareTasks(
+      { ...plant, status: "planned" },
+      ref,
+    );
+    const plannedPlantingTask = plannedTasks.find(
+      (t) => t.taskType === "custom" && t.title?.startsWith("Plant "),
+    );
+    expect(plannedPlantingTask).toBeDefined();
   });
 });

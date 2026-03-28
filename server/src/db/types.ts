@@ -120,6 +120,10 @@ export type FertilizerStatus = "have_it" | "running_low" | "out";
 
 export type NotificationFrequency = "immediate" | "daily_digest" | "weekly_digest";
 
+export type ContainerShape = "round" | "square" | "rectangular" | "oval" | "hanging" | "window_box" | "other";
+
+export type ContainerMaterial = "terracotta" | "ceramic" | "plastic" | "fabric" | "metal" | "wood" | "concrete" | "fiberglass" | "stone";
+
 export type JournalEntryType = "observation" | "status_check" | "care_log" | "milestone" | "identification";
 
 // ─── Extended client types (with optional joined relations) ───────────────────

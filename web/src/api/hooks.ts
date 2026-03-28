@@ -216,6 +216,19 @@ export function useCreatePlantReference() {
   });
 }
 
+export function useUpdatePlantReference() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<PlantReference> }) =>
+      api.updatePlantReference(id, data),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["plantReferences"] });
+      qc.invalidateQueries({ queryKey: ["plantReferences", v.id] });
+      qc.invalidateQueries({ queryKey: ["plantInstances"] });
+    },
+  });
+}
+
 // ---------- Plant Search ----------
 
 export function usePlantSearch(query: string, page?: number) {

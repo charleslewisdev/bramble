@@ -1,9 +1,17 @@
+import { db } from "../db/index.js";
+import {
+  careTasks,
+  plantInstances,
+  plantReferences,
+  zones,
+} from "../db/schema.js";
 import type {
   PlantInstance,
   PlantReference,
   Zone,
   NewCareTask,
 } from "../db/schema.js";
+import { eq, and, like } from "drizzle-orm";
 
 // ─── Bloom month parser ─────────────────────────────────────────────────────
 
@@ -362,4 +370,94 @@ export function generateDefaultCareTasks(
   }
 
   return tasks;
+}
+
+// ─── Status transition handler ──────────────────────────────────────────────
+
+export interface StatusTransitionResult {
+  created: number;
+  removed: number;
+}
+
+export async function handleStatusTransition(
+  plantInstanceId: number,
+  oldStatus: string,
+  newStatus: string,
+): Promise<StatusTransitionResult> {
+  let created = 0;
+  let removed = 0;
+
+  // Any → dead/removed: delete ALL care tasks for this plant instance
+  if (newStatus === "dead" || newStatus === "removed") {
+    const deleted = db
+      .delete(careTasks)
+      .where(eq(careTasks.plantInstanceId, plantInstanceId))
+      .run();
+    removed = deleted.changes;
+    return { created, removed };
+  }
+
+  // planned → planted/established: remove "Plant ..." custom tasks, generate new care tasks
+  if (
+    oldStatus === "planned" &&
+    (newStatus === "planted" || newStatus === "established")
+  ) {
+    // Delete any "Plant ..." custom tasks (the initial planting task)
+    const plantingDeleted = db
+      .delete(careTasks)
+      .where(
+        and(
+          eq(careTasks.plantInstanceId, plantInstanceId),
+          eq(careTasks.taskType, "custom"),
+          like(careTasks.title, "Plant %"),
+        ),
+      )
+      .run();
+    removed = plantingDeleted.changes;
+
+    // Fetch the instance with its reference and zone to generate new tasks
+    const instance = await db.query.plantInstances.findFirst({
+      where: eq(plantInstances.id, plantInstanceId),
+    });
+
+    if (instance) {
+      // Update the instance status in our local copy for task generation
+      const updatedInstance = { ...instance, status: newStatus } as PlantInstance;
+
+      const plantRef = await db.query.plantReferences.findFirst({
+        where: eq(plantReferences.id, instance.plantReferenceId),
+      });
+
+      if (plantRef) {
+        // Get existing task types so we don't duplicate
+        const existingTasks = db
+          .select({ taskType: careTasks.taskType })
+          .from(careTasks)
+          .where(eq(careTasks.plantInstanceId, plantInstanceId))
+          .all();
+        const existingTaskTypes = existingTasks.map((t) => t.taskType);
+
+        // Fetch zone if assigned
+        let zone: Zone | null = null;
+        if (instance.zoneId) {
+          const zoneResult = await db.query.zones.findFirst({
+            where: eq(zones.id, instance.zoneId),
+          });
+          zone = zoneResult ?? null;
+        }
+
+        const newTasks = generateDefaultCareTasks(updatedInstance, plantRef, {
+          existingTaskTypes,
+          zone,
+        });
+
+        for (const task of newTasks) {
+          db.insert(careTasks).values(task).run();
+        }
+        created = newTasks.length;
+      }
+    }
+  }
+
+  return { created, removed };
 }

@@ -12,6 +12,7 @@ import {
 import { eq, desc, and, inArray } from "drizzle-orm";
 import { fetchWeather } from "../services/weather.js";
 import { calculatePlantMood } from "../services/mood.js";
+import { checkOutdoorMovement } from "../services/outdoor-movement.js";
 import { z } from "zod";
 import { locationIdParamSchema } from "../lib/validation.js";
 
@@ -232,6 +233,13 @@ export async function weatherRoutes(app: FastifyInstance) {
           await refreshMoodsForLocation(locationId);
         } catch (moodErr) {
           console.warn("Failed to refresh moods after weather update:", moodErr);
+        }
+
+        // Check if any container plants need to move indoors/outdoors
+        try {
+          await checkOutdoorMovement(locationId);
+        } catch (moveErr) {
+          console.warn("Failed to check outdoor movement after weather update:", moveErr);
         }
 
         return reply.status(201).send(entry);
