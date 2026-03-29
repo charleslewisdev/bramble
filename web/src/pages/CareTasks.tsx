@@ -35,6 +35,28 @@ import {
 import type { CareTaskType, PlantType, CareTask } from "../api";
 import { taskTypes, taskTypeIcons, monthNames } from "../utils/constants";
 import { formatDate } from "../utils/format";
+import { getWeatherEmoji, formatTempShort } from "../utils/weather";
+
+interface DayForecast {
+  date: string;
+  temperatureMax: number;
+  temperatureMin: number;
+  precipitationSum: number;
+  weatherCode: number;
+  conditions: string;
+  uvIndexMax: number;
+  precipitationProbabilityMax: number;
+}
+
+function formatDayLabel(dateStr: string): string {
+  const date = new Date(dateStr + "T00:00:00");
+  const today = new Date();
+  const tomorrow = new Date();
+  tomorrow.setDate(today.getDate() + 1);
+  if (date.toDateString() === today.toDateString()) return "Today";
+  if (date.toDateString() === tomorrow.toDateString()) return "Tomorrow";
+  return date.toLocaleDateString("en-US", { weekday: "long" });
+}
 
 export default function CareTasks() {
   const { data: tasks, isLoading } = useCareTasks();
@@ -433,17 +455,45 @@ export default function CareTasks() {
         </div>
       )}
 
-      {/* Rain info banner — shown when rain detected and water tasks exist */}
-      {hasRainToday && hasWaterTasks && (
-        <div className="flex items-center gap-3 rounded-lg border border-sky-800/40 bg-sky-950/30 px-4 py-3">
-          <CloudRain size={18} className="text-sky-400 shrink-0" />
-          <p className="text-sm text-sky-300">
-            Rain {(weather?.precipitation ?? 0) > 0 ? "is falling" : "is expected"} today
-            {weather?.precipitationProbability != null && ` (${weather.precipitationProbability}% chance)`}.
-            Outdoor water tasks may be handled automatically.
-          </p>
-        </div>
-      )}
+      {/* Weather forecast strip */}
+      {weather && (() => {
+        const forecast = Array.isArray(weather.forecastJson)
+          ? (weather.forecastJson as unknown as DayForecast[]).slice(0, 3)
+          : [];
+        const tempUnit = "F";
+        return (
+          <div className="rounded-lg border border-stone-800 bg-stone-900/50 px-4 py-3 space-y-2">
+            {hasRainToday && hasWaterTasks && (
+              <div className="flex items-center gap-2 pb-2 border-b border-stone-800">
+                <CloudRain size={14} className="text-sky-400 shrink-0" />
+                <p className="text-xs text-sky-300">
+                  Rain {(weather.precipitation ?? 0) > 0 ? "is falling" : "is expected"} today
+                  {weather.precipitationProbability != null && ` (${weather.precipitationProbability}% chance)`}.
+                  Outdoor water tasks may be handled automatically.
+                </p>
+              </div>
+            )}
+            {forecast.length > 0 && (
+              <div className="grid grid-cols-3 gap-3">
+                {forecast.map((day) => (
+                  <div key={day.date} className="flex items-center gap-2">
+                    <span className="text-base">{getWeatherEmoji(day.conditions)}</span>
+                    <div className="min-w-0">
+                      <p className="text-xs text-stone-400 font-display">{formatDayLabel(day.date)}</p>
+                      <p className="text-xs font-mono text-stone-300">
+                        {formatTempShort(day.temperatureMax, tempUnit)}<span className="text-stone-600">/</span>{formatTempShort(day.temperatureMin, tempUnit)}
+                        {day.precipitationProbabilityMax > 20 && (
+                          <span className="text-sky-400/70 ml-1">{Math.round(day.precipitationProbabilityMax)}%</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {isLoading ? (
         <div className="space-y-4">
