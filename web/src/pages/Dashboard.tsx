@@ -30,7 +30,32 @@ import { getSeasonalSummary, getCurrentSeason } from "../utils/mood";
 import { getWeatherEmoji, formatTemperature, formatTempShort } from "../utils/weather";
 import { formatDate } from "../utils/format";
 
+interface DayForecast {
+  date: string;
+  temperatureMax: number;
+  temperatureMin: number;
+  precipitationSum: number;
+  weatherCode: number;
+  conditions: string;
+  uvIndexMax: number;
+  precipitationProbabilityMax: number;
+}
+
+function formatDayLabel(dateStr: string): string {
+  const date = new Date(dateStr + "T00:00:00");
+  const today = new Date();
+  const tomorrow = new Date();
+  tomorrow.setDate(today.getDate() + 1);
+  if (date.toDateString() === today.toDateString()) return "Today";
+  if (date.toDateString() === tomorrow.toDateString()) return "Tmrw";
+  return date.toLocaleDateString("en-US", { weekday: "short" });
+}
+
 function WeatherCard({ location, weather, tempUnit }: { location: Location; weather: Weather | null; tempUnit: string }) {
+  const forecast = Array.isArray(weather?.forecastJson)
+    ? (weather!.forecastJson as unknown as DayForecast[]).slice(0, 3)
+    : [];
+
   return (
     <Card className="min-w-0">
       <div className="flex items-center gap-2 mb-2">
@@ -40,31 +65,53 @@ function WeatherCard({ location, weather, tempUnit }: { location: Location; weat
         </p>
       </div>
       {weather?.temperature != null ? (
-        <div className="flex items-center gap-3">
-          <div className="text-center">
-            <p className="text-2xl">{getWeatherEmoji(weather.conditions)}</p>
-            <p className="text-lg font-bold font-mono text-stone-100">
-              {formatTemperature(weather.temperature, tempUnit)}
-            </p>
-          </div>
-          <div className="flex-1 min-w-0 text-xs space-y-0.5">
-            <p className="text-stone-400 truncate">{weather.conditions ?? "--"}</p>
-            <p className="text-stone-500 font-mono">
-              H:{weather.temperatureHigh != null ? formatTempShort(weather.temperatureHigh, tempUnit) : "--"}
-              {" "}L:{weather.temperatureLow != null ? formatTempShort(weather.temperatureLow, tempUnit) : "--"}
-            </p>
-            <p className="text-stone-500 font-mono">
-              {weather.humidity != null ? `${Math.round(weather.humidity)}% hum` : ""}
-              {weather.windSpeed != null ? ` \u{00b7} ${Math.round(weather.windSpeed)}mph` : ""}
-            </p>
-            {(weather.uvIndex != null || weather.precipitationProbability != null) && (
-              <p className="text-stone-500 font-mono">
-                {weather.uvIndex != null ? `UV ${weather.uvIndex}` : ""}
-                {weather.precipitationProbability != null ? ` \u{00b7} ${Math.round(weather.precipitationProbability)}% rain` : ""}
+        <>
+          <div className="flex items-center gap-3">
+            <div className="text-center">
+              <p className="text-2xl">{getWeatherEmoji(weather.conditions)}</p>
+              <p className="text-lg font-bold font-mono text-stone-100">
+                {formatTemperature(weather.temperature, tempUnit)}
               </p>
-            )}
+            </div>
+            <div className="flex-1 min-w-0 text-xs space-y-0.5">
+              <p className="text-stone-400 truncate">{weather.conditions ?? "--"}</p>
+              <p className="text-stone-500 font-mono">
+                H:{weather.temperatureHigh != null ? formatTempShort(weather.temperatureHigh, tempUnit) : "--"}
+                {" "}L:{weather.temperatureLow != null ? formatTempShort(weather.temperatureLow, tempUnit) : "--"}
+              </p>
+              <p className="text-stone-500 font-mono">
+                {weather.humidity != null ? `${Math.round(weather.humidity)}% hum` : ""}
+                {weather.windSpeed != null ? ` \u{00b7} ${Math.round(weather.windSpeed)}mph` : ""}
+              </p>
+              {(weather.uvIndex != null || weather.precipitationProbability != null) && (
+                <p className="text-stone-500 font-mono">
+                  {weather.uvIndex != null ? `UV ${weather.uvIndex}` : ""}
+                  {weather.precipitationProbability != null ? ` \u{00b7} ${Math.round(weather.precipitationProbability)}% rain` : ""}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
+          {forecast.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-stone-800">
+              <div className="grid grid-cols-3 gap-2">
+                {forecast.map((day) => (
+                  <div key={day.date} className="text-center">
+                    <p className="text-xs text-stone-500 font-display mb-1">{formatDayLabel(day.date)}</p>
+                    <p className="text-sm">{getWeatherEmoji(day.conditions)}</p>
+                    <p className="text-xs font-mono text-stone-300 mt-0.5">
+                      {formatTempShort(day.temperatureMax, tempUnit)}<span className="text-stone-600">/</span>{formatTempShort(day.temperatureMin, tempUnit)}
+                    </p>
+                    {day.precipitationProbabilityMax > 20 && (
+                      <p className="text-xs font-mono text-sky-400/70 mt-0.5">
+                        {Math.round(day.precipitationProbabilityMax)}%
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <div className="text-center py-2">
           <CloudSun className="mx-auto text-stone-600 mb-1" size={20} />

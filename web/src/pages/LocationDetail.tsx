@@ -442,6 +442,41 @@ export default function LocationDetail() {
               </div>
             )}
           </div>
+          {/* 3-Day Forecast */}
+          {Array.isArray(weather.forecastJson) && (weather.forecastJson as unknown as { date: string; temperatureMax: number; temperatureMin: number; conditions: string; precipitationProbabilityMax: number }[]).length > 0 && (() => {
+            const forecast = (weather.forecastJson as unknown as { date: string; temperatureMax: number; temperatureMin: number; conditions: string; precipitationProbabilityMax: number }[]).slice(0, 3);
+            return (
+              <div className="mt-3 pt-3 border-t border-stone-800">
+                <p className="text-xs text-stone-500 font-display uppercase tracking-wider mb-2">3-Day Forecast</p>
+                <div className="grid grid-cols-3 gap-4">
+                  {forecast.map((day) => {
+                    const d = new Date(day.date + "T00:00:00");
+                    const today = new Date();
+                    const tomorrow = new Date();
+                    tomorrow.setDate(today.getDate() + 1);
+                    const label = d.toDateString() === today.toDateString() ? "Today"
+                      : d.toDateString() === tomorrow.toDateString() ? "Tomorrow"
+                      : d.toLocaleDateString("en-US", { weekday: "long" });
+                    return (
+                      <div key={day.date} className="text-center">
+                        <p className="text-xs text-stone-500 font-display mb-1">{label}</p>
+                        <p className="text-xl mb-0.5">{getWeatherEmoji(day.conditions)}</p>
+                        <p className="text-sm font-mono text-stone-200">
+                          {formatTempShort(day.temperatureMax, tempUnit)}<span className="text-stone-600"> / </span>{formatTempShort(day.temperatureMin, tempUnit)}
+                        </p>
+                        <p className="text-xs text-stone-400 mt-0.5">{day.conditions}</p>
+                        {day.precipitationProbabilityMax > 20 && (
+                          <p className="text-xs font-mono text-sky-400/70 mt-0.5">
+                            {Math.round(day.precipitationProbabilityMax)}% rain
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
           </>
         ) : (
           <div className="flex items-center gap-3 text-stone-500">
