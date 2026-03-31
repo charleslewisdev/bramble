@@ -284,6 +284,10 @@ export function deletePlantInstance(id: number) {
   return del(`/plants/instances/${id}`);
 }
 
+export function bulkUpdatePlantInstances(ids: number[], data: Partial<PlantInstance>) {
+  return put<{ count: number }>("/plants/instances/bulk", { ids, data });
+}
+
 // ---------- Plant Photos ----------
 
 export function uploadPhoto(plantInstanceId: number, imageData: string, caption?: string) {
