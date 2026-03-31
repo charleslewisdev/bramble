@@ -309,6 +309,162 @@ export default function MyPlants() {
       ),
     },
     {
+      key: "hardinessZone",
+      label: "Hardiness",
+      sortable: true,
+      filterable: true,
+      minWidth: 90,
+      defaultVisible: false,
+      accessor: (row) => {
+        const min = row.plantReference?.hardinessZoneMin;
+        const max = row.plantReference?.hardinessZoneMax;
+        if (min != null && max != null) return `${min}-${max}`;
+        if (min != null) return String(min);
+        if (max != null) return String(max);
+        return "";
+      },
+      render: (row) => {
+        const min = row.plantReference?.hardinessZoneMin;
+        const max = row.plantReference?.hardinessZoneMax;
+        if (min != null && max != null) return `${min}–${max}`;
+        if (min != null) return String(min);
+        if (max != null) return String(max);
+        return "—";
+      },
+    },
+    {
+      key: "tempRange",
+      label: "Temp (°F)",
+      sortable: true,
+      minWidth: 100,
+      defaultVisible: false,
+      accessor: (row) => row.plantReference?.minTempF ?? 999,
+      render: (row) => {
+        const min = row.plantReference?.minTempF;
+        const max = row.plantReference?.maxTempF;
+        if (min != null && max != null) return `${min}–${max}°F`;
+        if (min != null) return `${min}°F+`;
+        if (max != null) return `≤${max}°F`;
+        return "—";
+      },
+    },
+    {
+      key: "matureHeight",
+      label: "Height",
+      sortable: true,
+      minWidth: 90,
+      defaultVisible: false,
+      accessor: (row) => row.plantReference?.matureHeight ?? "",
+      render: (row) => row.plantReference?.matureHeight ?? "—",
+    },
+    {
+      key: "matureSpread",
+      label: "Spread",
+      sortable: true,
+      minWidth: 90,
+      defaultVisible: false,
+      accessor: (row) => row.plantReference?.matureSpread ?? "",
+      render: (row) => row.plantReference?.matureSpread ?? "—",
+    },
+    {
+      key: "growthRate",
+      label: "Growth",
+      sortable: true,
+      filterable: true,
+      filterOptions: [
+        { label: "Slow", value: "slow" },
+        { label: "Moderate", value: "moderate" },
+        { label: "Fast", value: "fast" },
+      ],
+      minWidth: 90,
+      defaultVisible: false,
+      accessor: (row) => row.plantReference?.growthRate ?? "",
+      render: (row) => (
+        <span className="capitalize">{row.plantReference?.growthRate ?? "—"}</span>
+      ),
+    },
+    {
+      key: "lifecycle",
+      label: "Lifecycle",
+      sortable: true,
+      filterable: true,
+      filterOptions: [
+        { label: "Annual", value: "annual" },
+        { label: "Biennial", value: "biennial" },
+        { label: "Perennial", value: "perennial" },
+        { label: "Tender Perennial", value: "tender_perennial" },
+      ],
+      minWidth: 110,
+      defaultVisible: false,
+      accessor: (row) => row.plantReference?.lifecycle ?? "",
+      render: (row) => (
+        <span className="capitalize">
+          {row.plantReference?.lifecycle?.replace("_", " ") ?? "—"}
+        </span>
+      ),
+    },
+    {
+      key: "foliageType",
+      label: "Foliage",
+      sortable: true,
+      filterable: true,
+      filterOptions: [
+        { label: "Evergreen", value: "evergreen" },
+        { label: "Deciduous", value: "deciduous" },
+        { label: "Semi-evergreen", value: "semi-evergreen" },
+      ],
+      minWidth: 100,
+      defaultVisible: false,
+      accessor: (row) => row.plantReference?.foliageType ?? "",
+      render: (row) => (
+        <span className="capitalize">
+          {row.plantReference?.foliageType?.replace("-", "-") ?? "—"}
+        </span>
+      ),
+    },
+    {
+      key: "soilPreference",
+      label: "Soil",
+      sortable: true,
+      filterable: true,
+      minWidth: 120,
+      defaultVisible: false,
+      accessor: (row) => row.plantReference?.soilPreference ?? "",
+      render: (row) => row.plantReference?.soilPreference ?? "—",
+    },
+    {
+      key: "bloomTime",
+      label: "Bloom",
+      sortable: true,
+      filterable: true,
+      minWidth: 100,
+      defaultVisible: false,
+      accessor: (row) => row.plantReference?.bloomTime ?? "",
+      render: (row) => row.plantReference?.bloomTime ?? "—",
+    },
+    {
+      key: "droughtTolerant",
+      label: "Drought",
+      sortable: true,
+      filterable: true,
+      filterOptions: boolOptions,
+      minWidth: 80,
+      defaultVisible: false,
+      accessor: (row) => row.plantReference?.droughtTolerant ? "true" : "false",
+      render: (row) => (row.plantReference?.droughtTolerant ? "Yes" : "—"),
+    },
+    {
+      key: "deerResistant",
+      label: "Deer",
+      sortable: true,
+      filterable: true,
+      filterOptions: boolOptions,
+      minWidth: 80,
+      defaultVisible: false,
+      accessor: (row) => row.plantReference?.deerResistant ? "true" : "false",
+      render: (row) => (row.plantReference?.deerResistant ? "Yes" : "—"),
+    },
+    {
       key: "notes",
       label: "Notes",
       filterable: true,

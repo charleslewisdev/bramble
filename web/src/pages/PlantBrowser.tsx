@@ -284,22 +284,86 @@ export default function PlantBrowser() {
       render: (row) => row.bloomColor ?? "—",
     },
     {
-      key: "hardinessZoneMin",
-      label: "Zone Min",
+      key: "hardinessZone",
+      label: "Hardiness",
       sortable: true,
-      minWidth: 80,
-      defaultVisible: false,
-      accessor: (row) => row.hardinessZoneMin ?? 0,
-      render: (row) => row.hardinessZoneMin ?? "—",
+      filterable: true,
+      minWidth: 90,
+      accessor: (row) => {
+        const min = row.hardinessZoneMin;
+        const max = row.hardinessZoneMax;
+        if (min != null && max != null) return `${min}-${max}`;
+        if (min != null) return String(min);
+        if (max != null) return String(max);
+        return "";
+      },
+      render: (row) => {
+        const min = row.hardinessZoneMin;
+        const max = row.hardinessZoneMax;
+        if (min != null && max != null) return `${min}–${max}`;
+        if (min != null) return String(min);
+        if (max != null) return String(max);
+        return "—";
+      },
     },
     {
-      key: "hardinessZoneMax",
-      label: "Zone Max",
+      key: "tempRange",
+      label: "Temp (°F)",
       sortable: true,
-      minWidth: 80,
+      minWidth: 100,
+      accessor: (row) => row.minTempF ?? 999,
+      render: (row) => {
+        const min = row.minTempF;
+        const max = row.maxTempF;
+        if (min != null && max != null) return `${min}–${max}°F`;
+        if (min != null) return `${min}°F+`;
+        if (max != null) return `≤${max}°F`;
+        return "—";
+      },
+    },
+    {
+      key: "growthRate",
+      label: "Growth",
+      sortable: true,
+      filterable: true,
+      filterOptions: [
+        { label: "Slow", value: "slow" },
+        { label: "Moderate", value: "moderate" },
+        { label: "Fast", value: "fast" },
+      ],
+      minWidth: 90,
       defaultVisible: false,
-      accessor: (row) => row.hardinessZoneMax ?? 0,
-      render: (row) => row.hardinessZoneMax ?? "—",
+      accessor: (row) => row.growthRate ?? "",
+      render: (row) => (
+        <span className="capitalize">{row.growthRate ?? "—"}</span>
+      ),
+    },
+    {
+      key: "foliageType",
+      label: "Foliage",
+      sortable: true,
+      filterable: true,
+      filterOptions: [
+        { label: "Evergreen", value: "evergreen" },
+        { label: "Deciduous", value: "deciduous" },
+        { label: "Semi-evergreen", value: "semi-evergreen" },
+      ],
+      minWidth: 100,
+      defaultVisible: false,
+      accessor: (row) => row.foliageType ?? "",
+      render: (row) => (
+        <span className="capitalize">{row.foliageType?.replace("-", "-") ?? "—"}</span>
+      ),
+    },
+    {
+      key: "soilPreference",
+      label: "Soil",
+      sortable: true,
+      filterable: true,
+      minWidth: 120,
+      defaultVisible: false,
+      accessor: (row) => row.soilPreference ?? "",
+      render: (row) => row.soilPreference ?? "—",
     },
     {
       key: "toxicityDogs",
@@ -378,6 +442,39 @@ export default function PlantBrowser() {
       defaultVisible: false,
       accessor: (row) => row.attractsPollinators ? "true" : "false",
       render: (row) => (row.attractsPollinators ? "Yes" : "—"),
+    },
+    {
+      key: "attractsBirds",
+      label: "Birds",
+      sortable: true,
+      filterable: true,
+      filterOptions: boolOptions,
+      minWidth: 80,
+      defaultVisible: false,
+      accessor: (row) => row.attractsBirds ? "true" : "false",
+      render: (row) => (row.attractsBirds ? "Yes" : "—"),
+    },
+    {
+      key: "attractsButterflies",
+      label: "Butterflies",
+      sortable: true,
+      filterable: true,
+      filterOptions: boolOptions,
+      minWidth: 90,
+      defaultVisible: false,
+      accessor: (row) => row.attractsButterflies ? "true" : "false",
+      render: (row) => (row.attractsButterflies ? "Yes" : "—"),
+    },
+    {
+      key: "containerSuitable",
+      label: "Container OK",
+      sortable: true,
+      filterable: true,
+      filterOptions: boolOptions,
+      minWidth: 90,
+      defaultVisible: false,
+      accessor: (row) => row.containerSuitable ? "true" : "false",
+      render: (row) => (row.containerSuitable ? "Yes" : "—"),
     },
     {
       key: "source",
