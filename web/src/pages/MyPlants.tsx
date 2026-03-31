@@ -1,15 +1,19 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Filter, X, Skull, MapPin } from "lucide-react";
+import { Filter, X, Skull, MapPin, Pencil } from "lucide-react";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import { Select } from "../components/ui/Input";
+import ViewToggle from "../components/ui/ViewToggle";
+import DataTable, { type ColumnDef } from "../components/ui/DataTable";
 import PlantSprite, {
   getMoodMessage,
 } from "../components/sprites/PlantSprite";
 import StatusBadge from "../components/ui/StatusBadge";
-import { usePlantInstances, useLocations } from "../api/hooks";
-import type { PlantType, PlantStatus } from "../api";
+import BulkEditModal from "../components/plants/BulkEditModal";
+import { usePlantInstances, useLocations, useBulkUpdatePlantInstances } from "../api/hooks";
+import { useTableState } from "../hooks/useTableState";
+import type { PlantType, PlantInstance, PlantStatus } from "../api";
 
 const activeStatusOptions: PlantStatus[] = [
   "planned",
@@ -19,21 +23,34 @@ const activeStatusOptions: PlantStatus[] = [
   "dormant",
 ];
 
-type SortKey = "name" | "date" | "status";
-type Tab = "garden" | "graveyard";
-
 const GRAVEYARD_STATUSES: PlantStatus[] = ["dead", "removed"];
+
+const statusOptions = [
+  ...activeStatusOptions,
+  ...GRAVEYARD_STATUSES,
+].map((s) => ({ label: s.charAt(0).toUpperCase() + s.slice(1), value: s }));
+
+const moodOptions = [
+  "happy", "thirsty", "cold", "hot", "wilting", "sleeping", "new",
+].map((m) => ({ label: m.charAt(0).toUpperCase() + m.slice(1), value: m }));
+
+const boolOptions = [
+  { label: "Yes", value: "true" },
+  { label: "No", value: "false" },
+];
 
 export default function MyPlants() {
   const navigate = useNavigate();
   const { data: plants, isLoading } = usePlantInstances();
   const { data: locations } = useLocations();
+  const bulkUpdate = useBulkUpdatePlantInstances();
 
-  const [tab, setTab] = useState<Tab>("garden");
+  const [tableState, actions] = useTableState({ defaultSort: "name" });
+  const { view, sort, sortDir, filters, visibleCols, colOrder, tab, statusFilter, locationFilter } = tableState;
+
   const [showFilters, setShowFilters] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("");
-  const [locationFilter, setLocationFilter] = useState("");
-  const [sortBy, setSortBy] = useState<SortKey>("name");
+  const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
+  const [showBulkEdit, setShowBulkEdit] = useState(false);
 
   const allPlants = plants ?? [];
   const gardenPlants = allPlants.filter((p) => !GRAVEYARD_STATUSES.includes(p.status));
@@ -50,22 +67,272 @@ export default function MyPlants() {
     );
   }
 
-  // Sort
-  filtered = [...filtered].sort((a, b) => {
-    switch (sortBy) {
-      case "name": {
-        const nameA = a.nickname ?? a.plantReference?.commonName ?? "";
-        const nameB = b.nickname ?? b.plantReference?.commonName ?? "";
-        return nameA.localeCompare(nameB);
-      }
-      case "date":
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      case "status":
-        return a.status.localeCompare(b.status);
-      default:
-        return 0;
+  // Sort for grid view only (table handles its own sort)
+  const gridSorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const nameA = a.nickname ?? a.plantReference?.commonName ?? "";
+      const nameB = b.nickname ?? b.plantReference?.commonName ?? "";
+      return nameA.localeCompare(nameB);
+    });
+  }, [filtered]);
+
+  // ─── Column definitions for table view ──────────────────────
+  const zoneOptions = useMemo(() => {
+    const zones = new Map<string, string>();
+    allPlants.forEach((p) => {
+      if (p.zone) zones.set(String(p.zone.id), p.zone.name);
+    });
+    return [...zones.entries()].map(([value, label]) => ({ value, label }));
+  }, [allPlants]);
+
+  const columns = useMemo<ColumnDef<PlantInstance>[]>(() => [
+    {
+      key: "name",
+      label: "Name",
+      sortable: true,
+      filterable: true,
+      minWidth: 180,
+      accessor: (row) => row.nickname ?? row.plantReference?.commonName ?? "",
+      render: (row) => (
+        <div className="flex items-center gap-2">
+          <PlantSprite
+            type={(row.plantReference?.plantType as PlantType) ?? "flower"}
+            mood={row.mood}
+            size={28}
+            showOverlay={false}
+          />
+          <div className="min-w-0">
+            <span className="text-stone-200 font-display text-sm truncate block">
+              {row.nickname ?? row.plantReference?.commonName ?? "Plant"}
+            </span>
+            {row.nickname && row.plantReference?.commonName && (
+              <span className="text-stone-500 text-[10px] truncate block">
+                {row.plantReference.commonName}
+              </span>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "latinName",
+      label: "Latin Name",
+      sortable: true,
+      filterable: true,
+      minWidth: 150,
+      defaultVisible: false,
+      accessor: (row) => row.plantReference?.latinName ?? "",
+      render: (row) => (
+        <span className="italic text-stone-400">
+          {row.plantReference?.latinName ?? "—"}
+        </span>
+      ),
+    },
+    {
+      key: "cultivar",
+      label: "Cultivar",
+      sortable: true,
+      filterable: true,
+      minWidth: 120,
+      defaultVisible: false,
+      accessor: (row) => row.plantReference?.cultivar ?? "",
+      render: (row) => row.plantReference?.cultivar ?? "—",
+    },
+    {
+      key: "status",
+      label: "Status",
+      sortable: true,
+      filterable: true,
+      filterOptions: statusOptions,
+      minWidth: 110,
+      accessor: (row) => row.status,
+      render: (row) => <StatusBadge status={row.status} />,
+    },
+    {
+      key: "mood",
+      label: "Mood",
+      sortable: true,
+      filterable: true,
+      filterOptions: moodOptions,
+      minWidth: 120,
+      accessor: (row) => row.mood,
+      render: (row) => (
+        <span className="text-stone-400 italic">
+          {getMoodMessage(row.mood, row.nickname ?? undefined)}
+        </span>
+      ),
+    },
+    {
+      key: "zone",
+      label: "Zone",
+      sortable: true,
+      filterable: true,
+      filterOptions: zoneOptions,
+      minWidth: 130,
+      accessor: (row) => row.zone?.name ?? "",
+      render: (row) =>
+        row.zone ? (
+          <span className="text-stone-300">{row.zone.name}</span>
+        ) : (
+          <span className="flex items-center gap-1 text-stone-600">
+            <MapPin size={10} /> No zone
+          </span>
+        ),
+    },
+    {
+      key: "plantType",
+      label: "Type",
+      sortable: true,
+      filterable: true,
+      filterOptions: [
+        "flower", "shrub", "tree", "herb", "grass", "fern", "succulent",
+        "cactus", "vine", "bulb", "vegetable", "fruit", "houseplant", "groundcover",
+      ].map((t) => ({ label: t.charAt(0).toUpperCase() + t.slice(1), value: t })),
+      minWidth: 100,
+      accessor: (row) => row.plantReference?.plantType ?? "",
+      render: (row) => (
+        <span className="capitalize">{row.plantReference?.plantType ?? "—"}</span>
+      ),
+    },
+    {
+      key: "sunRequirement",
+      label: "Sun",
+      sortable: true,
+      filterable: true,
+      filterOptions: [
+        { label: "Full Sun", value: "full_sun" },
+        { label: "Partial Sun", value: "partial_sun" },
+        { label: "Partial Shade", value: "partial_shade" },
+        { label: "Full Shade", value: "full_shade" },
+      ],
+      minWidth: 110,
+      accessor: (row) => row.plantReference?.sunRequirement ?? "",
+      render: (row) => (
+        <span className="capitalize">
+          {row.plantReference?.sunRequirement?.replace("_", " ") ?? "—"}
+        </span>
+      ),
+    },
+    {
+      key: "waterNeeds",
+      label: "Water",
+      sortable: true,
+      filterable: true,
+      filterOptions: [
+        { label: "Low", value: "low" },
+        { label: "Moderate", value: "moderate" },
+        { label: "High", value: "high" },
+        { label: "Aquatic", value: "aquatic" },
+      ],
+      minWidth: 90,
+      accessor: (row) => row.plantReference?.waterNeeds ?? "",
+      render: (row) => (
+        <span className="capitalize">{row.plantReference?.waterNeeds ?? "—"}</span>
+      ),
+    },
+    {
+      key: "isContainer",
+      label: "Container",
+      sortable: true,
+      filterable: true,
+      filterOptions: boolOptions,
+      minWidth: 90,
+      accessor: (row) => row.isContainer ? "true" : "false",
+      render: (row) => (row.isContainer ? "Yes" : "No"),
+    },
+    {
+      key: "containerMaterial",
+      label: "Material",
+      sortable: true,
+      filterable: true,
+      minWidth: 100,
+      defaultVisible: false,
+      accessor: (row) => row.containerMaterial ?? "",
+      render: (row) => (
+        <span className="capitalize">{row.containerMaterial ?? "—"}</span>
+      ),
+    },
+    {
+      key: "datePlanted",
+      label: "Planted",
+      sortable: true,
+      minWidth: 100,
+      accessor: (row) => row.datePlanted ?? "",
+      render: (row) =>
+        row.datePlanted
+          ? new Date(row.datePlanted).toLocaleDateString()
+          : "—",
+    },
+    {
+      key: "createdAt",
+      label: "Added",
+      sortable: true,
+      minWidth: 100,
+      defaultVisible: false,
+      accessor: (row) => row.createdAt,
+      render: (row) => new Date(row.createdAt).toLocaleDateString(),
+    },
+    {
+      key: "toxicityDogs",
+      label: "Dogs",
+      sortable: true,
+      filterable: true,
+      filterOptions: [
+        { label: "Safe", value: "safe" },
+        { label: "Caution", value: "caution" },
+        { label: "Toxic", value: "toxic" },
+        { label: "Highly Toxic", value: "highly_toxic" },
+      ],
+      minWidth: 80,
+      defaultVisible: false,
+      accessor: (row) => row.plantReference?.toxicityDogs ?? "",
+      render: (row) => (
+        <span className="capitalize">{row.plantReference?.toxicityDogs ?? "—"}</span>
+      ),
+    },
+    {
+      key: "toxicityCats",
+      label: "Cats",
+      sortable: true,
+      filterable: true,
+      filterOptions: [
+        { label: "Safe", value: "safe" },
+        { label: "Caution", value: "caution" },
+        { label: "Toxic", value: "toxic" },
+        { label: "Highly Toxic", value: "highly_toxic" },
+      ],
+      minWidth: 80,
+      defaultVisible: false,
+      accessor: (row) => row.plantReference?.toxicityCats ?? "",
+      render: (row) => (
+        <span className="capitalize">{row.plantReference?.toxicityCats ?? "—"}</span>
+      ),
+    },
+    {
+      key: "notes",
+      label: "Notes",
+      filterable: true,
+      minWidth: 200,
+      defaultVisible: false,
+      accessor: (row) => row.notes ?? "",
+      render: (row) => (
+        <span className="text-stone-400 truncate block max-w-[200px]">
+          {row.notes ?? "—"}
+        </span>
+      ),
+    },
+  ], [zoneOptions]);
+
+  async function handleBulkEdit(data: Partial<PlantInstance>) {
+    const ids = [...selectedIds].map(Number);
+    try {
+      await bulkUpdate.mutateAsync({ ids, data });
+      setSelectedIds(new Set());
+      setShowBulkEdit(false);
+    } catch {
+      // Error surfaced by TanStack Query
     }
-  });
+  }
 
   return (
     <div className="space-y-6">
@@ -81,19 +348,24 @@ export default function MyPlants() {
             )}
           </p>
         </div>
-        <Button
-          variant={showFilters ? "primary" : "secondary"}
-          onClick={() => setShowFilters(!showFilters)}
-        >
-          {showFilters ? <X size={16} /> : <Filter size={16} />}
-          Filters
-        </Button>
+        <div className="flex items-center gap-2">
+          <ViewToggle value={view} onChange={actions.setView} />
+          {view === "grid" && (
+            <Button
+              variant={showFilters ? "primary" : "secondary"}
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              {showFilters ? <X size={16} /> : <Filter size={16} />}
+              Filters
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-stone-800">
         <button
-          onClick={() => { setTab("garden"); setStatusFilter(""); }}
+          onClick={() => { actions.setTab("garden"); actions.setStatusFilter(""); setSelectedIds(new Set()); }}
           className={`px-4 py-2 text-sm font-display transition-colors border-b-2 -mb-px ${
             tab === "garden"
               ? "border-emerald-500 text-emerald-400"
@@ -106,7 +378,7 @@ export default function MyPlants() {
           )}
         </button>
         <button
-          onClick={() => { setTab("graveyard"); setStatusFilter(""); }}
+          onClick={() => { actions.setTab("graveyard"); actions.setStatusFilter(""); setSelectedIds(new Set()); }}
           className={`px-4 py-2 text-sm font-display transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
             tab === "graveyard"
               ? "border-stone-500 text-stone-300"
@@ -121,12 +393,12 @@ export default function MyPlants() {
         </button>
       </div>
 
-      {showFilters && (
+      {view === "grid" && showFilters && (
         <Card className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Select
             label="Status"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => actions.setStatusFilter(e.target.value)}
           >
             <option value="">All Status</option>
             {(tab === "garden" ? activeStatusOptions : GRAVEYARD_STATUSES).map((s) => (
@@ -138,7 +410,7 @@ export default function MyPlants() {
           <Select
             label="Location"
             value={locationFilter}
-            onChange={(e) => setLocationFilter(e.target.value)}
+            onChange={(e) => actions.setLocationFilter(e.target.value)}
           >
             <option value="">All Locations</option>
             {locations?.map((l) => (
@@ -146,15 +418,6 @@ export default function MyPlants() {
                 {l.name}
               </option>
             ))}
-          </Select>
-          <Select
-            label="Sort By"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortKey)}
-          >
-            <option value="name">Name</option>
-            <option value="date">Date Added</option>
-            <option value="status">Status</option>
           </Select>
         </Card>
       )}
@@ -171,9 +434,43 @@ export default function MyPlants() {
             </Card>
           ))}
         </div>
-      ) : filtered.length > 0 ? (
+      ) : view === "table" ? (
+        <DataTable<PlantInstance>
+          columns={columns}
+          data={filtered}
+          rowKey={(r) => r.id}
+          onRowClick={(r) => navigate(`/my-plants/${r.id}`)}
+          sort={sort}
+          sortDir={sortDir}
+          onSort={actions.toggleSort}
+          filters={filters}
+          onFilterChange={actions.setFilter}
+          onClearFilters={actions.clearAllFilters}
+          visibleCols={visibleCols}
+          onVisibleColsChange={actions.setVisibleCols}
+          colOrder={colOrder}
+          onColOrderChange={actions.setColOrder}
+          selectedIds={selectedIds}
+          onSelectionChange={setSelectedIds}
+          selectionActions={
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setShowBulkEdit(true)}
+            >
+              <Pencil size={14} />
+              Edit Selected
+            </Button>
+          }
+          emptyMessage={
+            tab === "garden"
+              ? "No plants in your garden yet"
+              : "Nothing in the graveyard — that's a good thing!"
+          }
+        />
+      ) : gridSorted.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {filtered.map((plant) => (
+          {gridSorted.map((plant) => (
             <Card
               key={plant.id}
               hoverable
@@ -237,6 +534,14 @@ export default function MyPlants() {
           </p>
         </Card>
       )}
+
+      <BulkEditModal
+        open={showBulkEdit}
+        onClose={() => setShowBulkEdit(false)}
+        selectedCount={selectedIds.size}
+        onSubmit={handleBulkEdit}
+        isPending={bulkUpdate.isPending}
+      />
     </div>
   );
 }

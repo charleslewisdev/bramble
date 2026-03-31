@@ -307,6 +307,18 @@ export function useDeletePlantInstance() {
   });
 }
 
+export function useBulkUpdatePlantInstances() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ids, data }: { ids: number[]; data: Partial<PlantInstance> }) =>
+      api.bulkUpdatePlantInstances(ids, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["plantInstances"] });
+      qc.invalidateQueries({ queryKey: ["zones"] });
+    },
+  });
+}
+
 // ---------- Photos ----------
 
 export function useUploadPhoto() {

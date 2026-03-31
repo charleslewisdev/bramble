@@ -123,6 +123,11 @@ const updateInstanceSchema = z.object({
   spriteOverride: spriteTypeEnum.nullable().optional(),
 });
 
+const bulkUpdateInstanceSchema = z.object({
+  ids: z.array(z.number().int().positive()).min(1).max(100),
+  data: updateInstanceSchema,
+});
+
 // ─── Perenual API rate counter (100/day free tier) ────────────────────────
 const perenualCounter = {
   date: "",
@@ -504,6 +509,46 @@ export async function plantRoutes(app: FastifyInstance) {
     }
 
     return reply.status(201).send(result);
+  });
+
+  // PUT /instances/bulk - bulk update instances (must be registered before :id)
+  app.put("/instances/bulk", async (request, reply) => {
+    const parsed = bulkUpdateInstanceSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid request body" });
+    }
+
+    const { ids, data } = parsed.data;
+
+    const existing = await db.query.plantInstances.findMany({
+      where: inArray(plantInstances.id, ids),
+    });
+
+    if (existing.length === 0) {
+      return reply.status(404).send({ error: "No matching plant instances found" });
+    }
+
+    db.update(plantInstances)
+      .set({
+        ...data,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(inArray(plantInstances.id, ids))
+      .run();
+
+    if (data.status) {
+      for (const inst of existing) {
+        if (inst.status !== data.status) {
+          try {
+            await handleStatusTransition(inst.id, inst.status, data.status);
+          } catch (err) {
+            console.warn(`Failed to handle status transition for instance ${inst.id}:`, err);
+          }
+        }
+      }
+    }
+
+    return { count: existing.length };
   });
 
   // PUT /instances/:id - update instance
