@@ -43,32 +43,21 @@ export default function BulkEditModal({
   function handleSubmit() {
     if (!field || !value) return;
 
-    const data: Partial<PlantInstance> = {};
-    switch (field) {
-      case "status":
-        (data as Record<string, unknown>).status = value;
-        break;
-      case "zoneId":
-        (data as Record<string, unknown>).zoneId = value === "null" ? null : Number(value);
-        break;
-      case "isContainer":
-        (data as Record<string, unknown>).isContainer = value === "true";
-        break;
-      case "containerMaterial":
-        (data as Record<string, unknown>).containerMaterial = value;
-        break;
-      case "containerShape":
-        (data as Record<string, unknown>).containerShape = value;
-        break;
-      case "outdoorCandidate":
-        (data as Record<string, unknown>).outdoorCandidate = value === "true";
-        break;
-      case "mood":
-        (data as Record<string, unknown>).mood = value;
-        break;
-    }
+    type BulkField = "status" | "zoneId" | "isContainer" | "containerMaterial" | "containerShape" | "outdoorCandidate" | "mood";
+    const coerce: Record<BulkField, (v: string) => unknown> = {
+      status: (v) => v,
+      zoneId: (v) => (v === "null" ? null : Number(v)),
+      isContainer: (v) => v === "true",
+      containerMaterial: (v) => v,
+      containerShape: (v) => v,
+      outdoorCandidate: (v) => v === "true",
+      mood: (v) => v,
+    };
 
-    onSubmit(data);
+    const coerceFn = coerce[field as BulkField];
+    if (!coerceFn) return;
+
+    onSubmit({ [field]: coerceFn(value) } as Partial<PlantInstance>);
     setField("");
     setValue("");
   }

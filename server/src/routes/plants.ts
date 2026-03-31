@@ -511,6 +511,46 @@ export async function plantRoutes(app: FastifyInstance) {
     return reply.status(201).send(result);
   });
 
+  // PUT /instances/bulk - bulk update instances (must be registered before :id)
+  app.put("/instances/bulk", async (request, reply) => {
+    const parsed = bulkUpdateInstanceSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid request body" });
+    }
+
+    const { ids, data } = parsed.data;
+
+    const existing = await db.query.plantInstances.findMany({
+      where: inArray(plantInstances.id, ids),
+    });
+
+    if (existing.length === 0) {
+      return reply.status(404).send({ error: "No matching plant instances found" });
+    }
+
+    db.update(plantInstances)
+      .set({
+        ...data,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(inArray(plantInstances.id, ids))
+      .run();
+
+    if (data.status) {
+      for (const inst of existing) {
+        if (inst.status !== data.status) {
+          try {
+            await handleStatusTransition(inst.id, inst.status, data.status);
+          } catch (err) {
+            console.warn(`Failed to handle status transition for instance ${inst.id}:`, err);
+          }
+        }
+      }
+    }
+
+    return { count: existing.length };
+  });
+
   // PUT /instances/:id - update instance
   app.put<{ Params: { id: string } }>("/instances/:id", async (request, reply) => {
     const paramsParsed = idParamSchema.safeParse(request.params);
@@ -576,49 +616,6 @@ export async function plantRoutes(app: FastifyInstance) {
       return reply.status(204).send();
     },
   );
-
-  // PUT /instances/bulk - bulk update instances
-  app.put("/instances/bulk", async (request, reply) => {
-    const parsed = bulkUpdateInstanceSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid request body" });
-    }
-
-    const { ids, data } = parsed.data;
-
-    // Get existing instances for status transition handling
-    const existing = await db.query.plantInstances.findMany({
-      where: inArray(plantInstances.id, ids),
-    });
-
-    if (existing.length === 0) {
-      return reply.status(404).send({ error: "No matching plant instances found" });
-    }
-
-    // Update all matching instances
-    db.update(plantInstances)
-      .set({
-        ...data,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(inArray(plantInstances.id, ids))
-      .run();
-
-    // Handle status transitions if status changed
-    if (data.status) {
-      for (const inst of existing) {
-        if (inst.status !== data.status) {
-          try {
-            await handleStatusTransition(inst.id, inst.status, data.status);
-          } catch (err) {
-            console.warn(`Failed to handle status transition for instance ${inst.id}:`, err);
-          }
-        }
-      }
-    }
-
-    return { count: existing.length };
-  });
 
   // POST /instances/refresh-moods - recalculate moods for all plants
   app.post("/instances/refresh-moods", async () => {

@@ -1,7 +1,6 @@
 import { LayoutGrid, Table2 } from "lucide-react";
 import clsx from "clsx";
-
-export type ViewMode = "grid" | "table";
+import type { ViewMode } from "../../hooks/useTableState";
 
 interface ViewToggleProps {
   value: ViewMode;

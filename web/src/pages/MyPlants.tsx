@@ -325,9 +325,13 @@ export default function MyPlants() {
 
   async function handleBulkEdit(data: Partial<PlantInstance>) {
     const ids = [...selectedIds].map(Number);
-    await bulkUpdate.mutateAsync({ ids, data });
-    setSelectedIds(new Set());
-    setShowBulkEdit(false);
+    try {
+      await bulkUpdate.mutateAsync({ ids, data });
+      setSelectedIds(new Set());
+      setShowBulkEdit(false);
+    } catch {
+      // Error surfaced by TanStack Query
+    }
   }
 
   return (
@@ -361,7 +365,7 @@ export default function MyPlants() {
       {/* Tabs */}
       <div className="flex gap-1 border-b border-stone-800">
         <button
-          onClick={() => { actions.setTab("garden"); actions.setStatusFilter(""); }}
+          onClick={() => { actions.setTab("garden"); actions.setStatusFilter(""); setSelectedIds(new Set()); }}
           className={`px-4 py-2 text-sm font-display transition-colors border-b-2 -mb-px ${
             tab === "garden"
               ? "border-emerald-500 text-emerald-400"
@@ -374,7 +378,7 @@ export default function MyPlants() {
           )}
         </button>
         <button
-          onClick={() => { actions.setTab("graveyard"); actions.setStatusFilter(""); }}
+          onClick={() => { actions.setTab("graveyard"); actions.setStatusFilter(""); setSelectedIds(new Set()); }}
           className={`px-4 py-2 text-sm font-display transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
             tab === "graveyard"
               ? "border-stone-500 text-stone-300"

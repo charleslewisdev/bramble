@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, type ReactNode } from "react";
+import { useState, useMemo, useRef, useEffect, type ReactNode } from "react";
 import {
   ArrowUpDown,
   ArrowUp,
@@ -88,6 +88,24 @@ export default function DataTable<T>({
   );
   const [dragCol, setDragCol] = useState<string | null>(null);
   const configRef = useRef<HTMLDivElement>(null);
+  const configBtnRef = useRef<HTMLButtonElement>(null);
+
+  // Close column config on outside click
+  useEffect(() => {
+    if (!showColConfig) return;
+    function handleClick(e: MouseEvent) {
+      if (
+        configRef.current &&
+        !configRef.current.contains(e.target as Node) &&
+        configBtnRef.current &&
+        !configBtnRef.current.contains(e.target as Node)
+      ) {
+        setShowColConfig(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showColConfig]);
 
   // ─── Derive ordered & visible columns ──────────────────────────
   const orderedCols = useMemo(() => {
@@ -217,12 +235,7 @@ export default function DataTable<T>({
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => {
-              setShowFilterRow(!showFilterRow);
-              if (showFilterRow && hasActiveFilters && onClearFilters) {
-                onClearFilters();
-              }
-            }}
+            onClick={() => setShowFilterRow(!showFilterRow)}
             className={clsx(
               "p-1.5 rounded-lg text-sm transition-colors",
               showFilterRow || hasActiveFilters
@@ -233,8 +246,18 @@ export default function DataTable<T>({
           >
             <Filter size={16} />
           </button>
+          {hasActiveFilters && onClearFilters && (
+            <button
+              onClick={onClearFilters}
+              className="p-1.5 rounded-lg text-sm text-stone-400 hover:text-red-400 hover:bg-stone-800 transition-colors"
+              title="Clear all filters"
+            >
+              <X size={16} />
+            </button>
+          )}
           <div className="relative">
             <button
+              ref={configBtnRef}
               onClick={() => setShowColConfig(!showColConfig)}
               className={clsx(
                 "p-1.5 rounded-lg text-sm transition-colors",
