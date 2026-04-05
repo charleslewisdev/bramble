@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   Home,
   MapPin,
@@ -11,12 +11,15 @@ import {
   Settings,
   Menu,
   X,
+  LogOut,
+  Users,
 } from "lucide-react";
 import { useState } from "react";
 import clsx from "clsx";
 import PlantSprite from "../sprites/PlantSprite";
 import { usePlantInstances } from "../../api/hooks";
 import type { PlantType, PlantMood } from "../../api";
+import { useAuth, useIsGroundskeeper, roleName } from "../../auth/AuthContext";
 
 const navItems = [
   { to: "/", icon: Home, label: "Dashboard" },
@@ -41,6 +44,9 @@ const defaultMoodPlants: Array<{ type: PlantType; mood: PlantMood }> = [
 export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: plants } = usePlantInstances();
+  const { user, logout } = useAuth();
+  const isGroundskeeper = useIsGroundskeeper();
+  const navigate = useNavigate();
 
   // Build mood garden from actual user plants (up to 5)
   const moodGardenPlants: Array<{ type: PlantType; mood: PlantMood }> =
@@ -111,6 +117,23 @@ export default function Sidebar() {
 
         {/* Navigation */}
         <nav aria-label="Main navigation" className="flex-1 p-3 space-y-1 overflow-y-auto">
+          {isGroundskeeper && (
+            <NavLink
+              to="/users"
+              onClick={() => setMobileOpen(false)}
+              className={({ isActive }) =>
+                clsx(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium font-display transition-colors",
+                  isActive
+                    ? "bg-emerald-600/20 text-emerald-400 border-l-2 border-emerald-400"
+                    : "text-stone-400 hover:text-stone-200 hover:bg-stone-900 border-l-2 border-transparent"
+                )
+              }
+            >
+              <Users size={18} />
+              Users
+            </NavLink>
+          )}
           {navItems.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
@@ -132,17 +155,37 @@ export default function Sidebar() {
           ))}
         </nav>
 
-        {/* Mood garden widget */}
-        <div className="p-4 border-t border-stone-800">
-          <p className="text-xs text-stone-500 font-mono mb-2">
-            garden mood
-          </p>
-          <div className="flex items-end gap-1 justify-center">
-            {moodGardenPlants.map((p, i) => (
-              <PlantSprite key={i} type={p.type} mood={p.mood} size={28} />
-            ))}
+        {/* User section */}
+        {user && (
+          <div className="p-4 border-t border-stone-800">
+            <div className="flex items-center justify-between mb-3">
+              <div className="min-w-0">
+                <p className="text-sm font-display text-stone-200 truncate">
+                  {user.displayName}
+                </p>
+                <p className="text-xs font-mono text-emerald-400/70">
+                  {roleName(user.role)}
+                </p>
+              </div>
+              <button
+                onClick={async () => {
+                  await logout();
+                  navigate("/login");
+                }}
+                className="p-1.5 rounded-lg text-stone-500 hover:text-stone-300 hover:bg-stone-800 transition-colors"
+                title="Sign out"
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
+            {/* Mood garden widget */}
+            <div className="flex items-end gap-1 justify-center">
+              {moodGardenPlants.map((p, i) => (
+                <PlantSprite key={i} type={p.type} mood={p.mood} size={28} />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </aside>
     </>
   );

@@ -350,6 +350,7 @@ export const plantPhotos = sqliteTable("plant_photos", {
   filename: text("filename").notNull(),
   caption: text("caption"),
   thumbnailFilename: text("thumbnail_filename"),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
   takenAt: text("taken_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
@@ -452,6 +453,7 @@ export const careTaskLogs = sqliteTable("care_task_logs", {
   photoId: integer("photo_id").references(() => plantPhotos.id, {
     onDelete: "set null",
   }),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
   rainProvisional: integer("rain_provisional", { mode: "boolean" }).notNull().default(false),
   completedAt: text("completed_at")
     .notNull()
@@ -488,6 +490,7 @@ export const journalEntries = sqliteTable("journal_entries", {
   careTaskLogId: integer("care_task_log_id").references(() => careTaskLogs.id, {
     onDelete: "set null",
   }),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
@@ -564,6 +567,7 @@ export const shoppingListItems = sqliteTable("shopping_list_items", {
   estimatedCost: real("estimated_cost"),
   vendorName: text("vendor_name"),
   purchasedAt: text("purchased_at"),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
@@ -741,6 +745,85 @@ export const settings = sqliteTable("settings", {
     .$defaultFn(() => new Date().toISOString()),
 });
 
+// ─── Users ──────────────────────────────────────────────────────────────────
+
+export const users = sqliteTable("users", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  username: text("username").notNull().unique(),
+  displayName: text("display_name").notNull(),
+  email: text("email").unique(),
+  passwordHash: text("password_hash").notNull(),
+  role: text("role", {
+    enum: ["groundskeeper", "gardener", "helper"],
+  }).notNull(),
+  avatarUrl: text("avatar_url"),
+  lastLoginAt: text("last_login_at"),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+}, (table) => [
+  index("users_username_idx").on(table.username),
+]);
+
+export const usersRelations = relations(users, ({ many }) => ({
+  sessions: many(sessions),
+}));
+
+// ─── Sessions ───────────────────────────────────────────────────────────────
+
+export const sessions = sqliteTable("sessions", {
+  id: text("id").primaryKey(), // random 256-bit token
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: text("expires_at").notNull(),
+  userAgent: text("user_agent"),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+}, (table) => [
+  index("sessions_user_id_idx").on(table.userId),
+  index("sessions_expires_at_idx").on(table.expiresAt),
+]);
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, {
+    fields: [sessions.userId],
+    references: [users.id],
+  }),
+}));
+
+// ─── Invites ────────────────────────────────────────────────────────────────
+
+export const invites = sqliteTable("invites", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  token: text("token").notNull().unique(),
+  role: text("role", {
+    enum: ["gardener", "helper"],
+  }).notNull(),
+  createdBy: integer("created_by")
+    .notNull()
+    .references(() => users.id),
+  claimedBy: integer("claimed_by").references(() => users.id),
+  expiresAt: text("expires_at").notNull(),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+}, (table) => [
+  index("invites_token_idx").on(table.token),
+]);
+
+export const invitesRelations = relations(invites, ({ one }) => ({
+  creator: one(users, {
+    fields: [invites.createdBy],
+    references: [users.id],
+  }),
+}));
+
 // ─── Type exports ────────────────────────────────────────────────────────────
 
 export type Location = typeof locations.$inferSelect;
@@ -771,3 +854,7 @@ export type NewFertilizer = typeof fertilizers.$inferInsert;
 export type JournalEntry = typeof journalEntries.$inferSelect;
 export type NewJournalEntry = typeof journalEntries.$inferInsert;
 export type JournalPhoto = typeof journalPhotos.$inferSelect;
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type Session = typeof sessions.$inferSelect;
+export type Invite = typeof invites.$inferSelect;

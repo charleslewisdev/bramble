@@ -4,6 +4,7 @@ import { fertilizers } from "../db/schema.js";
 import { eq, and, asc } from "drizzle-orm";
 import { z } from "zod";
 import { idParamSchema, locationIdParamSchema } from "../lib/validation.js";
+import { requireAuth, requireRole } from "../plugins/auth.js";
 
 const fertilizerTypeEnum = z.enum([
   "liquid",
@@ -40,6 +41,9 @@ const updateFertilizerSchema = z.object({
 });
 
 export async function fertilizerRoutes(app: FastifyInstance) {
+  // Auth: require login for all routes in this plugin
+  app.addHook("onRequest", requireAuth);
+
   // GET / - list all fertilizers for a location, ordered by name
   app.get<{ Params: { locationId: string } }>("/", async (request, reply) => {
     const paramsParsed = locationIdParamSchema.safeParse(request.params);
@@ -84,7 +88,7 @@ export async function fertilizerRoutes(app: FastifyInstance) {
   );
 
   // POST / - create fertilizer
-  app.post<{ Params: { locationId: string } }>("/", async (request, reply) => {
+  app.post<{ Params: { locationId: string } }>("/", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const locationParsed = locationIdParamSchema.safeParse(request.params);
     if (!locationParsed.success) {
       return reply.status(400).send({ error: "Invalid location ID" });
@@ -110,6 +114,7 @@ export async function fertilizerRoutes(app: FastifyInstance) {
   // PUT /:id - update fertilizer
   app.put<{ Params: { locationId: string; id: string } }>(
     "/:id",
+    { preHandler: requireRole("gardener") },
     async (request, reply) => {
       const locationParsed = locationIdParamSchema.safeParse(request.params);
       if (!locationParsed.success) {
@@ -151,6 +156,7 @@ export async function fertilizerRoutes(app: FastifyInstance) {
   // DELETE /:id - delete fertilizer
   app.delete<{ Params: { locationId: string; id: string } }>(
     "/:id",
+    { preHandler: requireRole("gardener") },
     async (request, reply) => {
       const locationParsed = locationIdParamSchema.safeParse(request.params);
       if (!locationParsed.success) {

@@ -15,8 +15,12 @@ import { fetchWeather } from "../services/weather.js";
 import { getSunInfo } from "../services/sun.js";
 import { checkWeatherAlerts } from "../services/alerts.js";
 import SunCalc from "suncalc";
+import { requireAuth } from "../plugins/auth.js";
 
 export default async function dashboardRoutes(app: FastifyInstance) {
+  // Auth: require login for all routes in this plugin
+  app.addHook("onRequest", requireAuth);
+
   // GET /api/locations/:id/dashboard - aggregate all dashboard data for a location
   app.get<{ Params: { id: string } }>(
     "/:id/dashboard",

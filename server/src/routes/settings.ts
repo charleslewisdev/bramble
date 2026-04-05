@@ -3,6 +3,7 @@ import { db } from "../db/index.js";
 import { settings } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { requireAuth, requireRole } from "../plugins/auth.js";
 
 const keyParamSchema = z.object({
   key: z.string().min(1),
@@ -13,6 +14,9 @@ const setValueSchema = z.object({
 });
 
 export async function settingsRoutes(app: FastifyInstance) {
+  // Auth: require login for all routes in this plugin
+  app.addHook("onRequest", requireAuth);
+
   // GET / - list all settings
   app.get("/", async () => {
     const rows = db.select().from(settings).all();
@@ -24,11 +28,11 @@ export async function settingsRoutes(app: FastifyInstance) {
     return result;
   });
 
-  // PUT /:key - set a setting value
+  // PUT /:key - set a setting value (groundskeeper only)
   app.put<{
     Params: { key: string };
     Body: { value: unknown };
-  }>("/:key", async (request, reply) => {
+  }>("/:key", { preHandler: requireRole("groundskeeper") }, async (request, reply) => {
     const paramsParsed = keyParamSchema.safeParse(request.params);
     if (!paramsParsed.success) {
       return reply.status(400).send({ error: "Invalid key" });

@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import { generateThumbnail } from "../services/thumbnails.js";
+import { requireAuth, requireRole } from "../plugins/auth.js";
 
 const __photos_dirname = dirname(fileURLToPath(import.meta.url));
 const PHOTOS_DIR = process.env.PHOTOS_DIR ?? resolve(__photos_dirname, "../../data/photos");
@@ -59,6 +60,9 @@ const filenameParamSchema = z.object({
 });
 
 export async function photoRoutes(app: FastifyInstance) {
+  // Auth: require login for all routes in this plugin
+  app.addHook("onRequest", requireAuth);
+
   // GET / - list photos for a plant instance
   app.get<{ Querystring: { plantInstanceId?: string } }>("/", async (request, reply) => {
     const { plantInstanceId } = request.query;
@@ -127,6 +131,7 @@ export async function photoRoutes(app: FastifyInstance) {
         filename,
         thumbnailFilename,
         caption: caption ?? null,
+        createdBy: request.user?.id ?? null,
       })
       .returning()
       .get();
@@ -164,7 +169,7 @@ export async function photoRoutes(app: FastifyInstance) {
   );
 
   // DELETE /:id - delete photo record and file
-  app.delete<{ Params: { id: string } }>("/:id", async (request, reply) => {
+  app.delete<{ Params: { id: string } }>("/:id", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const paramsParsed = idParamSchema.safeParse(request.params);
     if (!paramsParsed.success) {
       return reply.status(400).send({ error: "Invalid ID" });

@@ -1,4 +1,4 @@
-import { Routes, Route, Link, useMatch } from "react-router-dom";
+import { Routes, Route, Link, useMatch, Navigate } from "react-router-dom";
 import Layout from "./components/layout/Layout";
 import Dashboard from "./pages/Dashboard";
 import LocationList from "./pages/LocationList";
@@ -15,8 +15,13 @@ import Shed from "./pages/Shed";
 import Settings from "./pages/Settings";
 import Almanac from "./pages/Almanac";
 import CompostingGuide from "./pages/almanac/CompostingGuide";
+import Login from "./pages/Login";
+import Setup from "./pages/Setup";
+import InviteClaim from "./pages/InviteClaim";
+import Users from "./pages/Users";
 import PlantSprite from "./components/sprites/PlantSprite";
-import { lazy, Suspense } from "react";
+import { useAuth } from "./auth/AuthContext";
+import { lazy, Suspense, type ReactNode } from "react";
 
 const GardenMap = lazy(() => import("./pages/GardenMap"));
 
@@ -40,6 +45,26 @@ function NotFound() {
   );
 }
 
+function ProtectedRoute({ children }: { children: ReactNode }) {
+  const { user, setupMode, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-stone-950 flex items-center justify-center">
+        <div className="text-center">
+          <PlantSprite type="flower" mood="sleeping" size={64} className="mx-auto animate-pulse" />
+          <p className="text-stone-400 font-display mt-4">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (setupMode) return <Navigate to="/setup" replace />;
+  if (!user) return <Navigate to="/login" replace />;
+
+  return <>{children}</>;
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -56,6 +81,7 @@ function AppRoutes() {
       <Route path="/shopping" element={<ShoppingList />} />
       <Route path="/locations/:id/shed" element={<Shed />} />
       <Route path="/settings" element={<Settings />} />
+      <Route path="/users" element={<Users />} />
       <Route path="/almanac" element={<Almanac />} />
       <Route path="/almanac/composting" element={<CompostingGuide />} />
       <Route path="*" element={<NotFound />} />
@@ -65,14 +91,22 @@ function AppRoutes() {
 
 export default function App() {
   const isPrintPage = useMatch("/shopping/print");
+  const isLoginPage = useMatch("/login");
+  const isSetupPage = useMatch("/setup");
+  const isInvitePage = useMatch("/invite/:token");
 
-  if (isPrintPage) {
-    return <ShoppingListPrint />;
-  }
+  if (isPrintPage) return <ShoppingListPrint />;
+
+  // Public routes — no auth required
+  if (isLoginPage) return <Login />;
+  if (isSetupPage) return <Setup />;
+  if (isInvitePage) return <InviteClaim />;
 
   return (
-    <Layout>
-      <AppRoutes />
-    </Layout>
+    <ProtectedRoute>
+      <Layout>
+        <AppRoutes />
+      </Layout>
+    </ProtectedRoute>
   );
 }

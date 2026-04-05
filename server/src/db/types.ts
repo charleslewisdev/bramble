@@ -32,7 +32,13 @@ export type {
   JournalEntry,
   NewJournalEntry,
   JournalPhoto,
+  User,
+  NewUser,
+  Session,
+  Invite,
 } from "./schema.js";
+
+export type UserRole = "groundskeeper" | "gardener" | "helper";
 
 // ─── Enum-like union types extracted from schema columns ──────────────────────
 

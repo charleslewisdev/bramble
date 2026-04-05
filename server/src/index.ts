@@ -6,6 +6,10 @@ import fastifyStatic from "@fastify/static";
 import cors from "@fastify/cors";
 import { ZodError } from "zod";
 import { db } from "./db/index.js";
+import { authPlugin } from "./plugins/auth.js";
+import { authRoutes } from "./routes/auth.js";
+import { inviteRoutes } from "./routes/invites.js";
+import { userRoutes } from "./routes/users.js";
 import { locationRoutes } from "./routes/locations.js";
 import { zoneRoutes } from "./routes/zones.js";
 import { plantRoutes } from "./routes/plants.js";
@@ -28,7 +32,11 @@ const app = Fastify({ logger: true });
 
 await app.register(cors, {
   origin: process.env.CORS_ORIGIN || false,
+  credentials: true,
 });
+
+// Auth plugin — cookies, session validation, role decorators
+await app.register(authPlugin);
 
 // Global error handler
 app.setErrorHandler((error, request, reply) => {
@@ -50,7 +58,12 @@ app.setErrorHandler((error, request, reply) => {
   return reply.status(500).send({ error: "Internal server error" });
 });
 
-// Register routes
+// Auth routes (public — no guards on the plugin itself)
+await app.register(authRoutes, { prefix: "/api/auth" });
+await app.register(inviteRoutes, { prefix: "/api/auth/invites" });
+await app.register(userRoutes, { prefix: "/api/users" });
+
+// App routes (auth guards applied within each route file)
 await app.register(locationRoutes, { prefix: "/api/locations" });
 await app.register(zoneRoutes, { prefix: "/api/zones" });
 await app.register(plantRoutes, { prefix: "/api/plants" });

@@ -7,6 +7,7 @@ import { getResolvedPreferences } from "../services/notification-preferences.js"
 import { sendDigest } from "../services/scheduler.js";
 import { z } from "zod";
 import { idParamSchema } from "../lib/validation.js";
+import { requireAuth, requireRole } from "../plugins/auth.js";
 
 const channelTypeEnum = z.enum(["slack", "discord", "email", "pushover", "ntfy", "homeassistant"]);
 
@@ -29,13 +30,16 @@ const updateChannelSchema = z.object({
 });
 
 export async function notificationRoutes(app: FastifyInstance) {
+  // Auth: require login for all routes in this plugin
+  app.addHook("onRequest", requireAuth);
+
   // GET / - list all channels
   app.get("/", async () => {
     return db.select().from(notificationChannels).all();
   });
 
   // POST / - create channel
-  app.post("/", async (request, reply) => {
+  app.post("/", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const parsed = createChannelSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid request body" });
@@ -51,7 +55,7 @@ export async function notificationRoutes(app: FastifyInstance) {
   });
 
   // PUT /:id - update channel
-  app.put<{ Params: { id: string } }>("/:id", async (request, reply) => {
+  app.put<{ Params: { id: string } }>("/:id", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const paramsParsed = idParamSchema.safeParse(request.params);
     if (!paramsParsed.success) {
       return reply.status(400).send({ error: "Invalid ID" });
@@ -82,7 +86,7 @@ export async function notificationRoutes(app: FastifyInstance) {
   });
 
   // DELETE /:id - delete channel
-  app.delete<{ Params: { id: string } }>("/:id", async (request, reply) => {
+  app.delete<{ Params: { id: string } }>("/:id", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const paramsParsed = idParamSchema.safeParse(request.params);
     if (!paramsParsed.success) {
       return reply.status(400).send({ error: "Invalid ID" });
@@ -103,6 +107,7 @@ export async function notificationRoutes(app: FastifyInstance) {
   // POST /:id/test - send test notification
   app.post<{ Params: { id: string } }>(
     "/:id/test",
+    { preHandler: requireRole("gardener") },
     async (request, reply) => {
       const paramsParsed = idParamSchema.safeParse(request.params);
       if (!paramsParsed.success) {
@@ -143,6 +148,7 @@ export async function notificationRoutes(app: FastifyInstance) {
   // PUT /preferences/:taskType - update a preference
   app.put<{ Params: { taskType: string } }>(
     "/preferences/:taskType",
+    { preHandler: requireRole("gardener") },
     async (request, reply) => {
       const taskTypes = [
         "water", "fertilize", "prune", "mulch", "harvest",
@@ -198,7 +204,7 @@ export async function notificationRoutes(app: FastifyInstance) {
   );
 
   // POST /send-digest - manual trigger for daily digest
-  app.post("/send-digest", async (_request, reply) => {
+  app.post("/send-digest", { preHandler: requireRole("gardener") }, async (_request, reply) => {
     try {
       await sendDigest();
       return { success: true, message: "Digest sent (if there were tasks to notify about)." };

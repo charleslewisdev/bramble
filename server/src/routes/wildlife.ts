@@ -4,6 +4,7 @@ import { locations } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { locationIdParamSchema } from "../lib/validation.js";
+import { requireAuth } from "../plugins/auth.js";
 
 export interface WildlifeEntry {
   name: string;
@@ -215,6 +216,9 @@ function isZoneInRange(zoneNum: number, rangeStr: string): boolean {
 }
 
 export async function wildlifeRoutes(app: FastifyInstance) {
+  // Auth: require login for all routes in this plugin
+  app.addHook("onRequest", requireAuth);
+
   // GET /:locationId - get seasonal wildlife for a location
   app.get<{ Params: { locationId: string } }>(
     "/:locationId",

@@ -6,6 +6,7 @@ import { getSunInfo } from "../services/sun.js";
 import { calculateShadows } from "../services/shadows.js";
 import { z } from "zod";
 import { locationIdParamSchema } from "../lib/validation.js";
+import { requireAuth } from "../plugins/auth.js";
 
 function parseDateParam(dateStr: string | undefined): Date {
   if (dateStr) {
@@ -27,6 +28,9 @@ function parseDateTimeParams(dateStr: string | undefined, timeStr: string | unde
 }
 
 export async function sunRoutes(app: FastifyInstance) {
+  // Auth: require login for all routes in this plugin
+  app.addHook("onRequest", requireAuth);
+
   // GET /:locationId - get sun info for a date (default today)
   app.get<{ Params: { locationId: string }; Querystring: { date?: string } }>(
     "/:locationId",

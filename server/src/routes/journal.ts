@@ -4,6 +4,7 @@ import { journalEntries, journalPhotos, plantInstances } from "../db/schema.js";
 import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import { idParamSchema } from "../lib/validation.js";
+import { requireAuth, requireRole } from "../plugins/auth.js";
 
 const entryTypeEnum = z.enum([
   "observation",
@@ -36,6 +37,9 @@ const updateEntrySchema = z.object({
 });
 
 export async function journalRoutes(app: FastifyInstance) {
+  // Auth: require login for all routes in this plugin
+  app.addHook("onRequest", requireAuth);
+
   // GET / - list entries for a plant instance
   app.get<{
     Querystring: {
@@ -124,7 +128,7 @@ export async function journalRoutes(app: FastifyInstance) {
     const result = db.transaction((tx) => {
       const entry = tx
         .insert(journalEntries)
-        .values(entryData)
+        .values({ ...entryData, createdBy: request.user?.id ?? null })
         .returning()
         .get();
 
@@ -228,7 +232,7 @@ export async function journalRoutes(app: FastifyInstance) {
   });
 
   // DELETE /:id - delete entry
-  app.delete<{ Params: { id: string } }>("/:id", async (request, reply) => {
+  app.delete<{ Params: { id: string } }>("/:id", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const paramsParsed = idParamSchema.safeParse(request.params);
     if (!paramsParsed.success) {
       return reply.status(400).send({ error: "Invalid ID" });

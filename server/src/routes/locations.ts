@@ -10,6 +10,7 @@ import {
 } from "../services/hardiness.js";
 import { z } from "zod";
 import { idParamSchema } from "../lib/validation.js";
+import { requireAuth, requireRole } from "../plugins/auth.js";
 
 const roofTypeEnum = z.enum(["flat", "gable", "hip", "shed", "gambrel", "pergola", "gazebo", "open", "canopy"]);
 
@@ -58,6 +59,9 @@ const updateStructureSchema = z.object({
 });
 
 export async function locationRoutes(app: FastifyInstance) {
+  // Auth: require login for all routes in this plugin
+  app.addHook("onRequest", requireAuth);
+
   // GET /geocode?q=address - geocode an address for autocomplete
   app.get<{ Querystring: { q: string } }>("/geocode", async (request, reply) => {
     const { q } = request.query;
@@ -155,7 +159,7 @@ export async function locationRoutes(app: FastifyInstance) {
   });
 
   // POST / - create location with auto-enrichment
-  app.post("/", async (request, reply) => {
+  app.post("/", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const parsed = createLocationSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid request body" });
@@ -228,7 +232,7 @@ export async function locationRoutes(app: FastifyInstance) {
   });
 
   // PUT /:id - update location
-  app.put<{ Params: { id: string } }>("/:id", async (request, reply) => {
+  app.put<{ Params: { id: string } }>("/:id", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const paramsParsed = idParamSchema.safeParse(request.params);
     if (!paramsParsed.success) {
       return reply.status(400).send({ error: "Invalid ID" });
@@ -259,7 +263,7 @@ export async function locationRoutes(app: FastifyInstance) {
   });
 
   // DELETE /:id - delete location
-  app.delete<{ Params: { id: string } }>("/:id", async (request, reply) => {
+  app.delete<{ Params: { id: string } }>("/:id", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const paramsParsed = idParamSchema.safeParse(request.params);
     if (!paramsParsed.success) {
       return reply.status(400).send({ error: "Invalid ID" });
@@ -290,7 +294,7 @@ export async function locationRoutes(app: FastifyInstance) {
   });
 
   // POST /:id/structures - add structure to location
-  app.post<{ Params: { id: string } }>("/:id/structures", async (request, reply) => {
+  app.post<{ Params: { id: string } }>("/:id/structures", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const paramsParsed = idParamSchema.safeParse(request.params);
     if (!paramsParsed.success) {
       return reply.status(400).send({ error: "Invalid ID" });
@@ -320,7 +324,7 @@ export async function locationRoutes(app: FastifyInstance) {
   });
 
   // PUT /structures/:id - update structure
-  app.put<{ Params: { id: string } }>("/structures/:id", async (request, reply) => {
+  app.put<{ Params: { id: string } }>("/structures/:id", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const paramsParsed = idParamSchema.safeParse(request.params);
     if (!paramsParsed.success) {
       return reply.status(400).send({ error: "Invalid ID" });
@@ -353,6 +357,7 @@ export async function locationRoutes(app: FastifyInstance) {
   // DELETE /structures/:id - delete structure
   app.delete<{ Params: { id: string } }>(
     "/structures/:id",
+    { preHandler: requireRole("gardener") },
     async (request, reply) => {
       const paramsParsed = idParamSchema.safeParse(request.params);
       if (!paramsParsed.success) {

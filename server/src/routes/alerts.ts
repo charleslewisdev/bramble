@@ -8,8 +8,12 @@ import {
 } from "../db/schema.js";
 import { eq, desc, inArray } from "drizzle-orm";
 import { checkWeatherAlerts } from "../services/alerts.js";
+import { requireAuth } from "../plugins/auth.js";
 
 export async function alertRoutes(app: FastifyInstance) {
+  // Auth: require login for all routes in this plugin
+  app.addHook("onRequest", requireAuth);
+
   // GET /:locationId - get active weather alerts for a location
   app.get<{ Params: { locationId: string } }>(
     "/:locationId",

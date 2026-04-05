@@ -8,6 +8,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
   const res = await fetch(`${BASE}${path}`, {
     ...init,
+    credentials: "include",
     headers,
   });
   if (!res.ok) {
@@ -42,6 +43,108 @@ function del<T = void>(path: string, body?: unknown): Promise<T> {
     method: "DELETE",
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
+}
+
+// ---------- Auth ----------
+
+export type UserRole = "groundskeeper" | "gardener" | "helper";
+
+export interface AuthUser {
+  id: number;
+  username: string;
+  displayName: string;
+  role: UserRole;
+  email: string | null;
+  avatarUrl: string | null;
+  lastLoginAt: string | null;
+  createdAt: string;
+}
+
+export interface MeResponse {
+  user: null;
+  setupMode: true;
+}
+
+export async function getMe(): Promise<AuthUser | MeResponse> {
+  try {
+    return await request<AuthUser>("/auth/me");
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("401")) {
+      throw err;
+    }
+    throw err;
+  }
+}
+
+export function login(username: string, password: string): Promise<AuthUser> {
+  return post<AuthUser>("/auth/login", { username, password });
+}
+
+export function logout(): Promise<void> {
+  return post<void>("/auth/logout", {});
+}
+
+export function setup(data: { username: string; displayName: string; password: string }): Promise<AuthUser> {
+  return post<AuthUser>("/auth/setup", data);
+}
+
+export function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  return put<void>("/auth/password", { currentPassword, newPassword });
+}
+
+export function getInviteInfo(token: string): Promise<{ role: string; expiresAt: string }> {
+  return request<{ role: string; expiresAt: string }>(`/auth/invites/${token}`);
+}
+
+export function claimInvite(token: string, data: { username: string; displayName: string; password: string }): Promise<AuthUser> {
+  return post<AuthUser>(`/auth/invites/${token}/claim`, data);
+}
+
+// Admin APIs
+export interface InviteRecord {
+  id: number;
+  token: string;
+  role: UserRole;
+  createdBy: number;
+  claimedBy: number | null;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface UserRecord {
+  id: number;
+  username: string;
+  displayName: string;
+  role: UserRole;
+  email: string | null;
+  avatarUrl: string | null;
+  lastLoginAt: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export function getUsers(): Promise<UserRecord[]> {
+  return request<UserRecord[]>("/users");
+}
+
+export function updateUserRole(id: number, role: UserRole): Promise<UserRecord> {
+  return put<UserRecord>(`/users/${id}/role`, { role });
+}
+
+export function updateUserActive(id: number, isActive: boolean): Promise<UserRecord> {
+  return put<UserRecord>(`/users/${id}/active`, { isActive });
+}
+
+export function getInvites(): Promise<InviteRecord[]> {
+  return request<InviteRecord[]>("/auth/invites");
+}
+
+export function createInvite(role: "gardener" | "helper"): Promise<InviteRecord> {
+  return post<InviteRecord>("/auth/invites", { role });
+}
+
+export function deleteInvite(id: number): Promise<void> {
+  return del(`/auth/invites/${id}`);
 }
 
 // ---------- Types (shared from Drizzle schema) ----------

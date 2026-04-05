@@ -4,6 +4,7 @@ import { shoppingListItems } from "../db/schema.js";
 import { eq, asc, desc, count } from "drizzle-orm";
 import { z } from "zod";
 import { idParamSchema, parsePagination, paginatedResult } from "../lib/validation.js";
+import { requireAuth, requireRole } from "../plugins/auth.js";
 
 const categoryEnum = z.enum(["plant", "soil", "fertilizer", "tool", "container", "other"]);
 
@@ -31,6 +32,9 @@ const updateItemSchema = z.object({
 });
 
 export async function shoppingListRoutes(app: FastifyInstance) {
+  // Auth: require login for all routes in this plugin
+  app.addHook("onRequest", requireAuth);
+
   // GET / - list all items (unchecked first, then checked; supports ?page=&limit= pagination)
   app.get<{ Querystring: { page?: string; limit?: string } }>("/", async (request) => {
     const pagination = parsePagination(request.query);
@@ -68,7 +72,7 @@ export async function shoppingListRoutes(app: FastifyInstance) {
 
     const result = db
       .insert(shoppingListItems)
-      .values(parsed.data)
+      .values({ ...parsed.data, createdBy: request.user?.id ?? null })
       .returning()
       .get();
 
@@ -138,7 +142,7 @@ export async function shoppingListRoutes(app: FastifyInstance) {
 
   // DELETE /clear-checked - clear all checked items
   // IMPORTANT: Must be registered BEFORE DELETE /:id to avoid route conflict
-  app.delete("/clear-checked", async (_request, reply) => {
+  app.delete("/clear-checked", { preHandler: requireRole("gardener") }, async (_request, reply) => {
     db.delete(shoppingListItems)
       .where(eq(shoppingListItems.isChecked, true))
       .run();
@@ -146,7 +150,7 @@ export async function shoppingListRoutes(app: FastifyInstance) {
   });
 
   // DELETE /:id - delete item
-  app.delete<{ Params: { id: string } }>("/:id", async (request, reply) => {
+  app.delete<{ Params: { id: string } }>("/:id", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const paramsParsed = idParamSchema.safeParse(request.params);
     if (!paramsParsed.success) {
       return reply.status(400).send({ error: "Invalid ID" });
