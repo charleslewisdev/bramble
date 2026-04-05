@@ -1,4 +1,5 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import fp from "fastify-plugin";
 import fastifyCookie from "@fastify/cookie";
 import { db, schema } from "../db/index.js";
 import { eq, and, gt, count } from "drizzle-orm";
@@ -23,7 +24,7 @@ export function markSetupComplete() {
   setupComplete = true;
 }
 
-export async function authPlugin(app: FastifyInstance) {
+async function authPluginImpl(app: FastifyInstance) {
   await app.register(fastifyCookie);
 
   app.decorateRequest("user", null);
@@ -112,6 +113,9 @@ export async function authPlugin(app: FastifyInstance) {
     }
   });
 }
+
+// Wrap with fastify-plugin to break encapsulation — hooks must apply to ALL routes
+export const authPlugin = fp(authPluginImpl);
 
 /** Route-level guard: must be logged in */
 export async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
