@@ -11,10 +11,14 @@ import {
   Check,
   UserX,
   UserCheck,
+  Key,
+  RefreshCw,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
-import { Select } from "../components/ui/Input";
+import { Input, Select } from "../components/ui/Input";
 import { useToast } from "../components/ui/Toast";
 import { useAuth, roleName } from "../auth/AuthContext";
 import * as api from "../api";
@@ -81,8 +85,45 @@ export default function Users() {
     },
   });
 
+  // API Keys
+  const { data: apiKeys = [] } = useQuery({
+    queryKey: ["apiKeys"],
+    queryFn: api.getApiKeys,
+  });
+
+  const [newKeyName, setNewKeyName] = useState("");
+  const [revealedKey, setRevealedKey] = useState<string | null>(null);
+
+  const createApiKeyMutation = useMutation({
+    mutationFn: (name: string) => api.createApiKey(name),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["apiKeys"] });
+      setRevealedKey(data.key);
+      setNewKeyName("");
+      showToast("API key created!", "success");
+    },
+  });
+
+  const regenerateApiKeyMutation = useMutation({
+    mutationFn: api.regenerateApiKey,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["apiKeys"] });
+      setRevealedKey(data.key);
+      showToast("API key regenerated!", "success");
+    },
+  });
+
+  const deleteApiKeyMutation = useMutation({
+    mutationFn: api.deleteApiKey,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["apiKeys"] });
+      showToast("API key deleted", "success");
+    },
+  });
+
   const [inviteRole, setInviteRole] = useState<"gardener" | "helper">("gardener");
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [copiedKey, setCopiedKey] = useState(false);
 
   function copyInviteUrl(invite: InviteRecord) {
     const url = `${window.location.origin}/invite/${invite.token}`;
@@ -250,6 +291,110 @@ export default function Users() {
                 </Card>
               );
             })}
+          </div>
+        )}
+      </section>
+
+      {/* API Keys */}
+      <section>
+        <h2 className="text-lg font-semibold font-display text-stone-200 mb-3">
+          <Key className="inline text-amber-400 mr-2" size={18} />
+          API Keys
+        </h2>
+
+        {/* Revealed key banner */}
+        {revealedKey && (
+          <Card className="mb-4 border-amber-500/30 bg-amber-950/20">
+            <p className="text-sm font-display text-amber-200 mb-2">
+              Copy this key now — it won't be shown again.
+            </p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-xs font-mono text-stone-200 bg-stone-800 rounded px-3 py-2 break-all">
+                {revealedKey}
+              </code>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(revealedKey);
+                  setCopiedKey(true);
+                  setTimeout(() => setCopiedKey(false), 2000);
+                }}
+                className="p-2 rounded-lg text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors"
+                title="Copy key"
+              >
+                {copiedKey ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
+              </button>
+              <button
+                onClick={() => setRevealedKey(null)}
+                className="p-2 rounded-lg text-stone-400 hover:text-stone-200 hover:bg-stone-800 transition-colors"
+                title="Dismiss"
+              >
+                <EyeOff size={16} />
+              </button>
+            </div>
+          </Card>
+        )}
+
+        <Card className="mb-4">
+          <div className="flex items-center gap-3">
+            <Input
+              value={newKeyName}
+              onChange={(e) => setNewKeyName(e.target.value)}
+              placeholder="Key name, e.g. Home Assistant"
+              className="flex-1"
+            />
+            <Button
+              onClick={() => createApiKeyMutation.mutate(newKeyName)}
+              disabled={createApiKeyMutation.isPending || !newKeyName.trim()}
+              size="sm"
+            >
+              <Key size={16} />
+              Create Key
+            </Button>
+          </div>
+          <p className="text-xs text-stone-500 font-mono mt-2">
+            API keys authenticate as your account. Use <code>Authorization: Bearer brk_...</code> header.
+          </p>
+        </Card>
+
+        {apiKeys.length === 0 ? (
+          <p className="text-sm text-stone-500 font-display">No API keys.</p>
+        ) : (
+          <div className="space-y-2">
+            {apiKeys.map((key) => (
+              <Card key={key.id} className="flex items-center gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Key size={14} className="text-amber-400" />
+                    <span className="text-sm font-display text-stone-200 font-semibold">
+                      {key.name}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 mt-1 text-xs font-mono text-stone-500">
+                    <span>{key.keyPrefix}...</span>
+                    <span>Created {new Date(key.createdAt).toLocaleDateString()}</span>
+                    {key.lastUsedAt && (
+                      <span>Last used {new Date(key.lastUsedAt).toLocaleDateString()}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => regenerateApiKeyMutation.mutate(key.id)}
+                    className="p-1.5 rounded-lg text-stone-500 hover:text-amber-400 hover:bg-stone-800 transition-colors"
+                    title="Regenerate key"
+                  >
+                    <RefreshCw size={16} />
+                  </button>
+                  <button
+                    onClick={() => deleteApiKeyMutation.mutate(key.id)}
+                    className="p-1.5 rounded-lg text-stone-500 hover:text-red-400 hover:bg-stone-800 transition-colors"
+                    title="Delete key"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </Card>
+            ))}
           </div>
         )}
       </section>

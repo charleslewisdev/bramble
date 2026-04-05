@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import fastifyCookie from "@fastify/cookie";
 import { db, schema } from "../db/index.js";
 import { eq, and, gt, count } from "drizzle-orm";
+import { hashApiKey } from "../services/auth.js";
 
 // Role hierarchy: higher index = more power
 const ROLE_LEVELS = { helper: 0, gardener: 1, groundskeeper: 2 } as const;
@@ -39,6 +40,40 @@ export async function authPlugin(app: FastifyInstance) {
       setupComplete = true;
     }
 
+    // Try Bearer token auth (API keys use brk_ prefix)
+    const authHeader = request.headers.authorization;
+    if (authHeader?.startsWith("Bearer ")) {
+      const key = authHeader.slice(7);
+      if (key.startsWith("brk_")) {
+        const keyHash = hashApiKey(key);
+        const apiKey = db.select().from(schema.apiKeys)
+          .where(eq(schema.apiKeys.keyHash, keyHash))
+          .get();
+
+        if (apiKey) {
+          const user = db.select({
+            id: schema.users.id,
+            username: schema.users.username,
+            displayName: schema.users.displayName,
+            role: schema.users.role,
+          }).from(schema.users)
+            .where(and(eq(schema.users.id, apiKey.userId), eq(schema.users.isActive, true)))
+            .get();
+
+          if (user) {
+            request.user = user as { id: number; username: string; displayName: string; role: Role };
+            // Update last used timestamp (fire-and-forget)
+            db.update(schema.apiKeys)
+              .set({ lastUsedAt: new Date().toISOString() })
+              .where(eq(schema.apiKeys.id, apiKey.id))
+              .run();
+          }
+        }
+      }
+      return; // Any Bearer header = explicit auth attempt, don't fall through to cookies
+    }
+
+    // Cookie session auth
     const token = request.cookies.bramble_session;
     if (!token) return;
 

@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef, useCallback } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { X } from "lucide-react";
 
 interface ModalProps {
@@ -21,11 +21,16 @@ export default function Modal({
 }: ModalProps) {
   const backdropRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  // Use a ref for onClose so the keydown handler never changes identity
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
+  useEffect(() => {
+    if (!open) return;
+
+    function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -53,17 +58,12 @@ export default function Modal({
           }
         }
       }
-    },
-    [onClose],
-  );
-
-  useEffect(() => {
-    if (!open) return;
+    }
 
     document.addEventListener("keydown", handleKeyDown);
     document.body.style.overflow = "hidden";
 
-    // Focus first focusable element inside the dialog
+    // Focus first focusable element inside the dialog on open
     const dialog = dialogRef.current;
     if (dialog) {
       const focusable = dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
@@ -76,7 +76,7 @@ export default function Modal({
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "";
     };
-  }, [open, handleKeyDown]);
+  }, [open]); // Only re-run when open changes — not on every parent re-render
 
   if (!open) return null;
 

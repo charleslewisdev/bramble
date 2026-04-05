@@ -140,6 +140,37 @@ export function deleteInvite(id: number): Promise<void> {
   return del(`/auth/invites/${id}`);
 }
 
+// ---------- API Keys ----------
+
+export interface ApiKeyRecord {
+  id: number;
+  name: string;
+  keyPrefix: string;
+  userId: number;
+  lastUsedAt: string | null;
+  createdAt: string;
+}
+
+export interface ApiKeyCreated extends ApiKeyRecord {
+  key: string; // raw key, shown only once
+}
+
+export function getApiKeys(): Promise<ApiKeyRecord[]> {
+  return request<ApiKeyRecord[]>("/api-keys");
+}
+
+export function createApiKey(name: string): Promise<ApiKeyCreated> {
+  return post<ApiKeyCreated>("/api-keys", { name });
+}
+
+export function regenerateApiKey(id: number): Promise<ApiKeyCreated> {
+  return post<ApiKeyCreated>(`/api-keys/${id}/regenerate`, {});
+}
+
+export function deleteApiKey(id: number): Promise<void> {
+  return del(`/api-keys/${id}`);
+}
+
 // ---------- Types (shared from Drizzle schema) ----------
 
 export type {

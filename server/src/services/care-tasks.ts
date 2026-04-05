@@ -114,12 +114,6 @@ const PROTECT_MESSAGES = [
   "Winter prep time! Let's make sure I'm cozy.",
 ];
 
-const PLANTING_MESSAGES = [
-  "I'm ready to put down roots! Plant me!",
-  "It's time to find me a home in the garden!",
-  "Let's get me in the ground — I can't wait to grow!",
-];
-
 function randomMessage(messages: string[]): string {
   return messages[Math.floor(Math.random() * messages.length)] ?? messages[0]!;
 }
@@ -323,20 +317,6 @@ export function generateDefaultCareTasks(
     });
   }
 
-  // ── Initial planting task ──────────────────────────────────────────────────
-  if (!existingTypes.has("custom") && plantRef.plantingNotes && plantInstance.status === "planned") {
-    tasks.push({
-      plantInstanceId: plantInstance.id,
-      taskType: "custom",
-      title: `Plant ${plantName}`,
-      description: plantRef.plantingNotes,
-      dueDate: nextDateForMonth(4), // April — spring planting
-      isRecurring: false,
-      sendNotification: true,
-      plantMessage: randomMessage(PLANTING_MESSAGES),
-    });
-  }
-
   // ── Health check/inspect task ──────────────────────────────────────────────
   if (!existingTypes.has("inspect")) {
     tasks.push({
@@ -397,7 +377,7 @@ export async function handleStatusTransition(
     return { created, removed };
   }
 
-  // planned → planted/established: remove "Plant ..." custom tasks, generate new care tasks
+  // planned → planted/established: clean up any legacy "Plant ..." tasks, generate new care tasks
   if (
     oldStatus === "planned" &&
     (newStatus === "planted" || newStatus === "established")

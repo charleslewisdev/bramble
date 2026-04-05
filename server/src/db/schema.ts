@@ -824,6 +824,31 @@ export const invitesRelations = relations(invites, ({ one }) => ({
   }),
 }));
 
+// ─── API Keys ───────────────────────────────────────────────────────────────
+
+export const apiKeys = sqliteTable("api_keys", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(), // label, e.g. "Home Assistant"
+  keyHash: text("key_hash").notNull().unique(), // SHA-256 hash of the key
+  keyPrefix: text("key_prefix").notNull(), // first 8 chars for display ("brk_a1b2...")
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  lastUsedAt: text("last_used_at"),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+}, (table) => [
+  index("api_keys_key_hash_idx").on(table.keyHash),
+]);
+
+export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
+  user: one(users, {
+    fields: [apiKeys.userId],
+    references: [users.id],
+  }),
+}));
+
 // ─── Type exports ────────────────────────────────────────────────────────────
 
 export type Location = typeof locations.$inferSelect;
@@ -858,3 +883,4 @@ export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
 export type Invite = typeof invites.$inferSelect;
+export type ApiKey = typeof apiKeys.$inferSelect;
