@@ -8,7 +8,7 @@ import {
   generateSessionToken,
   SESSION_MAX_AGE_MS,
 } from "../services/auth.js";
-import { requireAuth } from "../plugins/auth.js";
+import { requireAuth, markSetupComplete } from "../plugins/auth.js";
 
 const SESSION_COOKIE = "bramble_session";
 
@@ -95,6 +95,7 @@ export async function authRoutes(app: FastifyInstance) {
     }).returning().get();
 
     const token = await createSession(user.id, request.headers["user-agent"]);
+    markSetupComplete();
 
     reply.setCookie(SESSION_COOKIE, token, cookieOptions());
     return reply.status(201).send(userResponse(user));

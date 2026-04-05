@@ -90,33 +90,36 @@ export async function userRoutes(app: FastifyInstance) {
   });
 
   // GET /sessions — Groundskeeper: all sessions; others: own sessions
+  // Never expose raw session tokens — return createdAt as the identifier
   app.get("/sessions", { preHandler: requireAuth }, async (request) => {
+    function safeSession(s: { userId: number; userAgent: string | null; expiresAt: string; createdAt: string }) {
+      return { createdAt: s.createdAt, userId: s.userId, userAgent: s.userAgent, expiresAt: s.expiresAt };
+    }
     if (request.user!.role === "groundskeeper") {
       return db.select({
-        id: schema.sessions.id,
         userId: schema.sessions.userId,
         userAgent: schema.sessions.userAgent,
         expiresAt: schema.sessions.expiresAt,
         createdAt: schema.sessions.createdAt,
-      }).from(schema.sessions).all();
+      }).from(schema.sessions).all().map(safeSession);
     }
     return db.select({
-      id: schema.sessions.id,
       userId: schema.sessions.userId,
       userAgent: schema.sessions.userAgent,
       expiresAt: schema.sessions.expiresAt,
       createdAt: schema.sessions.createdAt,
     }).from(schema.sessions)
       .where(eq(schema.sessions.userId, request.user!.id))
-      .all();
+      .all().map(safeSession);
   });
 
-  // DELETE /sessions/:id — Groundskeeper: any; others: own only
-  app.delete("/sessions/:id", { preHandler: requireAuth }, async (request, reply) => {
-    const { id } = request.params as { id: string };
+  // DELETE /sessions/:createdAt — Groundskeeper: any; others: own only
+  // Uses createdAt timestamp as identifier to avoid exposing session tokens in URLs
+  app.delete("/sessions/:createdAt", { preHandler: requireAuth }, async (request, reply) => {
+    const { createdAt } = request.params as { createdAt: string };
 
     const session = db.select().from(schema.sessions)
-      .where(eq(schema.sessions.id, id))
+      .where(eq(schema.sessions.createdAt, createdAt))
       .get();
 
     if (!session) {
@@ -128,7 +131,7 @@ export async function userRoutes(app: FastifyInstance) {
       return reply.status(403).send({ error: "Insufficient permissions" });
     }
 
-    db.delete(schema.sessions).where(eq(schema.sessions.id, id)).run();
+    db.delete(schema.sessions).where(eq(schema.sessions.createdAt, createdAt)).run();
     return reply.status(204).send();
   });
 }

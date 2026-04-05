@@ -66,14 +66,7 @@ export interface MeResponse {
 }
 
 export async function getMe(): Promise<AuthUser | MeResponse> {
-  try {
-    return await request<AuthUser>("/auth/me");
-  } catch (err) {
-    if (err instanceof Error && err.message.includes("401")) {
-      throw err;
-    }
-    throw err;
-  }
+  return request<AuthUser | MeResponse>("/auth/me");
 }
 
 export function login(username: string, password: string): Promise<AuthUser> {

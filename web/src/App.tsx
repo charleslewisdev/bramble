@@ -95,12 +95,19 @@ export default function App() {
   const isSetupPage = useMatch("/setup");
   const isInvitePage = useMatch("/invite/:token");
 
-  if (isPrintPage) return <ShoppingListPrint />;
-
   // Public routes — no auth required
   if (isLoginPage) return <Login />;
   if (isSetupPage) return <Setup />;
   if (isInvitePage) return <InviteClaim />;
+
+  // Print page and all app routes require auth
+  if (isPrintPage) {
+    return (
+      <ProtectedRoute>
+        <ShoppingListPrint />
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute>

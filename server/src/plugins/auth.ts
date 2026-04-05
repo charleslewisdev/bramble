@@ -14,6 +14,14 @@ declare module "fastify" {
   }
 }
 
+// Cache setup mode — once a user exists, skip the COUNT query on every request
+let setupComplete = false;
+
+/** Call after first user is created to skip future setup checks */
+export function markSetupComplete() {
+  setupComplete = true;
+}
+
 export async function authPlugin(app: FastifyInstance) {
   await app.register(fastifyCookie);
 
@@ -21,11 +29,14 @@ export async function authPlugin(app: FastifyInstance) {
   app.decorateRequest("setupMode", false);
 
   app.addHook("onRequest", async (request: FastifyRequest) => {
-    // Check setup mode (0 users)
-    const result = db.select({ total: count() }).from(schema.users).get();
-    if (!result || result.total === 0) {
-      request.setupMode = true;
-      return;
+    // Check setup mode (0 users) — cached after first user exists
+    if (!setupComplete) {
+      const result = db.select({ total: count() }).from(schema.users).get();
+      if (!result || result.total === 0) {
+        request.setupMode = true;
+        return;
+      }
+      setupComplete = true;
     }
 
     const token = request.cookies.bramble_session;
