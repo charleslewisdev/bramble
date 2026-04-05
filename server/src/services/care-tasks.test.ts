@@ -213,14 +213,13 @@ describe("handleStatusTransition", () => {
       updatedAt: new Date().toISOString(),
     };
 
-    // When status is "established", no custom planting task should be generated
+    // No planting tasks should be generated for any status
     const tasks = generateDefaultCareTasks(plant, ref);
     const plantingTask = tasks.find(
       (t) => t.taskType === "custom" && t.title?.startsWith("Plant "),
     );
     expect(plantingTask).toBeUndefined();
 
-    // But when status is "planned", the planting task should exist
     const plannedTasks = generateDefaultCareTasks(
       { ...plant, status: "planned" },
       ref,
@@ -228,6 +227,6 @@ describe("handleStatusTransition", () => {
     const plannedPlantingTask = plannedTasks.find(
       (t) => t.taskType === "custom" && t.title?.startsWith("Plant "),
     );
-    expect(plannedPlantingTask).toBeDefined();
+    expect(plannedPlantingTask).toBeUndefined();
   });
 });

@@ -10,6 +10,7 @@ import { authPlugin } from "./plugins/auth.js";
 import { authRoutes } from "./routes/auth.js";
 import { inviteRoutes } from "./routes/invites.js";
 import { userRoutes } from "./routes/users.js";
+import { apiKeyRoutes } from "./routes/api-keys.js";
 import { locationRoutes } from "./routes/locations.js";
 import { zoneRoutes } from "./routes/zones.js";
 import { plantRoutes } from "./routes/plants.js";
@@ -62,6 +63,7 @@ app.setErrorHandler((error, request, reply) => {
 await app.register(authRoutes, { prefix: "/api/auth" });
 await app.register(inviteRoutes, { prefix: "/api/auth/invites" });
 await app.register(userRoutes, { prefix: "/api/users" });
+await app.register(apiKeyRoutes, { prefix: "/api/api-keys" });
 
 // App routes (auth guards applied within each route file)
 await app.register(locationRoutes, { prefix: "/api/locations" });
