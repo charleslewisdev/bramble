@@ -15,6 +15,7 @@ import { calculatePlantMood } from "../services/mood.js";
 import { checkOutdoorMovement } from "../services/outdoor-movement.js";
 import { z } from "zod";
 import { locationIdParamSchema } from "../lib/validation.js";
+import { requireAuth } from "../plugins/auth.js";
 
 function upsertWeatherCache(locationId: number, weather: Awaited<ReturnType<typeof fetchWeather>>) {
   // Wrap delete + insert in a transaction for atomicity
@@ -147,6 +148,9 @@ async function refreshMoodsForLocation(locationId: number) {
 }
 
 export async function weatherRoutes(app: FastifyInstance) {
+  // Auth: require login for all routes in this plugin
+  app.addHook("onRequest", requireAuth);
+
   // GET /:locationId - get cached weather for a location
   app.get<{ Params: { locationId: string } }>(
     "/:locationId",

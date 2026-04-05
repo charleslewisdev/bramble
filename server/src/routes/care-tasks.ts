@@ -5,6 +5,7 @@ import { eq, and, sql, inArray, count } from "drizzle-orm";
 import { z } from "zod";
 import { generateDefaultCareTasks } from "../services/care-tasks.js";
 import { idParamSchema, parsePagination, paginatedResult } from "../lib/validation.js";
+import { requireAuth, requireRole } from "../plugins/auth.js";
 
 const taskTypeEnum = z.enum([
   "water", "fertilize", "prune", "mulch", "harvest",
@@ -36,6 +37,9 @@ const logActionSchema = z.object({
 });
 
 export async function careTaskRoutes(app: FastifyInstance) {
+  // Auth: require login for all routes in this plugin
+  app.addHook("onRequest", requireAuth);
+
   // GET / - list care tasks with filters (supports ?page=&limit= pagination)
   app.get<{
     Querystring: {
@@ -128,7 +132,7 @@ export async function careTaskRoutes(app: FastifyInstance) {
   });
 
   // POST / - create task
-  app.post("/", async (request, reply) => {
+  app.post("/", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const parsed = createTaskSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid request body" });
@@ -144,7 +148,7 @@ export async function careTaskRoutes(app: FastifyInstance) {
   });
 
   // PUT /:id - update task
-  app.put<{ Params: { id: string } }>("/:id", async (request, reply) => {
+  app.put<{ Params: { id: string } }>("/:id", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const paramsParsed = idParamSchema.safeParse(request.params);
     if (!paramsParsed.success) {
       return reply.status(400).send({ error: "Invalid ID" });
@@ -178,7 +182,7 @@ export async function careTaskRoutes(app: FastifyInstance) {
   });
 
   // DELETE /:id - delete task
-  app.delete<{ Params: { id: string } }>("/:id", async (request, reply) => {
+  app.delete<{ Params: { id: string } }>("/:id", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const paramsParsed = idParamSchema.safeParse(request.params);
     if (!paramsParsed.success) {
       return reply.status(400).send({ error: "Invalid ID" });
@@ -224,6 +228,7 @@ export async function careTaskRoutes(app: FastifyInstance) {
         action: bodyParsed.data.action,
         notes: bodyParsed.data.notes,
         photoId: bodyParsed.data.photoId,
+        createdBy: request.user?.id ?? null,
       })
       .returning()
       .get();
@@ -358,7 +363,7 @@ export async function careTaskRoutes(app: FastifyInstance) {
     ids: z.array(z.number().int().positive()).min(1),
   });
 
-  app.delete("/bulk", async (request, reply) => {
+  app.delete("/bulk", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const parsed = bulkDeleteSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid request body" });
@@ -377,6 +382,7 @@ export async function careTaskRoutes(app: FastifyInstance) {
   // POST /generate/:plantInstanceId - generate default care tasks for a plant
   app.post<{ Params: { plantInstanceId: string } }>(
     "/generate/:plantInstanceId",
+    { preHandler: requireRole("gardener") },
     async (request, reply) => {
       const plantInstanceId = Number(request.params.plantInstanceId);
       if (isNaN(plantInstanceId) || plantInstanceId <= 0) {

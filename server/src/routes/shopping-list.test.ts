@@ -4,6 +4,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "../db/schema.js";
 import Fastify from "fastify";
 import { shoppingListRoutes } from "./shopping-list.js";
+import type { Role } from "../plugins/auth.js";
 
 // Create in-memory test database directly — bypass the db module
 const sqlite = new Database(":memory:");
@@ -22,6 +23,7 @@ sqlite.exec(`
     estimated_cost REAL,
     vendor_name TEXT,
     purchased_at TEXT,
+    created_by INTEGER,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
@@ -33,6 +35,14 @@ import * as dbModule from "../db/index.js";
 Object.defineProperty(dbModule, "db", { value: testDb, writable: true });
 
 const app = Fastify();
+
+// Fake auth — decorate request with a test user instead of using the full auth plugin
+app.decorateRequest("user", null);
+app.decorateRequest("setupMode", false);
+app.addHook("onRequest", async (request) => {
+  request.user = { id: 1, username: "testuser", displayName: "Test User", role: "gardener" as Role };
+  request.setupMode = false;
+});
 
 beforeAll(async () => {
   await app.register(shoppingListRoutes, { prefix: "/api/shopping-list" });

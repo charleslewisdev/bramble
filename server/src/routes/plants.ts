@@ -19,6 +19,7 @@ import { z } from "zod";
 import { generateDefaultCareTasks, handleStatusTransition } from "../services/care-tasks.js";
 import { calculatePlantMood } from "../services/mood.js";
 import { idParamSchema, parsePagination, paginatedResult } from "../lib/validation.js";
+import { requireAuth, requireRole } from "../plugins/auth.js";
 
 const plantTypeEnum = z.enum([
   "flower", "shrub", "tree", "herb", "grass", "fern", "succulent",
@@ -147,6 +148,9 @@ const perenualCounter = {
 };
 
 export async function plantRoutes(app: FastifyInstance) {
+  // Auth: require login for all routes in this plugin
+  app.addHook("onRequest", requireAuth);
+
   // ─── Plant References (encyclopedia) ────────────────────────────────────────
 
   // GET /references - search/list plant references (supports ?page=&limit= pagination)
@@ -208,7 +212,7 @@ export async function plantRoutes(app: FastifyInstance) {
   );
 
   // POST /references - create new reference
-  app.post("/references", async (request, reply) => {
+  app.post("/references", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const parsed = createReferenceSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid request body" });
@@ -224,7 +228,7 @@ export async function plantRoutes(app: FastifyInstance) {
   });
 
   // PUT /references/:id - update reference
-  app.put<{ Params: { id: string } }>("/references/:id", async (request, reply) => {
+  app.put<{ Params: { id: string } }>("/references/:id", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const paramsParsed = idParamSchema.safeParse(request.params);
     if (!paramsParsed.success) {
       return reply.status(400).send({ error: "Invalid ID" });
@@ -258,7 +262,7 @@ export async function plantRoutes(app: FastifyInstance) {
   });
 
   // DELETE /references/:id - delete reference (check for existing instances first)
-  app.delete<{ Params: { id: string } }>("/references/:id", async (request, reply) => {
+  app.delete<{ Params: { id: string } }>("/references/:id", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const paramsParsed = idParamSchema.safeParse(request.params);
     if (!paramsParsed.success) {
       return reply.status(400).send({ error: "Invalid ID" });
@@ -362,6 +366,7 @@ export async function plantRoutes(app: FastifyInstance) {
   // POST /import/:perenualId - import a plant from Perenual into local DB
   app.post<{ Params: { perenualId: string } }>(
     "/import/:perenualId",
+    { preHandler: requireRole("gardener") },
     async (request, reply) => {
       const perenualId = Number(request.params.perenualId);
       if (isNaN(perenualId) || perenualId <= 0 || !Number.isInteger(perenualId)) {
@@ -480,7 +485,7 @@ export async function plantRoutes(app: FastifyInstance) {
   );
 
   // POST /instances - create instance
-  app.post("/instances", async (request, reply) => {
+  app.post("/instances", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const parsed = createInstanceSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid request body" });
@@ -512,7 +517,7 @@ export async function plantRoutes(app: FastifyInstance) {
   });
 
   // PUT /instances/bulk - bulk update instances (must be registered before :id)
-  app.put("/instances/bulk", async (request, reply) => {
+  app.put("/instances/bulk", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const parsed = bulkUpdateInstanceSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid request body" });
@@ -552,7 +557,7 @@ export async function plantRoutes(app: FastifyInstance) {
   });
 
   // PUT /instances/:id - update instance
-  app.put<{ Params: { id: string } }>("/instances/:id", async (request, reply) => {
+  app.put<{ Params: { id: string } }>("/instances/:id", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const paramsParsed = idParamSchema.safeParse(request.params);
     if (!paramsParsed.success) {
       return reply.status(400).send({ error: "Invalid ID" });
@@ -598,6 +603,7 @@ export async function plantRoutes(app: FastifyInstance) {
   // DELETE /instances/:id - delete instance
   app.delete<{ Params: { id: string } }>(
     "/instances/:id",
+    { preHandler: requireRole("gardener") },
     async (request, reply) => {
       const paramsParsed = idParamSchema.safeParse(request.params);
       if (!paramsParsed.success) {
@@ -618,7 +624,7 @@ export async function plantRoutes(app: FastifyInstance) {
   );
 
   // POST /instances/refresh-moods - recalculate moods for all plants
-  app.post("/instances/refresh-moods", async () => {
+  app.post("/instances/refresh-moods", { preHandler: requireRole("gardener") }, async () => {
     const allInstances = await db.query.plantInstances.findMany({
       with: {
         plantReference: true,

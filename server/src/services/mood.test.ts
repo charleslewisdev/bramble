@@ -114,6 +114,7 @@ function makeWaterLog(completedAt: string): CareTaskLog {
     action: "completed",
     notes: null,
     photoId: null,
+    createdBy: null,
     rainProvisional: false,
     completedAt,
   };

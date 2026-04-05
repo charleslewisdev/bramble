@@ -4,6 +4,7 @@ import { zones } from "../db/schema.js";
 import { eq, count } from "drizzle-orm";
 import { z } from "zod";
 import { idParamSchema, parsePagination, paginatedResult } from "../lib/validation.js";
+import { requireAuth, requireRole } from "../plugins/auth.js";
 
 const sunExposureEnum = z.enum(["full_sun", "partial_sun", "partial_shade", "full_shade"]);
 const soilTypeEnum = z.enum(["clay", "sandy", "loamy", "silty", "peaty", "chalky", "mixed"]);
@@ -36,6 +37,9 @@ const createZoneSchema = z.object({
 const updateZoneSchema = createZoneSchema.omit({ locationId: true }).partial();
 
 export async function zoneRoutes(app: FastifyInstance) {
+  // Auth: require login for all routes in this plugin
+  app.addHook("onRequest", requireAuth);
+
   // GET / - list all zones (optionally filtered by locationId; supports ?page=&limit= pagination)
   app.get<{ Querystring: { locationId?: string; page?: string; limit?: string } }>(
     "/",
@@ -92,7 +96,7 @@ export async function zoneRoutes(app: FastifyInstance) {
   });
 
   // POST / - create zone
-  app.post("/", async (request, reply) => {
+  app.post("/", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const parsed = createZoneSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.issues[0]?.message ?? "Invalid request body" });
@@ -108,7 +112,7 @@ export async function zoneRoutes(app: FastifyInstance) {
   });
 
   // PUT /:id - update zone
-  app.put<{ Params: { id: string } }>("/:id", async (request, reply) => {
+  app.put<{ Params: { id: string } }>("/:id", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const paramsParsed = idParamSchema.safeParse(request.params);
     if (!paramsParsed.success) {
       return reply.status(400).send({ error: "Invalid ID" });
@@ -139,7 +143,7 @@ export async function zoneRoutes(app: FastifyInstance) {
   });
 
   // DELETE /:id - delete zone
-  app.delete<{ Params: { id: string } }>("/:id", async (request, reply) => {
+  app.delete<{ Params: { id: string } }>("/:id", { preHandler: requireRole("gardener") }, async (request, reply) => {
     const paramsParsed = idParamSchema.safeParse(request.params);
     if (!paramsParsed.success) {
       return reply.status(400).send({ error: "Invalid ID" });
