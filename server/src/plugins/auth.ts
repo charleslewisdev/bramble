@@ -40,36 +40,37 @@ export async function authPlugin(app: FastifyInstance) {
       setupComplete = true;
     }
 
-    // Try API key auth first (Authorization: Bearer brk_...)
+    // Try Bearer token auth (API keys use brk_ prefix)
     const authHeader = request.headers.authorization;
-    if (authHeader?.startsWith("Bearer brk_")) {
-      const key = authHeader.slice(7); // strip "Bearer "
-      const keyHash = hashApiKey(key);
-      const apiKey = db.select().from(schema.apiKeys)
-        .where(eq(schema.apiKeys.keyHash, keyHash))
-        .get();
-
-      if (apiKey) {
-        const user = db.select({
-          id: schema.users.id,
-          username: schema.users.username,
-          displayName: schema.users.displayName,
-          role: schema.users.role,
-        }).from(schema.users)
-          .where(and(eq(schema.users.id, apiKey.userId), eq(schema.users.isActive, true)))
+    if (authHeader?.startsWith("Bearer ")) {
+      const key = authHeader.slice(7);
+      if (key.startsWith("brk_")) {
+        const keyHash = hashApiKey(key);
+        const apiKey = db.select().from(schema.apiKeys)
+          .where(eq(schema.apiKeys.keyHash, keyHash))
           .get();
 
-        if (user) {
-          request.user = user as { id: number; username: string; displayName: string; role: Role };
-          // Update last used timestamp (fire-and-forget)
-          db.update(schema.apiKeys)
-            .set({ lastUsedAt: new Date().toISOString() })
-            .where(eq(schema.apiKeys.id, apiKey.id))
-            .run();
-          return;
+        if (apiKey) {
+          const user = db.select({
+            id: schema.users.id,
+            username: schema.users.username,
+            displayName: schema.users.displayName,
+            role: schema.users.role,
+          }).from(schema.users)
+            .where(and(eq(schema.users.id, apiKey.userId), eq(schema.users.isActive, true)))
+            .get();
+
+          if (user) {
+            request.user = user as { id: number; username: string; displayName: string; role: Role };
+            // Update last used timestamp (fire-and-forget)
+            db.update(schema.apiKeys)
+              .set({ lastUsedAt: new Date().toISOString() })
+              .where(eq(schema.apiKeys.id, apiKey.id))
+              .run();
+          }
         }
       }
-      return; // Invalid API key — don't fall through to cookie auth
+      return; // Any Bearer header = explicit auth attempt, don't fall through to cookies
     }
 
     // Cookie session auth

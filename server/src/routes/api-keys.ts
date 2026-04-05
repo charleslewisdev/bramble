@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db, schema } from "../db/index.js";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { generateApiKey, hashApiKey, apiKeyPrefix } from "../services/auth.js";
 import { requireRole } from "../plugins/auth.js";
 import { idParamSchema } from "../lib/validation.js";
@@ -50,13 +50,13 @@ export async function apiKeyRoutes(app: FastifyInstance) {
     });
   });
 
-  // POST /:id/regenerate — regenerate an existing API key
+  // POST /:id/regenerate — regenerate an existing API key (own keys only)
   app.post("/:id/regenerate", async (request, reply) => {
     const { id } = idParamSchema.parse(request.params);
     const keyId = Number(id);
 
     const existing = db.select().from(schema.apiKeys)
-      .where(eq(schema.apiKeys.id, keyId))
+      .where(and(eq(schema.apiKeys.id, keyId), eq(schema.apiKeys.userId, request.user!.id)))
       .get();
 
     if (!existing) {
@@ -82,11 +82,11 @@ export async function apiKeyRoutes(app: FastifyInstance) {
     });
   });
 
-  // DELETE /:id — revoke an API key
+  // DELETE /:id — revoke an API key (own keys only)
   app.delete("/:id", async (request, reply) => {
     const { id } = idParamSchema.parse(request.params);
     const result = db.delete(schema.apiKeys)
-      .where(eq(schema.apiKeys.id, Number(id)))
+      .where(and(eq(schema.apiKeys.id, Number(id)), eq(schema.apiKeys.userId, request.user!.id)))
       .run();
 
     if (result.changes === 0) {

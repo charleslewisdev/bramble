@@ -829,7 +829,7 @@ export const invitesRelations = relations(invites, ({ one }) => ({
 export const apiKeys = sqliteTable("api_keys", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(), // label, e.g. "Home Assistant"
-  keyHash: text("key_hash").notNull(), // SHA-256 hash of the key
+  keyHash: text("key_hash").notNull().unique(), // SHA-256 hash of the key
   keyPrefix: text("key_prefix").notNull(), // first 8 chars for display ("brk_a1b2...")
   userId: integer("user_id")
     .notNull()

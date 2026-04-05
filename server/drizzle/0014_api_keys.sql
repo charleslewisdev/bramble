@@ -8,4 +8,4 @@ CREATE TABLE `api_keys` (
 	`created_at` text NOT NULL
 );
 --> statement-breakpoint
-CREATE INDEX `api_keys_key_hash_idx` ON `api_keys` (`key_hash`);
+CREATE UNIQUE INDEX `api_keys_key_hash_idx` ON `api_keys` (`key_hash`);
