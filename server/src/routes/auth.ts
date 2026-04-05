@@ -13,10 +13,13 @@ import { requireAuth, markSetupComplete } from "../plugins/auth.js";
 const SESSION_COOKIE = "bramble_session";
 
 function cookieOptions(maxAge?: number) {
+  // Secure flag requires HTTPS — only enable when explicitly configured,
+  // not based on NODE_ENV (self-hosted instances often run HTTP behind a proxy)
+  const secure = process.env.COOKIE_SECURE === "true";
   return {
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    secure,
     path: "/",
     maxAge: maxAge ?? Math.floor(SESSION_MAX_AGE_MS / 1000),
   };
