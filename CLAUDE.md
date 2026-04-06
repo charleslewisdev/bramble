@@ -88,22 +88,24 @@ The MCP tools are a 1:1 mapping of the API — `mcp/src/api.ts` contains the HTT
 
 ### Transports
 
-**Stdio** (Claude Code / local): default, no config needed
+**Stdio** (Claude Code / local): the `mcp/` package, no config needed
 ```bash
 BRAMBLE_URL=http://10.0.0.4:3333 BRAMBLE_API_KEY=brk_... pnpm --filter bramble-mcp dev
 ```
 
-**HTTP** (Claude.ai / remote connectors): set `MCP_TRANSPORT=http`
-```bash
-MCP_TRANSPORT=http MCP_PORT=3100 BRAMBLE_URL=http://10.0.0.4:3333 BRAMBLE_API_KEY=brk_... node mcp/dist/index.js
-```
-Endpoint: `http://<host>:3100/mcp` — expose via HAProxy for Claude.ai connectors.
+**HTTP** (Claude.ai / remote connectors): mounted on the Fastify server at `/mcp`
+- Same port as the API — no separate process or port
+- Requires `BRAMBLE_API_KEY` env var to be set (otherwise MCP endpoint is disabled)
+- Endpoint: `http://<host>:3000/mcp` (or whatever `PORT` is set to)
+- Auth: Bearer token using `BRAMBLE_API_KEY`
 
 ### Tool files
 
 - `mcp/src/tools.ts` — tool definitions (schemas + handlers)
 - `mcp/src/api.ts` — HTTP client functions mapping to Bramble API routes
-- `mcp/src/index.ts` — server entry point (transport selection)
+- `mcp/src/server.ts` — shared server factory (used by both stdio and Fastify)
+- `mcp/src/index.ts` — stdio entry point (Claude Code local use)
+- `server/src/plugins/mcp.ts` — Fastify plugin mounting MCP HTTP transport
 
 ## Development Lifecycle
 

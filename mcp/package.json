@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": "./dist/index.js",
+    "./server": "./dist/server.js"
+  },
   "bin": {
     "bramble-mcp": "./dist/index.js"
   },
@@ -13,8 +17,6 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@types/express": "^5.0.6",
-    "express": "^5.2.1",
     "zod": "^3.25.76"
   },
   "devDependencies": {
