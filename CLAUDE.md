@@ -72,6 +72,39 @@ All core app functionality works without LLM access.
 | **Testing** | `vitest` | Test conventions |
 | **Brain** | `brain-integration` | Persistent knowledge store |
 
+## MCP Server (`mcp/`)
+
+The `mcp/` package is a Model Context Protocol server that wraps the Bramble REST API, allowing AI tools (Claude.ai, etc.) to interact with the garden data.
+
+### MCP Sync Rule
+
+**When you add, remove, or change an API route in `server/src/routes/`, you MUST update the corresponding MCP tool in `mcp/src/index.ts`.** This includes:
+- New endpoints → add a new `server.tool()` call
+- Changed request/response shape → update the tool's schema and API call
+- Removed endpoints → remove the corresponding tool
+- New query parameters → add them to the tool's zod schema
+
+The MCP tools are a 1:1 mapping of the API — `mcp/src/api.ts` contains the HTTP client functions and `mcp/src/index.ts` defines the tool schemas. Keep both in sync.
+
+### Transports
+
+**Stdio** (Claude Code / local): default, no config needed
+```bash
+BRAMBLE_URL=http://10.0.0.4:3333 BRAMBLE_API_KEY=brk_... pnpm --filter bramble-mcp dev
+```
+
+**HTTP** (Claude.ai / remote connectors): set `MCP_TRANSPORT=http`
+```bash
+MCP_TRANSPORT=http MCP_PORT=3100 BRAMBLE_URL=http://10.0.0.4:3333 BRAMBLE_API_KEY=brk_... node mcp/dist/index.js
+```
+Endpoint: `http://<host>:3100/mcp` — expose via HAProxy for Claude.ai connectors.
+
+### Tool files
+
+- `mcp/src/tools.ts` — tool definitions (schemas + handlers)
+- `mcp/src/api.ts` — HTTP client functions mapping to Bramble API routes
+- `mcp/src/index.ts` — server entry point (transport selection)
+
 ## Development Lifecycle
 
 ### Starting a session
