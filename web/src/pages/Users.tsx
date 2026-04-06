@@ -36,6 +36,22 @@ const roleColors: Record<UserRole, string> = {
   helper: "text-sky-400",
 };
 
+/** Clipboard fallback for HTTP (navigator.clipboard requires secure context) */
+function copyToClipboard(text: string) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text);
+    return;
+  }
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  document.body.removeChild(ta);
+}
+
 export default function Users() {
   const { user: currentUser } = useAuth();
   const { showToast } = useToast();
@@ -127,7 +143,7 @@ export default function Users() {
 
   function copyInviteUrl(invite: InviteRecord) {
     const url = `${window.location.origin}/invite/${invite.token}`;
-    navigator.clipboard.writeText(url);
+    copyToClipboard(url);
     setCopiedId(invite.id);
     setTimeout(() => setCopiedId(null), 2000);
   }
@@ -314,7 +330,7 @@ export default function Users() {
               </code>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(revealedKey);
+                  copyToClipboard(revealedKey);
                   setCopiedKey(true);
                   setTimeout(() => setCopiedKey(false), 2000);
                 }}
