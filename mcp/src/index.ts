@@ -1,30 +1,18 @@
 #!/usr/bin/env node
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import express from "express";
 import { randomUUID } from "crypto";
-import { z } from "zod";
-import { api } from "./api.js";
-import { registerTools } from "./tools.js";
+import { createConfiguredMcpServer } from "./server.js";
 
 const TRANSPORT = process.env.MCP_TRANSPORT ?? "stdio"; // "stdio" or "http"
 const PORT = parseInt(process.env.MCP_PORT ?? "3100", 10);
 
-function createServer(): McpServer {
-  const server = new McpServer({
-    name: "bramble",
-    version: "0.1.0",
-  });
-  registerTools(server);
-  return server;
-}
-
 // ─── Stdio transport (for Claude Code / local use) ──────────────────────────
 
 async function startStdio() {
-  const server = createServer();
+  const server = createConfiguredMcpServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
@@ -55,7 +43,7 @@ async function startHttp() {
           const sid = transport.sessionId;
           if (sid) transports.delete(sid);
         };
-        const server = createServer();
+        const server = createConfiguredMcpServer();
         await server.connect(transport);
       } else {
         res.status(400).json({
