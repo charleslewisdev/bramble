@@ -3,12 +3,10 @@
 const BRAMBLE_URL = process.env.BRAMBLE_URL ?? "http://10.0.0.4:3333";
 const BRAMBLE_API_KEY = process.env.BRAMBLE_API_KEY ?? "";
 
-if (!BRAMBLE_API_KEY) {
-  console.error("BRAMBLE_API_KEY environment variable is required");
-  process.exit(1);
-}
-
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  if (!BRAMBLE_API_KEY) {
+    throw new Error("BRAMBLE_API_KEY environment variable is required for MCP API calls");
+  }
   const headers: Record<string, string> = {
     Authorization: `Bearer ${BRAMBLE_API_KEY}`,
     ...init?.headers as Record<string, string>,
