@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build MCP package (server dependency)
+        run: pnpm --filter bramble-mcp build
+
       - name: TypeScript compile (server)
         run: pnpm --filter server exec tsc --noEmit
 
