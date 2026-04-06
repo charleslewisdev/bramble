@@ -9,14 +9,14 @@ if (!BRAMBLE_API_KEY) {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BRAMBLE_URL}/api${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${BRAMBLE_API_KEY}`,
-      "Content-Type": "application/json",
-      ...init?.headers,
-    },
-  });
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${BRAMBLE_API_KEY}`,
+    ...init?.headers as Record<string, string>,
+  };
+  if (init?.body) {
+    headers["Content-Type"] = "application/json";
+  }
+  const res = await fetch(`${BRAMBLE_URL}/api${path}`, { ...init, headers });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error(`Bramble API ${res.status}: ${body}`);
@@ -74,10 +74,8 @@ export const api = {
   },
   getCareTask: (id: number) => request<any>(`/care-tasks/${id}`),
   createCareTask: (data: any) => post<any>("/care-tasks", data),
-  completeCareTask: (id: number, notes?: string) =>
-    post<any>(`/care-tasks/${id}/log`, { action: "completed", notes }),
-  skipCareTask: (id: number, notes?: string) =>
-    post<any>(`/care-tasks/${id}/log`, { action: "skipped", notes }),
+  logCareTask: (id: number, action: string, notes?: string) =>
+    post<any>(`/care-tasks/${id}/log`, { action, notes }),
 
   // Shopping list
   getShoppingList: () => request<any[]>("/shopping-list"),
@@ -87,13 +85,23 @@ export const api = {
   deleteShoppingItem: (id: number) => del(`/shopping-list/${id}`),
 
   // Journal
-  getJournalEntries: (plantInstanceId: number) =>
-    request<any[]>(`/journal?plantInstanceId=${plantInstanceId}`),
+  getJournalEntries: (plantInstanceId?: number, zoneId?: number, locationId?: number) => {
+    const sp = new URLSearchParams();
+    if (plantInstanceId) sp.set("plantInstanceId", String(plantInstanceId));
+    if (zoneId) sp.set("zoneId", String(zoneId));
+    if (locationId) sp.set("locationId", String(locationId));
+    return request<any[]>(`/journal?${sp}`);
+  },
   createJournalEntry: (data: any) => post<any>("/journal", data),
 
-  // Weather
+  // Weather & Alerts
   getWeather: (locationId: number) => request<any>(`/weather/${locationId}`),
+  getAlerts: (locationId: number) => request<any>(`/alerts/${locationId}`),
 
   // Dashboard
   getDashboard: (locationId: number) => request<any>(`/locations/${locationId}/dashboard`),
+
+  // Photos
+  uploadPhoto: (plantInstanceId: number, imageData: string, caption?: string) =>
+    post<any>("/photos", { plantInstanceId, imageData, caption }),
 };
