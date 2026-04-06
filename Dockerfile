@@ -12,14 +12,14 @@ RUN pnpm install --frozen-lockfile 2>/dev/null || pnpm install
 # Copy server source (needed by web for shared types import)
 COPY server/ server/
 
+# Build MCP server (server depends on bramble-mcp/server export)
+COPY mcp/ mcp/
+RUN pnpm --filter bramble-mcp build
+
 # Build web
 COPY web/ web/
 RUN pnpm --filter web build
 RUN pnpm --filter server build
-
-# Build MCP server
-COPY mcp/ mcp/
-RUN pnpm --filter bramble-mcp build
 
 # Production stage
 FROM node:22-slim AS production
