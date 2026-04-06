@@ -677,7 +677,7 @@ export function useTestNotificationChannel() {
 }
 
 export function useNotificationPreferences() {
-  return useQuery<NotificationPreference[]>({
+  return useQuery<Record<string, { enabled: boolean; frequency: string }>>({
     queryKey: ["notificationPreferences"],
     queryFn: api.getNotificationPreferences,
   });

@@ -705,7 +705,7 @@ export function testNotificationChannel(id: number) {
 }
 
 export function getNotificationPreferences() {
-  return request<NotificationPreference[]>("/notifications/preferences");
+  return request<Record<string, { enabled: boolean; frequency: string }>>("/notifications/preferences");
 }
 
 export function updateNotificationPreference(

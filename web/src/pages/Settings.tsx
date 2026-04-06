@@ -261,7 +261,9 @@ export default function Settings() {
           <>
             <div className="space-y-2">
               {(taskTypes.filter((t) => t !== "custom") as CareTaskType[]).map((tt) => {
-                const pref = notifPrefs?.find((p) => p.taskType === tt);
+                // Preferences come as a Record<taskType, {enabled, frequency}> from the API
+                const prefsMap = notifPrefs as unknown as Record<string, { enabled: boolean; frequency: string }> | undefined;
+                const pref = prefsMap?.[tt];
                 const enabled = pref?.enabled ?? true;
                 const frequency = pref?.frequency ?? "daily_digest";
                 return (
@@ -317,7 +319,7 @@ export default function Settings() {
                 </label>
                 <input
                   type="time"
-                  defaultValue={notifPrefs?.[0]?.digestTime ?? "08:00"}
+                  defaultValue={(notifPrefs as Record<string, { enabled: boolean; frequency: string; digestTime?: string }> | undefined)?.water?.digestTime ?? "08:00"}
                   onChange={(e) => {
                     // Update digest time for all preferences
                     const time = e.target.value;
