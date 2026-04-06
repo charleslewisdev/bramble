@@ -4,7 +4,6 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { randomUUID } from "crypto";
 import { createConfiguredMcpServer } from "bramble-mcp/server";
-import { validateOAuthToken } from "./oauth.js";
 
 const MCP_API_KEY = process.env.BRAMBLE_API_KEY ?? "";
 
@@ -17,10 +16,10 @@ async function mcpPlugin(app: FastifyInstance) {
   const transports = new Map<string, StreamableHTTPServerTransport>();
 
   app.all("/mcp", async (request: FastifyRequest, reply: FastifyReply) => {
-    // Auth: accept direct API key or OAuth-issued token
+    // Auth: Bearer token must match the API key (issued directly or via OAuth)
     const authHeader = request.headers.authorization;
     const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : "";
-    if (!token || (token !== MCP_API_KEY && !validateOAuthToken(token))) {
+    if (!token || token !== MCP_API_KEY) {
       const proto = request.headers["x-forwarded-proto"] || "http";
       const host = request.headers["x-forwarded-host"] || request.headers.host;
       const resourceMetadataUrl = `${proto}://${host}/.well-known/oauth-protected-resource/mcp`;

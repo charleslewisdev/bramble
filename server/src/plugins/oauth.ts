@@ -3,12 +3,8 @@ import { randomBytes, createHash } from "crypto";
 
 const MCP_API_KEY = process.env.BRAMBLE_API_KEY ?? "";
 
-// ─── Token store ────────────────────────────────────────────────────────────
-
-const TOKEN_TTL_MS = 3600 * 1000;
-const tokens = new Map<string, number>(); // token → expiresAt
-
 // ─── Authorization code store (PKCE) ────────────────────────────────────────
+// Auth codes are short-lived (60s) and consumed once — in-memory is fine.
 
 interface AuthCode {
   code: string;
@@ -17,30 +13,15 @@ interface AuthCode {
   codeChallenge: string;
   expiresAt: number;
 }
-const CODE_TTL_MS = 60 * 1000; // 1 minute
+const CODE_TTL_MS = 60 * 1000;
 const authCodes = new Map<string, AuthCode>();
 
-// Periodic cleanup
 setInterval(() => {
   const now = Date.now();
-  for (const [k, v] of tokens) {
-    if (now > v) tokens.delete(k);
-  }
   for (const [k, v] of authCodes) {
     if (now > v.expiresAt) authCodes.delete(k);
   }
 }, 60_000).unref();
-
-/** Validate an OAuth-issued access token */
-export function validateOAuthToken(token: string): boolean {
-  const expiresAt = tokens.get(token);
-  if (!expiresAt) return false;
-  if (Date.now() > expiresAt) {
-    tokens.delete(token);
-    return false;
-  }
-  return true;
-}
 
 function getBaseUrl(request: FastifyRequest): string {
   const proto = request.headers["x-forwarded-proto"] || "http";
@@ -48,11 +29,14 @@ function getBaseUrl(request: FastifyRequest): string {
   return `${proto}://${host}`;
 }
 
+/**
+ * Issue the API key itself as the access token. This is intentional:
+ * - The OAuth client_secret IS the API key, so no additional exposure
+ * - Tokens survive container restarts (no in-memory store to lose)
+ * - The MCP plugin already accepts the API key as a Bearer token
+ */
 function issueToken(): { access_token: string; token_type: string; expires_in: number } {
-  const token = randomBytes(32).toString("base64url");
-  const expiresIn = 3600;
-  tokens.set(token, Date.now() + expiresIn * 1000);
-  return { access_token: token, token_type: "Bearer", expires_in: expiresIn };
+  return { access_token: MCP_API_KEY, token_type: "Bearer", expires_in: 3600 };
 }
 
 /** S256 PKCE verification */
@@ -128,8 +112,6 @@ async function oauthPlugin(app: FastifyInstance) {
   });
 
   // ─── Dynamic Client Registration (RFC 7591) ────────────────────────────
-  // Claude.ai may register itself as a client before starting the auth flow.
-  // For a single-user app, we accept any registration and return the client_id.
 
   app.post("/oauth/register", async (request, reply) => {
     const body = request.body as Record<string, unknown>;
@@ -145,19 +127,18 @@ async function oauthPlugin(app: FastifyInstance) {
   });
 
   // ─── Authorization Endpoint ─────────────────────────────────────────────
-  // Auto-approves for single-user self-hosted — you consented by setting up
-  // the connector. Generates an auth code and redirects back immediately.
+  // Auto-approves for single-user self-hosted app.
 
   app.get("/authorize", async (request, reply) => {
     const query = request.query as Record<string, string>;
     const {
       response_type,
-      client_id,
       redirect_uri,
       state,
       code_challenge,
       code_challenge_method,
     } = query;
+    const clientId = query.client_id ?? "";
 
     if (response_type !== "code") {
       return reply.status(400).send({
@@ -180,17 +161,15 @@ async function oauthPlugin(app: FastifyInstance) {
       });
     }
 
-    // Generate authorization code
     const code = randomBytes(32).toString("base64url");
     authCodes.set(code, {
       code,
-      clientId: client_id ?? "",
+      clientId,
       redirectUri: redirect_uri,
       codeChallenge: code_challenge ?? "",
       expiresAt: Date.now() + CODE_TTL_MS,
     });
 
-    // Build redirect URL with code and state
     const redirectUrl = new URL(redirect_uri);
     redirectUrl.searchParams.set("code", code);
     if (state) {
@@ -209,7 +188,6 @@ async function oauthPlugin(app: FastifyInstance) {
     const codeVerifier = body.code_verifier ?? "";
     const redirectUri = body.redirect_uri ?? "";
 
-    // Extract client secret from body or Basic auth header
     let clientSecret = body.client_secret;
     if (!clientSecret) {
       const authHeader = request.headers.authorization;
@@ -234,7 +212,6 @@ async function oauthPlugin(app: FastifyInstance) {
         });
       }
 
-      // Verify redirect_uri matches
       if (redirectUri && redirectUri !== authCode.redirectUri) {
         authCodes.delete(code);
         return reply.status(400).send({
@@ -243,7 +220,6 @@ async function oauthPlugin(app: FastifyInstance) {
         });
       }
 
-      // Verify PKCE if code_challenge was provided
       if (authCode.codeChallenge) {
         if (!codeVerifier || !verifyPkce(codeVerifier, authCode.codeChallenge)) {
           authCodes.delete(code);
@@ -254,7 +230,6 @@ async function oauthPlugin(app: FastifyInstance) {
         }
       }
 
-      // Code is valid — consume it and issue token
       authCodes.delete(code);
       return issueToken();
     }
