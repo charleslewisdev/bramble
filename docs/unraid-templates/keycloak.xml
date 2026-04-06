@@ -1,0 +1,76 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>Keycloak</Name>
+  <Repository>quay.io/keycloak/keycloak:26.5</Repository>
+  <Registry>https://quay.io/repository/keycloak/keycloak</Registry>
+  <Network>bridge</Network>
+  <Privileged>false</Privileged>
+  <Project>https://www.keycloak.org/</Project>
+  <Overview>Open-source identity and access management. Provides OAuth 2.1 / OpenID Connect for self-hosted services. Used as the identity provider for MCP auth proxies.</Overview>
+  <Category>Tools:Utilities Network:Other</Category>
+  <WebUI>http://[IP]:[PORT:8080]/</WebUI>
+  <Icon>https://www.keycloak.org/resources/images/icon.svg</Icon>
+  <PostArgs>start-dev</PostArgs>
+
+  <Config
+    Name="Web UI Port"
+    Target="8080"
+    Default="8080"
+    Mode="tcp"
+    Type="Port"
+    Display="always"
+    Required="true"
+    Mask="false"
+  >8080</Config>
+
+  <Config
+    Name="Admin Username"
+    Target="KC_BOOTSTRAP_ADMIN_USERNAME"
+    Default="admin"
+    Type="Variable"
+    Display="always"
+    Required="true"
+    Mask="false"
+  >admin</Config>
+
+  <Config
+    Name="Admin Password"
+    Target="KC_BOOTSTRAP_ADMIN_PASSWORD"
+    Default=""
+    Type="Variable"
+    Display="always"
+    Required="true"
+    Mask="true"
+  />
+
+  <Config
+    Name="Proxy Headers (set if behind reverse proxy)"
+    Target="KC_PROXY_HEADERS"
+    Default="xforwarded"
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false"
+  >xforwarded</Config>
+
+  <Config
+    Name="Hostname (external domain, optional)"
+    Target="KC_HOSTNAME"
+    Default=""
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false"
+  />
+
+  <Config
+    Name="Data Directory"
+    Target="/opt/keycloak/data"
+    Default="/mnt/user/appdata/keycloak"
+    Mode="rw"
+    Type="Path"
+    Display="always"
+    Required="true"
+    Mask="false"
+  >/mnt/user/appdata/keycloak</Config>
+</Container>

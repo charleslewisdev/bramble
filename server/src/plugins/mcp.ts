@@ -16,21 +16,16 @@ async function mcpPlugin(app: FastifyInstance) {
   const transports = new Map<string, StreamableHTTPServerTransport>();
 
   app.all("/mcp", async (request: FastifyRequest, reply: FastifyReply) => {
-    // Auth: Bearer token must match the API key (issued directly or via OAuth)
+    // API key auth — mcp-auth-proxy handles OAuth externally and forwards
+    // the API key as a Bearer token via PROXY_BEARER_TOKEN
     const authHeader = request.headers.authorization;
     const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : "";
     if (!token || token !== MCP_API_KEY) {
-      const proto = request.headers["x-forwarded-proto"] || "http";
-      const host = request.headers["x-forwarded-host"] || request.headers.host;
-      const resourceMetadataUrl = `${proto}://${host}/.well-known/oauth-protected-resource/mcp`;
-      return reply
-        .status(401)
-        .header("WWW-Authenticate", `Bearer resource_metadata="${resourceMetadataUrl}"`)
-        .send({
-          jsonrpc: "2.0",
-          error: { code: -32000, message: "Unauthorized" },
-          id: null,
-        });
+      return reply.status(401).send({
+        jsonrpc: "2.0",
+        error: { code: -32000, message: "Unauthorized" },
+        id: null,
+      });
     }
 
     const sessionId = request.headers["mcp-session-id"] as string | undefined;
