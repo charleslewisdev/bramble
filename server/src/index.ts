@@ -7,6 +7,7 @@ import cors from "@fastify/cors";
 import { ZodError } from "zod";
 import { db } from "./db/index.js";
 import { authPlugin } from "./plugins/auth.js";
+import mcpPlugin from "./plugins/mcp.js";
 import { authRoutes } from "./routes/auth.js";
 import { inviteRoutes } from "./routes/invites.js";
 import { userRoutes } from "./routes/users.js";
@@ -58,6 +59,9 @@ app.setErrorHandler((error, request, reply) => {
   request.log.error(error, "Unhandled error");
   return reply.status(500).send({ error: "Internal server error" });
 });
+
+// MCP endpoint (API-key gated, no session auth)
+await app.register(mcpPlugin);
 
 // Auth routes (public — no guards on the plugin itself)
 await app.register(authRoutes, { prefix: "/api/auth" });
