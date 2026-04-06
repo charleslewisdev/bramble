@@ -4,12 +4,15 @@ services:
     container_name: bramble
     ports:
       - "3000:3000"
+      - "3100:3100"  # MCP server (set BRAMBLE_API_KEY to enable)
     volumes:
       - bramble-data:/data
     environment:
       - DATABASE_URL=/data/bramble.db
       - PHOTOS_DIR=/data/photos
       - PORT=3000
+      - MCP_PORT=3100
+      - BRAMBLE_API_KEY=${BRAMBLE_API_KEY:-}  # Set to enable MCP server
       - PERENUAL_API_KEY=${PERENUAL_API_KEY:-}  # Optional: enables online plant search
     restart: unless-stopped
 
