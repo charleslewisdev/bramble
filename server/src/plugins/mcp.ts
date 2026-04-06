@@ -4,6 +4,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { randomUUID } from "crypto";
 import { createConfiguredMcpServer } from "bramble-mcp/server";
+import { validateOAuthToken } from "./oauth.js";
 
 const MCP_API_KEY = process.env.BRAMBLE_API_KEY ?? "";
 
@@ -16,14 +17,21 @@ async function mcpPlugin(app: FastifyInstance) {
   const transports = new Map<string, StreamableHTTPServerTransport>();
 
   app.all("/mcp", async (request: FastifyRequest, reply: FastifyReply) => {
-    // API key auth
+    // Auth: accept direct API key or OAuth-issued token
     const authHeader = request.headers.authorization;
-    if (!authHeader || authHeader !== `Bearer ${MCP_API_KEY}`) {
-      return reply.status(401).send({
-        jsonrpc: "2.0",
-        error: { code: -32000, message: "Unauthorized" },
-        id: null,
-      });
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    if (!token || (token !== MCP_API_KEY && !validateOAuthToken(token))) {
+      const proto = request.headers["x-forwarded-proto"] || "http";
+      const host = request.headers["x-forwarded-host"] || request.headers.host;
+      const resourceMetadataUrl = `${proto}://${host}/.well-known/oauth-protected-resource/mcp`;
+      return reply
+        .status(401)
+        .header("WWW-Authenticate", `Bearer resource_metadata="${resourceMetadataUrl}"`)
+        .send({
+          jsonrpc: "2.0",
+          error: { code: -32000, message: "Unauthorized" },
+          id: null,
+        });
     }
 
     const sessionId = request.headers["mcp-session-id"] as string | undefined;

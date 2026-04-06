@@ -7,6 +7,7 @@ import cors from "@fastify/cors";
 import { ZodError } from "zod";
 import { db } from "./db/index.js";
 import { authPlugin } from "./plugins/auth.js";
+import oauthPlugin from "./plugins/oauth.js";
 import mcpPlugin from "./plugins/mcp.js";
 import { authRoutes } from "./routes/auth.js";
 import { inviteRoutes } from "./routes/invites.js";
@@ -60,7 +61,10 @@ app.setErrorHandler((error, request, reply) => {
   return reply.status(500).send({ error: "Internal server error" });
 });
 
-// MCP endpoint (API-key gated, no session auth)
+// OAuth discovery + token endpoints (for Claude.ai MCP connector)
+await app.register(oauthPlugin);
+
+// MCP endpoint (API-key or OAuth token gated, no session auth)
 await app.register(mcpPlugin);
 
 // Auth routes (public — no guards on the plugin itself)
