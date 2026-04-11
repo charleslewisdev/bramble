@@ -63,10 +63,11 @@ export const api = {
   createPlantReference: (data: any) => post<any>("/plants/references", data),
 
   // Care tasks
-  getCareTasks: (params?: { plantInstanceId?: number; upcoming?: boolean }) => {
+  getCareTasks: (params?: { plantInstanceId?: number; upcoming?: boolean; includeCompleted?: boolean }) => {
     const sp = new URLSearchParams();
     if (params?.plantInstanceId) sp.set("plantInstanceId", String(params.plantInstanceId));
     if (params?.upcoming) sp.set("upcoming", "true");
+    if (params?.includeCompleted) sp.set("includeCompleted", "true");
     const q = sp.toString() ? `?${sp}` : "";
     return request<any[]>(`/care-tasks${q}`);
   },

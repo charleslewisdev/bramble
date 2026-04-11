@@ -411,6 +411,9 @@ export const careTasks = sqliteTable("care_tasks", {
   lastNotifiedAt: text("last_notified_at"),
   // Plant-POV message for notifications
   plantMessage: text("plant_message"), // "I could use a trim! 🌿"
+  // Set when a one-time (non-recurring) task is completed or skipped. Filtered
+  // out of the default list view. Recurring tasks advance dueDate instead.
+  completedAt: text("completed_at"),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
@@ -421,6 +424,7 @@ export const careTasks = sqliteTable("care_tasks", {
   index("care_tasks_plant_instance_id_idx").on(table.plantInstanceId),
   index("care_tasks_zone_id_idx").on(table.zoneId),
   index("care_tasks_due_date_idx").on(table.dueDate),
+  index("care_tasks_completed_at_idx").on(table.completedAt),
 ]);
 
 export const careTasksRelations = relations(careTasks, ({ one, many }) => ({

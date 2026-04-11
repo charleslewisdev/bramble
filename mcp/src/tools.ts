@@ -106,13 +106,14 @@ export function registerTools(server: McpServer) {
 
   server.tool(
     "list_care_tasks",
-    "List care tasks, optionally filtered by plant or upcoming only",
+    "List active care tasks, optionally filtered by plant or upcoming only. Completed one-time tasks are excluded by default.",
     {
       plant_id: z.number().optional().describe("Filter by plant instance ID"),
       upcoming: z.boolean().optional().describe("Only show upcoming/due tasks"),
+      include_completed: z.boolean().optional().describe("Include one-time tasks that have been marked done"),
     },
-    async ({ plant_id, upcoming }) => handle(async () => {
-      const tasks = await api.getCareTasks({ plantInstanceId: plant_id, upcoming });
+    async ({ plant_id, upcoming, include_completed }) => handle(async () => {
+      const tasks = await api.getCareTasks({ plantInstanceId: plant_id, upcoming, includeCompleted: include_completed });
       const summary = tasks.map((t: any) => ({
         id: t.id,
         title: t.title,

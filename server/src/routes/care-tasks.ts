@@ -47,11 +47,12 @@ export async function careTaskRoutes(app: FastifyInstance) {
       zoneId?: string;
       locationId?: string;
       upcoming?: string;
+      includeCompleted?: string;
       page?: string;
       limit?: string;
     };
   }>("/", async (request) => {
-    const { plantInstanceId, zoneId, locationId, upcoming } = request.query;
+    const { plantInstanceId, zoneId, locationId, upcoming, includeCompleted } = request.query;
     const pagination = parsePagination(request.query);
 
     const conditions = [];
@@ -72,6 +73,12 @@ export async function careTaskRoutes(app: FastifyInstance) {
       conditions.push(
         sql`${careTasks.dueDate} >= date('now')`,
       );
+    }
+
+    // By default hide tasks that have been completed (one-time tasks marked done).
+    // Pass ?includeCompleted=true to include them.
+    if (includeCompleted !== "true") {
+      conditions.push(sql`${careTasks.completedAt} IS NULL`);
     }
 
     // Add status filter: exclude tasks for planned/dead/removed plants
@@ -261,14 +268,9 @@ export async function careTaskRoutes(app: FastifyInstance) {
       }
     }
 
-    // If recurring and completed, advance the due date
-    if (
-      bodyParsed.data.action === "completed" &&
-      existing.isRecurring &&
-      existing.intervalDays &&
-      existing.dueDate
-    ) {
-      // Advance from today if overdue, otherwise from the original due date
+    if (bodyParsed.data.action === "completed" && existing.isRecurring && existing.intervalDays && existing.dueDate) {
+      // Recurring completion: advance the due date from today if overdue,
+      // otherwise from the original due date. The task stays active.
       const baseDate = new Date(existing.dueDate) < new Date() ? new Date() : new Date(existing.dueDate);
       const nextDue = new Date(baseDate);
       nextDue.setDate(nextDue.getDate() + existing.intervalDays);
@@ -277,6 +279,16 @@ export async function careTaskRoutes(app: FastifyInstance) {
           dueDate: nextDue.toISOString().split("T")[0],
           updatedAt: new Date().toISOString(),
         })
+        .where(eq(careTasks.id, careTaskId))
+        .run();
+    } else if (
+      (bodyParsed.data.action === "completed" || bodyParsed.data.action === "skipped") &&
+      !existing.isRecurring
+    ) {
+      // One-time task completion/skip: mark as done so it drops off the list.
+      const now = new Date().toISOString();
+      db.update(careTasks)
+        .set({ completedAt: now, updatedAt: now })
         .where(eq(careTasks.id, careTaskId))
         .run();
     }
@@ -334,13 +346,8 @@ export async function careTaskRoutes(app: FastifyInstance) {
             .run();
         }
 
-        // If recurring and completed, advance the due date
-        if (
-          action === "completed" &&
-          task.isRecurring &&
-          task.intervalDays &&
-          task.dueDate
-        ) {
+        if (action === "completed" && task.isRecurring && task.intervalDays && task.dueDate) {
+          // Recurring completion: advance due date, task stays active
           const baseDate = new Date(task.dueDate) < new Date() ? new Date() : new Date(task.dueDate);
           const nextDue = new Date(baseDate);
           nextDue.setDate(nextDue.getDate() + task.intervalDays);
@@ -349,6 +356,13 @@ export async function careTaskRoutes(app: FastifyInstance) {
               dueDate: nextDue.toISOString().split("T")[0],
               updatedAt: new Date().toISOString(),
             })
+            .where(eq(careTasks.id, task.id))
+            .run();
+        } else if (!task.isRecurring) {
+          // One-time completion/skip: mark done so it drops off the list
+          const now = new Date().toISOString();
+          tx.update(careTasks)
+            .set({ completedAt: now, updatedAt: now })
             .where(eq(careTasks.id, task.id))
             .run();
         }
