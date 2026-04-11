@@ -3,11 +3,25 @@ import { z } from "zod";
 import { api } from "./api.js";
 
 /** Wrap tool handlers to catch errors and return them as isError content */
-type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
+type TextContent = { type: "text"; text: string };
+type ImageContent = { type: "image"; data: string; mimeType: string };
+type ToolContent = TextContent | ImageContent;
+type ToolResult = { content: ToolContent[]; isError?: boolean };
+
 async function handle(fn: () => Promise<string>): Promise<ToolResult> {
   try {
     const text = await fn();
     return { content: [{ type: "text" as const, text }] };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { content: [{ type: "text" as const, text: `Error: ${msg}` }], isError: true };
+  }
+}
+
+/** Like handle() but allows returning mixed text/image content */
+async function handleContent(fn: () => Promise<ToolContent[]>): Promise<ToolResult> {
+  try {
+    return { content: await fn() };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { content: [{ type: "text" as const, text: `Error: ${msg}` }], isError: true };
@@ -200,6 +214,19 @@ export function registerTools(server: McpServer) {
         createdAt: p.createdAt,
       }));
       return json(summary);
+    }),
+  );
+
+  server.tool(
+    "view_plant_photo",
+    "View an actual plant photo (returns the image so Claude can see it). Use list_plant_photos first to get the filename.",
+    {
+      filename: z.string().describe("Photo filename from list_plant_photos"),
+    },
+    async ({ filename }) => handleContent(async () => {
+      const { data, mimeType } = await api.getPhotoFile(filename);
+      const base64 = Buffer.from(data).toString("base64");
+      return [{ type: "image" as const, data: base64, mimeType }];
     }),
   );
 
@@ -526,10 +553,9 @@ export function registerTools(server: McpServer) {
     {
       task_ids: z.array(z.number()).min(1),
       action: z.enum(["completed", "skipped"]),
-      notes: z.string().optional(),
     },
-    async ({ task_ids, action, notes }) => handle(async () => {
-      const result = await api.bulkLogCareTasks({ ids: task_ids, action, notes });
+    async ({ task_ids, action }) => handle(async () => {
+      const result = await api.bulkLogCareTasks({ ids: task_ids, action });
       return `${action} ${result.count ?? task_ids.length} tasks`;
     }),
   );
@@ -540,7 +566,7 @@ export function registerTools(server: McpServer) {
     { plant_id: z.number() },
     async ({ plant_id }) => handle(async () => {
       const result = await api.generateCareTasks(plant_id);
-      return `Generated ${result.count ?? 0} default care tasks for plant ${plant_id}`;
+      return `Generated ${result.generated?.length ?? 0} default care tasks for plant ${plant_id}`;
     }),
   );
 
@@ -641,8 +667,8 @@ export function registerTools(server: McpServer) {
       description: z.string().optional(),
       zone_type: z.enum(["bed", "container", "raised_bed", "lawn", "patio", "path", "indoor", "greenhouse"]).optional().default("bed"),
       sun_exposure: z.enum(["full_sun", "partial_sun", "partial_shade", "full_shade"]).optional(),
-      soil_type: z.string().optional(),
-      moisture_level: z.string().optional(),
+      soil_type: z.enum(["clay", "sandy", "loamy", "silty", "peaty", "chalky", "mixed"]).optional(),
+      moisture_level: z.enum(["dry", "moderate", "moist", "wet"]).optional(),
     },
     async ({ location_id, name, description, zone_type, sun_exposure, soil_type, moisture_level }) => handle(async () => {
       const result = await api.createZone({
@@ -666,8 +692,8 @@ export function registerTools(server: McpServer) {
       description: z.string().optional(),
       zone_type: z.enum(["bed", "container", "raised_bed", "lawn", "patio", "path", "indoor", "greenhouse"]).optional(),
       sun_exposure: z.enum(["full_sun", "partial_sun", "partial_shade", "full_shade"]).optional(),
-      soil_type: z.string().optional(),
-      moisture_level: z.string().optional(),
+      soil_type: z.enum(["clay", "sandy", "loamy", "silty", "peaty", "chalky", "mixed"]).optional(),
+      moisture_level: z.enum(["dry", "moderate", "moist", "wet"]).optional(),
     },
     async ({ zone_id, zone_type, sun_exposure, soil_type, moisture_level, ...rest }) => handle(async () => {
       const update: any = { ...rest };
@@ -754,13 +780,27 @@ export function registerTools(server: McpServer) {
     {
       location_id: z.number(),
       name: z.string(),
-      brand: z.string().optional(),
-      npk: z.string().optional().describe("NPK ratio (e.g., '10-10-10')"),
-      form: z.enum(["liquid", "granular", "powder", "compost", "stake"]).optional(),
+      type: z.enum([
+        "liquid",
+        "granular",
+        "slow_release",
+        "compost",
+        "compost_tea",
+        "fish_emulsion",
+        "other",
+      ]),
+      npk_n: z.number().optional().describe("Nitrogen percentage"),
+      npk_p: z.number().optional().describe("Phosphorus percentage"),
+      npk_k: z.number().optional().describe("Potassium percentage"),
       organic: z.boolean().optional(),
+      status: z.enum(["have_it", "running_low", "out"]).optional(),
       notes: z.string().optional(),
     },
-    async ({ location_id, ...data }) => handle(async () => {
+    async ({ location_id, npk_n, npk_p, npk_k, ...rest }) => handle(async () => {
+      const data: any = { ...rest };
+      if (npk_n !== undefined) data.npkN = npk_n;
+      if (npk_p !== undefined) data.npkP = npk_p;
+      if (npk_k !== undefined) data.npkK = npk_k;
       const result = await api.createFertilizer(location_id, data);
       return `Added fertilizer "${result.name}" (ID: ${result.id})`;
     }),
@@ -773,13 +813,27 @@ export function registerTools(server: McpServer) {
       location_id: z.number(),
       fertilizer_id: z.number(),
       name: z.string().optional(),
-      brand: z.string().optional(),
-      npk: z.string().optional(),
-      form: z.enum(["liquid", "granular", "powder", "compost", "stake"]).optional(),
+      type: z.enum([
+        "liquid",
+        "granular",
+        "slow_release",
+        "compost",
+        "compost_tea",
+        "fish_emulsion",
+        "other",
+      ]).optional(),
+      npk_n: z.number().optional(),
+      npk_p: z.number().optional(),
+      npk_k: z.number().optional(),
       organic: z.boolean().optional(),
+      status: z.enum(["have_it", "running_low", "out"]).optional(),
       notes: z.string().optional(),
     },
-    async ({ location_id, fertilizer_id, ...data }) => handle(async () => {
+    async ({ location_id, fertilizer_id, npk_n, npk_p, npk_k, ...rest }) => handle(async () => {
+      const data: any = { ...rest };
+      if (npk_n !== undefined) data.npkN = npk_n;
+      if (npk_p !== undefined) data.npkP = npk_p;
+      if (npk_k !== undefined) data.npkK = npk_k;
       const result = await api.updateFertilizer(location_id, fertilizer_id, data);
       return `Updated fertilizer "${result.name}"`;
     }),

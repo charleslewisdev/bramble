@@ -105,6 +105,27 @@ export const api = {
   uploadPhoto: (plantInstanceId: number, imageData: string, caption?: string) =>
     post<any>("/photos", { plantInstanceId, imageData, caption }),
   deletePhoto: (id: number) => del(`/photos/${id}`),
+  /** Fetch a photo file as raw bytes (for returning via MCP image content) */
+  getPhotoFile: async (
+    filename: string,
+  ): Promise<{ data: ArrayBuffer; mimeType: string }> => {
+    if (!BRAMBLE_API_KEY) {
+      throw new Error(
+        "BRAMBLE_API_KEY environment variable is required for MCP API calls",
+      );
+    }
+    const res = await fetch(`${BRAMBLE_URL}/api/photos/file/${filename}`, {
+      headers: { Authorization: `Bearer ${BRAMBLE_API_KEY}` },
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`Bramble API ${res.status}: ${body}`);
+    }
+    return {
+      data: await res.arrayBuffer(),
+      mimeType: res.headers.get("content-type") ?? "image/jpeg",
+    };
+  },
 
   // Structures (sheds, greenhouses, pergolas, etc.)
   getStructures: (locationId: number) =>
@@ -128,7 +149,7 @@ export const api = {
   // Care tasks (update, delete, bulk, generate)
   updateCareTask: (id: number, data: any) => put<any>(`/care-tasks/${id}`, data),
   deleteCareTask: (id: number) => del(`/care-tasks/${id}`),
-  bulkLogCareTasks: (data: { ids: number[]; action: string; notes?: string }) =>
+  bulkLogCareTasks: (data: { ids: number[]; action: string }) =>
     post<any>("/care-tasks/bulk/log", data),
   generateCareTasks: (plantInstanceId: number) =>
     post<any>(`/care-tasks/generate/${plantInstanceId}`, {}),
@@ -143,15 +164,15 @@ export const api = {
     put<any>(`/shopping-list/${id}`, data),
   clearCheckedShoppingItems: () => del("/shopping-list/clear-checked"),
 
-  // Fertilizers
+  // Fertilizers (mounted under /api/locations/:locationId/fertilizers)
   getFertilizers: (locationId: number) =>
-    request<any[]>(`/fertilizers?locationId=${locationId}`),
+    request<any[]>(`/locations/${locationId}/fertilizers`),
   createFertilizer: (locationId: number, data: any) =>
-    post<any>(`/fertilizers?locationId=${locationId}`, data),
+    post<any>(`/locations/${locationId}/fertilizers`, data),
   updateFertilizer: (locationId: number, id: number, data: any) =>
-    put<any>(`/fertilizers/${id}?locationId=${locationId}`, data),
+    put<any>(`/locations/${locationId}/fertilizers/${id}`, data),
   deleteFertilizer: (locationId: number, id: number) =>
-    del(`/fertilizers/${id}?locationId=${locationId}`),
+    del(`/locations/${locationId}/fertilizers/${id}`),
 
   // Weather refresh
   refreshWeather: (locationId: number) =>
