@@ -169,6 +169,83 @@ export function registerTools(server: McpServer) {
   );
 
   server.tool(
+    "list_structures",
+    "List garden structures (house, sheds, greenhouses, pergolas, etc.) at a location",
+    { location_id: z.number().describe("Location ID") },
+    async ({ location_id }) => handle(async () => {
+      const structures = await api.getStructures(location_id);
+      const summary = structures.map((s: any) => ({
+        id: s.id,
+        name: s.name,
+        roofType: s.roofType,
+        dimensions: `${s.width}×${s.depth}×${s.height} ft`,
+        stories: s.stories,
+        position: `(${s.posX}, ${s.posY})`,
+      }));
+      return json(summary);
+    }),
+  );
+
+  server.tool(
+    "list_plant_photos",
+    "List all photos for a plant instance (IDs, filenames, captions, timestamps)",
+    { plant_id: z.number().describe("Plant instance ID") },
+    async ({ plant_id }) => handle(async () => {
+      const photos = await api.getPhotos(plant_id);
+      const summary = photos.map((p: any) => ({
+        id: p.id,
+        filename: p.filename,
+        thumbnail: p.thumbnailFilename,
+        caption: p.caption,
+        createdAt: p.createdAt,
+      }));
+      return json(summary);
+    }),
+  );
+
+  server.tool(
+    "list_fertilizers",
+    "List fertilizers tracked for a location (NPK, stock, usage notes)",
+    { location_id: z.number().describe("Location ID") },
+    async ({ location_id }) => handle(async () => {
+      return json(await api.getFertilizers(location_id));
+    }),
+  );
+
+  server.tool(
+    "get_sun_info",
+    "Get sunrise, sunset, day length, and golden hour times for a location",
+    {
+      location_id: z.number().optional().describe("Location ID (defaults to first)"),
+      date: z.string().optional().describe("Date in YYYY-MM-DD format (defaults to today)"),
+    },
+    async ({ location_id, date }) => handle(async () => {
+      let locId = location_id;
+      if (!locId) {
+        const locs = await api.getLocations();
+        locId = locs[0]?.id;
+      }
+      if (!locId) return "No locations found";
+      return json(await api.getSunInfo(locId, date));
+    }),
+  );
+
+  server.tool(
+    "list_wildlife",
+    "List seasonal wildlife (birds, pollinators, pests) active at a location",
+    { location_id: z.number().optional().describe("Location ID (defaults to first)") },
+    async ({ location_id }) => handle(async () => {
+      let locId = location_id;
+      if (!locId) {
+        const locs = await api.getLocations();
+        locId = locs[0]?.id;
+      }
+      if (!locId) return "No locations found";
+      return json(await api.getWildlife(locId));
+    }),
+  );
+
+  server.tool(
     "get_journal",
     "Get journal entries for a plant, zone, or location",
     {
@@ -407,6 +484,327 @@ export function registerTools(server: McpServer) {
         intervalDays: interval_days,
       });
       return `Care task "${result.title}" created (ID: ${result.id})`;
+    }),
+  );
+
+  server.tool(
+    "update_care_task",
+    "Update a care task (title, description, due date, recurrence)",
+    {
+      task_id: z.number(),
+      title: z.string().optional(),
+      description: z.string().optional(),
+      due_date: z.string().optional().describe("YYYY-MM-DD"),
+      is_recurring: z.boolean().optional(),
+      interval_days: z.number().optional(),
+    },
+    async ({ task_id, title, description, due_date, is_recurring, interval_days }) => handle(async () => {
+      const update: any = {};
+      if (title !== undefined) update.title = title;
+      if (description !== undefined) update.description = description;
+      if (due_date !== undefined) update.dueDate = due_date;
+      if (is_recurring !== undefined) update.isRecurring = is_recurring;
+      if (interval_days !== undefined) update.intervalDays = interval_days;
+      const result = await api.updateCareTask(task_id, update);
+      return `Updated care task "${result.title}"`;
+    }),
+  );
+
+  server.tool(
+    "delete_care_task",
+    "Delete a care task",
+    { task_id: z.number() },
+    async ({ task_id }) => handle(async () => {
+      await api.deleteCareTask(task_id);
+      return `Care task ${task_id} deleted`;
+    }),
+  );
+
+  server.tool(
+    "bulk_log_care_tasks",
+    "Complete or skip multiple care tasks at once (e.g., finish all due waterings)",
+    {
+      task_ids: z.array(z.number()).min(1),
+      action: z.enum(["completed", "skipped"]),
+      notes: z.string().optional(),
+    },
+    async ({ task_ids, action, notes }) => handle(async () => {
+      const result = await api.bulkLogCareTasks({ ids: task_ids, action, notes });
+      return `${action} ${result.count ?? task_ids.length} tasks`;
+    }),
+  );
+
+  server.tool(
+    "generate_default_care_tasks",
+    "Auto-generate default care tasks for a plant based on its reference data",
+    { plant_id: z.number() },
+    async ({ plant_id }) => handle(async () => {
+      const result = await api.generateCareTasks(plant_id);
+      return `Generated ${result.count ?? 0} default care tasks for plant ${plant_id}`;
+    }),
+  );
+
+  server.tool(
+    "delete_plant",
+    "Delete a plant instance (use update_plant with status='removed' for soft delete)",
+    { plant_id: z.number() },
+    async ({ plant_id }) => handle(async () => {
+      await api.deletePlant(plant_id);
+      return `Plant ${plant_id} deleted`;
+    }),
+  );
+
+  server.tool(
+    "import_perenual_plant",
+    "Import a plant from Perenual API into the local plant reference database",
+    { perenual_id: z.number().describe("Perenual species ID") },
+    async ({ perenual_id }) => handle(async () => {
+      const result = await api.importPerenualPlant(perenual_id);
+      return `Imported: ${result.commonName} (reference ID: ${result.id})`;
+    }),
+  );
+
+  server.tool(
+    "delete_plant_photo",
+    "Delete a photo from a plant",
+    { photo_id: z.number() },
+    async ({ photo_id }) => handle(async () => {
+      await api.deletePhoto(photo_id);
+      return `Photo ${photo_id} deleted`;
+    }),
+  );
+
+  server.tool(
+    "add_structure",
+    "Add a structure (shed, greenhouse, pergola, gazebo, etc.) to a location",
+    {
+      location_id: z.number(),
+      name: z.string().describe("Structure name (e.g., 'Shed', 'Greenhouse')"),
+      width: z.number().positive().describe("Width in feet"),
+      depth: z.number().positive().describe("Depth in feet"),
+      height: z.number().positive().optional().default(10).describe("Height in feet"),
+      stories: z.number().int().positive().optional().default(1),
+      roof_type: z.enum(["flat", "gable", "hip", "shed", "gambrel", "pergola", "gazebo", "open", "canopy"]).optional().default("gable"),
+      pos_x: z.number().optional().default(0).describe("X position on lot grid (feet)"),
+      pos_y: z.number().optional().default(0).describe("Y position on lot grid (feet)"),
+    },
+    async ({ location_id, name, width, depth, height, stories, roof_type, pos_x, pos_y }) => handle(async () => {
+      const result = await api.createStructure(location_id, {
+        name, width, depth, height, stories,
+        roofType: roof_type,
+        posX: pos_x, posY: pos_y,
+      });
+      return `Created structure "${result.name}" (ID: ${result.id})`;
+    }),
+  );
+
+  server.tool(
+    "update_structure",
+    "Update a structure's details",
+    {
+      structure_id: z.number(),
+      name: z.string().optional(),
+      width: z.number().positive().optional(),
+      depth: z.number().positive().optional(),
+      height: z.number().positive().optional(),
+      stories: z.number().int().positive().optional(),
+      roof_type: z.enum(["flat", "gable", "hip", "shed", "gambrel", "pergola", "gazebo", "open", "canopy"]).optional(),
+      pos_x: z.number().optional(),
+      pos_y: z.number().optional(),
+    },
+    async ({ structure_id, roof_type, pos_x, pos_y, ...rest }) => handle(async () => {
+      const update: any = { ...rest };
+      if (roof_type !== undefined) update.roofType = roof_type;
+      if (pos_x !== undefined) update.posX = pos_x;
+      if (pos_y !== undefined) update.posY = pos_y;
+      const result = await api.updateStructure(structure_id, update);
+      return `Updated structure "${result.name}"`;
+    }),
+  );
+
+  server.tool(
+    "delete_structure",
+    "Delete a structure",
+    { structure_id: z.number() },
+    async ({ structure_id }) => handle(async () => {
+      await api.deleteStructure(structure_id);
+      return `Structure ${structure_id} deleted`;
+    }),
+  );
+
+  server.tool(
+    "create_zone",
+    "Create a new garden zone/bed",
+    {
+      location_id: z.number(),
+      name: z.string(),
+      description: z.string().optional(),
+      zone_type: z.enum(["bed", "container", "raised_bed", "lawn", "patio", "path", "indoor", "greenhouse"]).optional().default("bed"),
+      sun_exposure: z.enum(["full_sun", "partial_sun", "partial_shade", "full_shade"]).optional(),
+      soil_type: z.string().optional(),
+      moisture_level: z.string().optional(),
+    },
+    async ({ location_id, name, description, zone_type, sun_exposure, soil_type, moisture_level }) => handle(async () => {
+      const result = await api.createZone({
+        locationId: location_id,
+        name, description,
+        zoneType: zone_type,
+        sunExposure: sun_exposure,
+        soilType: soil_type,
+        moistureLevel: moisture_level,
+      });
+      return `Created zone "${result.name}" (ID: ${result.id})`;
+    }),
+  );
+
+  server.tool(
+    "update_zone",
+    "Update a zone's details",
+    {
+      zone_id: z.number(),
+      name: z.string().optional(),
+      description: z.string().optional(),
+      zone_type: z.enum(["bed", "container", "raised_bed", "lawn", "patio", "path", "indoor", "greenhouse"]).optional(),
+      sun_exposure: z.enum(["full_sun", "partial_sun", "partial_shade", "full_shade"]).optional(),
+      soil_type: z.string().optional(),
+      moisture_level: z.string().optional(),
+    },
+    async ({ zone_id, zone_type, sun_exposure, soil_type, moisture_level, ...rest }) => handle(async () => {
+      const update: any = { ...rest };
+      if (zone_type !== undefined) update.zoneType = zone_type;
+      if (sun_exposure !== undefined) update.sunExposure = sun_exposure;
+      if (soil_type !== undefined) update.soilType = soil_type;
+      if (moisture_level !== undefined) update.moistureLevel = moisture_level;
+      const result = await api.updateZone(zone_id, update);
+      return `Updated zone "${result.name}"`;
+    }),
+  );
+
+  server.tool(
+    "delete_zone",
+    "Delete a zone (cascades to its plant instances)",
+    { zone_id: z.number() },
+    async ({ zone_id }) => handle(async () => {
+      await api.deleteZone(zone_id);
+      return `Zone ${zone_id} deleted`;
+    }),
+  );
+
+  server.tool(
+    "update_journal_entry",
+    "Update a journal entry",
+    {
+      entry_id: z.number(),
+      title: z.string().optional(),
+      body: z.string().optional(),
+    },
+    async ({ entry_id, title, body }) => handle(async () => {
+      const update: any = {};
+      if (title !== undefined) update.title = title;
+      if (body !== undefined) update.body = body;
+      const result = await api.updateJournalEntry(entry_id, update);
+      return `Updated journal entry ${result.id}`;
+    }),
+  );
+
+  server.tool(
+    "delete_journal_entry",
+    "Delete a journal entry",
+    { entry_id: z.number() },
+    async ({ entry_id }) => handle(async () => {
+      await api.deleteJournalEntry(entry_id);
+      return `Journal entry ${entry_id} deleted`;
+    }),
+  );
+
+  server.tool(
+    "update_shopping_item",
+    "Update a shopping list item",
+    {
+      item_id: z.number(),
+      name: z.string().optional(),
+      quantity: z.number().optional(),
+      category: z.enum(["plant", "soil", "fertilizer", "tool", "container", "other"]).optional(),
+      notes: z.string().optional(),
+      estimated_cost: z.number().optional(),
+      vendor_name: z.string().optional(),
+    },
+    async ({ item_id, estimated_cost, vendor_name, ...rest }) => handle(async () => {
+      const update: any = { ...rest };
+      if (estimated_cost !== undefined) update.estimatedCost = estimated_cost;
+      if (vendor_name !== undefined) update.vendorName = vendor_name;
+      const result = await api.updateShoppingItem(item_id, update);
+      return `Updated "${result.name}"`;
+    }),
+  );
+
+  server.tool(
+    "clear_checked_shopping_items",
+    "Remove all checked/completed items from the shopping list",
+    {},
+    async () => handle(async () => {
+      await api.clearCheckedShoppingItems();
+      return "Cleared all checked shopping items";
+    }),
+  );
+
+  server.tool(
+    "add_fertilizer",
+    "Add a fertilizer to the inventory for a location",
+    {
+      location_id: z.number(),
+      name: z.string(),
+      brand: z.string().optional(),
+      npk: z.string().optional().describe("NPK ratio (e.g., '10-10-10')"),
+      form: z.enum(["liquid", "granular", "powder", "compost", "stake"]).optional(),
+      organic: z.boolean().optional(),
+      notes: z.string().optional(),
+    },
+    async ({ location_id, ...data }) => handle(async () => {
+      const result = await api.createFertilizer(location_id, data);
+      return `Added fertilizer "${result.name}" (ID: ${result.id})`;
+    }),
+  );
+
+  server.tool(
+    "update_fertilizer",
+    "Update a fertilizer entry",
+    {
+      location_id: z.number(),
+      fertilizer_id: z.number(),
+      name: z.string().optional(),
+      brand: z.string().optional(),
+      npk: z.string().optional(),
+      form: z.enum(["liquid", "granular", "powder", "compost", "stake"]).optional(),
+      organic: z.boolean().optional(),
+      notes: z.string().optional(),
+    },
+    async ({ location_id, fertilizer_id, ...data }) => handle(async () => {
+      const result = await api.updateFertilizer(location_id, fertilizer_id, data);
+      return `Updated fertilizer "${result.name}"`;
+    }),
+  );
+
+  server.tool(
+    "delete_fertilizer",
+    "Delete a fertilizer entry",
+    {
+      location_id: z.number(),
+      fertilizer_id: z.number(),
+    },
+    async ({ location_id, fertilizer_id }) => handle(async () => {
+      await api.deleteFertilizer(location_id, fertilizer_id);
+      return `Fertilizer ${fertilizer_id} deleted`;
+    }),
+  );
+
+  server.tool(
+    "refresh_weather",
+    "Force refresh weather data for a location (also updates plant moods)",
+    { location_id: z.number() },
+    async ({ location_id }) => handle(async () => {
+      const result = await api.refreshWeather(location_id);
+      return json(result);
     }),
   );
 }

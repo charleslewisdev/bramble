@@ -100,6 +100,70 @@ export const api = {
   getDashboard: (locationId: number) => request<any>(`/locations/${locationId}/dashboard`),
 
   // Photos
+  getPhotos: (plantInstanceId: number) =>
+    request<any[]>(`/photos?plantInstanceId=${plantInstanceId}`),
   uploadPhoto: (plantInstanceId: number, imageData: string, caption?: string) =>
     post<any>("/photos", { plantInstanceId, imageData, caption }),
+  deletePhoto: (id: number) => del(`/photos/${id}`),
+
+  // Structures (sheds, greenhouses, pergolas, etc.)
+  getStructures: (locationId: number) =>
+    request<any[]>(`/locations/${locationId}/structures`),
+  createStructure: (locationId: number, data: any) =>
+    post<any>(`/locations/${locationId}/structures`, data),
+  updateStructure: (id: number, data: any) =>
+    put<any>(`/locations/structures/${id}`, data),
+  deleteStructure: (id: number) => del(`/locations/structures/${id}`),
+
+  // Zones (CRUD)
+  createZone: (data: any) => post<any>("/zones", data),
+  updateZone: (id: number, data: any) => put<any>(`/zones/${id}`, data),
+  deleteZone: (id: number) => del(`/zones/${id}`),
+
+  // Plants (delete + Perenual import)
+  deletePlant: (id: number) => del(`/plants/instances/${id}`),
+  importPerenualPlant: (perenualId: number) =>
+    post<any>(`/plants/import/${perenualId}`, {}),
+
+  // Care tasks (update, delete, bulk, generate)
+  updateCareTask: (id: number, data: any) => put<any>(`/care-tasks/${id}`, data),
+  deleteCareTask: (id: number) => del(`/care-tasks/${id}`),
+  bulkLogCareTasks: (data: { ids: number[]; action: string; notes?: string }) =>
+    post<any>("/care-tasks/bulk/log", data),
+  generateCareTasks: (plantInstanceId: number) =>
+    post<any>(`/care-tasks/generate/${plantInstanceId}`, {}),
+
+  // Journal (update, delete)
+  updateJournalEntry: (id: number, data: any) =>
+    put<any>(`/journal/${id}`, data),
+  deleteJournalEntry: (id: number) => del(`/journal/${id}`),
+
+  // Shopping list (update, clear checked)
+  updateShoppingItem: (id: number, data: any) =>
+    put<any>(`/shopping-list/${id}`, data),
+  clearCheckedShoppingItems: () => del("/shopping-list/clear-checked"),
+
+  // Fertilizers
+  getFertilizers: (locationId: number) =>
+    request<any[]>(`/fertilizers?locationId=${locationId}`),
+  createFertilizer: (locationId: number, data: any) =>
+    post<any>(`/fertilizers?locationId=${locationId}`, data),
+  updateFertilizer: (locationId: number, id: number, data: any) =>
+    put<any>(`/fertilizers/${id}?locationId=${locationId}`, data),
+  deleteFertilizer: (locationId: number, id: number) =>
+    del(`/fertilizers/${id}?locationId=${locationId}`),
+
+  // Weather refresh
+  refreshWeather: (locationId: number) =>
+    post<any>(`/weather/${locationId}/refresh`, {}),
+
+  // Sun
+  getSunInfo: (locationId: number, date?: string) => {
+    const q = date ? `?date=${date}` : "";
+    return request<any>(`/sun/${locationId}${q}`);
+  },
+
+  // Wildlife
+  getWildlife: (locationId: number) =>
+    request<any>(`/wildlife/${locationId}`),
 };
