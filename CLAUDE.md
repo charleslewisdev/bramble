@@ -98,7 +98,7 @@ BRAMBLE_URL=http://10.0.0.4:3333 BRAMBLE_API_KEY=brk_... pnpm --filter bramble-m
 - Endpoint: `http://<host>:3000/mcp` (or whatever `PORT` is set to)
 - Auth: DB-backed API keys (brk_ prefix) — same keys used for REST API and MCP
 - `BRAMBLE_API_KEY` env var is used by MCP tools for internal API calls back to the REST API — the value must be a valid brk_ key from the DB
-- **For Claude.ai access:** Use `mcp-auth-proxy` + Keycloak externally (see `docs/mcp-hosting-setup.md` and the `mcp-hosting` skill). Bramble does NOT implement OAuth — the proxy handles it.
+- **For Claude.ai / Claude Desktop access:** Use [mcp-gateway](https://github.com/charleslewisdev/mcp-gateway) — a Cloudflare Worker that handles OAuth 2.1 (Auth Code + PKCE + DCR) and proxies to this backend with the API key. Bramble does NOT implement OAuth — the gateway handles it. See the `mcp-hosting` skill for setup.
 
 ### Tool files
 
