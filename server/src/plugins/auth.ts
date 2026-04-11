@@ -41,7 +41,7 @@ async function authPluginImpl(app: FastifyInstance) {
       setupComplete = true;
     }
 
-    // Try Bearer token auth (API keys use brk_ prefix)
+    // Try Bearer token auth (API keys use brk_ prefix, stored in DB)
     const authHeader = request.headers.authorization;
     if (authHeader?.startsWith("Bearer ")) {
       const key = authHeader.slice(7);

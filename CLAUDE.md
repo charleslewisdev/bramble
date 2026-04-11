@@ -95,9 +95,9 @@ BRAMBLE_URL=http://10.0.0.4:3333 BRAMBLE_API_KEY=brk_... pnpm --filter bramble-m
 
 **HTTP** (Claude.ai / remote connectors): mounted on the Fastify server at `/mcp`
 - Same port as the API — no separate process or port
-- Requires `BRAMBLE_API_KEY` env var to be set (otherwise MCP endpoint is disabled)
 - Endpoint: `http://<host>:3000/mcp` (or whatever `PORT` is set to)
-- Auth: Bearer token using `BRAMBLE_API_KEY`
+- Auth: DB-backed API keys (brk_ prefix) — same keys used for REST API and MCP
+- `BRAMBLE_API_KEY` env var is used by MCP tools for internal API calls back to the REST API — the value must be a valid brk_ key from the DB
 - **For Claude.ai access:** Use `mcp-auth-proxy` + Keycloak externally (see `docs/mcp-hosting-setup.md` and the `mcp-hosting` skill). Bramble does NOT implement OAuth — the proxy handles it.
 
 ### Tool files

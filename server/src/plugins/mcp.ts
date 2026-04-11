@@ -5,22 +5,13 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { randomUUID } from "crypto";
 import { createConfiguredMcpServer } from "bramble-mcp/server";
 
-const MCP_API_KEY = process.env.BRAMBLE_API_KEY ?? "";
-
 async function mcpPlugin(app: FastifyInstance) {
-  if (!MCP_API_KEY) {
-    app.log.info("BRAMBLE_API_KEY not set — MCP endpoint disabled");
-    return;
-  }
-
   const transports = new Map<string, StreamableHTTPServerTransport>();
 
   app.all("/mcp", async (request: FastifyRequest, reply: FastifyReply) => {
-    // API key auth — mcp-auth-proxy handles OAuth externally and forwards
-    // the API key as a Bearer token via PROXY_BEARER_TOKEN
-    const authHeader = request.headers.authorization;
-    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : "";
-    if (!token || token !== MCP_API_KEY) {
+    // Auth is handled by the auth plugin (onRequest hook) which sets request.user
+    // for valid Bearer tokens (brk_ API keys looked up in DB)
+    if (!request.user) {
       return reply.status(401).send({
         jsonrpc: "2.0",
         error: { code: -32000, message: "Unauthorized" },
