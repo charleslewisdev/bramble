@@ -20,11 +20,16 @@ async function mcpPlugin(app: FastifyInstance) {
     }
 
     const sessionId = request.headers["mcp-session-id"] as string | undefined;
+    const isInit =
+      request.method === "POST" && isInitializeRequest(request.body);
     let transport: StreamableHTTPServerTransport;
 
     if (sessionId && transports.has(sessionId)) {
+      // Existing session — reuse transport
       transport = transports.get(sessionId)!;
-    } else if (!sessionId && request.method === "POST" && isInitializeRequest(request.body)) {
+    } else if (isInit) {
+      // New initialize — create a fresh session. Ignore any stale sessionId
+      // header the client may have cached from a previous container instance.
       transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         onsessioninitialized: (sid) => {
@@ -37,10 +42,18 @@ async function mcpPlugin(app: FastifyInstance) {
       };
       const server = createConfiguredMcpServer();
       await server.connect(transport);
+    } else if (sessionId) {
+      // Client sent an unknown session ID (likely stale from before a restart).
+      // Per MCP Streamable HTTP spec, 404 tells the client to re-initialize.
+      return reply.status(404).send({
+        jsonrpc: "2.0",
+        error: { code: -32000, message: "Session not found" },
+        id: null,
+      });
     } else {
       return reply.status(400).send({
         jsonrpc: "2.0",
-        error: { code: -32000, message: "Bad Request: No valid session" },
+        error: { code: -32000, message: "Bad Request: No session and not an initialize request" },
         id: null,
       });
     }
