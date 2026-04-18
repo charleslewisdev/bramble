@@ -13,6 +13,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
+    "db:seed:almanac": "tsx src/db/seed-almanac.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

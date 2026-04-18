@@ -862,4 +862,84 @@ export function registerTools(server: McpServer) {
       return json(result);
     }),
   );
+
+  // ─── Almanac (markdown knowledge base) ────────────────────────────────────
+
+  server.tool(
+    "list_almanac_entries",
+    "List entries in the user's Almanac (their personal garden knowledge base). Returns entry summaries and all tags with counts.",
+    {
+      tag: z.string().optional().describe("Filter to entries with this tag"),
+    },
+    async ({ tag }) => handle(async () => {
+      const result = await api.getAlmanacEntries(tag);
+      const summary = {
+        entries: result.entries.map((e: any) => ({
+          id: e.id,
+          slug: e.slug,
+          title: e.title,
+          excerpt: e.excerpt,
+          tags: e.tags,
+          updatedAt: e.updatedAt,
+        })),
+        tags: result.tags,
+      };
+      return json(summary);
+    }),
+  );
+
+  server.tool(
+    "get_almanac_entry",
+    "Get the full markdown content of an Almanac entry by slug",
+    { slug: z.string().describe("Entry slug (from list_almanac_entries)") },
+    async ({ slug }) => handle(async () => json(await api.getAlmanacEntry(slug))),
+  );
+
+  server.tool(
+    "list_almanac_tags",
+    "List all Almanac tags with entry counts",
+    {},
+    async () => handle(async () => json(await api.getAlmanacTags())),
+  );
+
+  server.tool(
+    "create_almanac_entry",
+    "Create a new Almanac entry. Content is markdown (GFM — tables, task lists, code fences all supported).",
+    {
+      title: z.string().describe("Entry title"),
+      content: z.string().describe("Markdown content"),
+      excerpt: z.string().optional().describe("Short summary shown on the index card"),
+      tags: z.array(z.string()).optional().describe("Tags (lowercased automatically)"),
+    },
+    async ({ title, content, excerpt, tags }) => handle(async () => {
+      const result = await api.createAlmanacEntry({ title, content, excerpt, tags });
+      return `Created Almanac entry "${result.title}" (id: ${result.id}, slug: ${result.slug})`;
+    }),
+  );
+
+  server.tool(
+    "update_almanac_entry",
+    "Update an Almanac entry. Any field left undefined is left unchanged. Passing tags replaces the entire tag set. The slug is immutable.",
+    {
+      id: z.number().describe("Entry ID"),
+      title: z.string().optional(),
+      content: z.string().optional().describe("Markdown content"),
+      excerpt: z.string().nullable().optional(),
+      tags: z.array(z.string()).optional(),
+    },
+    async ({ id, title, content, excerpt, tags }) => handle(async () => {
+      const result = await api.updateAlmanacEntry(id, { title, content, excerpt, tags });
+      return `Updated Almanac entry "${result.title}"`;
+    }),
+  );
+
+  server.tool(
+    "delete_almanac_entry",
+    "Delete an Almanac entry (cascades to its tag links and uploaded images)",
+    { id: z.number().describe("Entry ID") },
+    async ({ id }) => handle(async () => {
+      await api.deleteAlmanacEntry(id);
+      return `Almanac entry ${id} deleted`;
+    }),
+  );
 }

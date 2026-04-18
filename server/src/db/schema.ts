@@ -853,6 +853,87 @@ export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
   }),
 }));
 
+// ─── Almanac (user-authored knowledge base) ─────────────────────────────────
+
+export const almanacEntries = sqliteTable("almanac_entries", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  excerpt: text("excerpt"),
+  content: text("content").notNull().default(""),
+  createdBy: integer("created_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+}, (table) => [
+  index("almanac_entries_slug_idx").on(table.slug),
+  index("almanac_entries_updated_at_idx").on(table.updatedAt),
+]);
+
+export const almanacTags = sqliteTable("almanac_tags", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull().unique(),
+});
+
+export const almanacEntryTags = sqliteTable("almanac_entry_tags", {
+  entryId: integer("entry_id")
+    .notNull()
+    .references(() => almanacEntries.id, { onDelete: "cascade" }),
+  tagId: integer("tag_id")
+    .notNull()
+    .references(() => almanacTags.id, { onDelete: "cascade" }),
+}, (table) => [
+  index("almanac_entry_tags_entry_id_idx").on(table.entryId),
+  index("almanac_entry_tags_tag_id_idx").on(table.tagId),
+]);
+
+export const almanacImages = sqliteTable("almanac_images", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  entryId: integer("entry_id")
+    .notNull()
+    .references(() => almanacEntries.id, { onDelete: "cascade" }),
+  filename: text("filename").notNull(),
+  mimeType: text("mime_type").notNull(),
+  size: integer("size").notNull(),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+}, (table) => [
+  index("almanac_images_entry_id_idx").on(table.entryId),
+]);
+
+export const almanacEntriesRelations = relations(almanacEntries, ({ many }) => ({
+  entryTags: many(almanacEntryTags),
+  images: many(almanacImages),
+}));
+
+export const almanacTagsRelations = relations(almanacTags, ({ many }) => ({
+  entryTags: many(almanacEntryTags),
+}));
+
+export const almanacEntryTagsRelations = relations(almanacEntryTags, ({ one }) => ({
+  entry: one(almanacEntries, {
+    fields: [almanacEntryTags.entryId],
+    references: [almanacEntries.id],
+  }),
+  tag: one(almanacTags, {
+    fields: [almanacEntryTags.tagId],
+    references: [almanacTags.id],
+  }),
+}));
+
+export const almanacImagesRelations = relations(almanacImages, ({ one }) => ({
+  entry: one(almanacEntries, {
+    fields: [almanacImages.entryId],
+    references: [almanacEntries.id],
+  }),
+}));
+
 // ─── Type exports ────────────────────────────────────────────────────────────
 
 export type Location = typeof locations.$inferSelect;
@@ -887,4 +968,9 @@ export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
 export type Invite = typeof invites.$inferSelect;
+export type AlmanacEntry = typeof almanacEntries.$inferSelect;
+export type NewAlmanacEntry = typeof almanacEntries.$inferInsert;
+export type AlmanacTag = typeof almanacTags.$inferSelect;
+export type AlmanacImage = typeof almanacImages.$inferSelect;
+export type NewAlmanacImage = typeof almanacImages.$inferInsert;
 export type ApiKey = typeof apiKeys.$inferSelect;

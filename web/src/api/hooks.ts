@@ -27,6 +27,8 @@ import type {
   AlertsResponse,
   DashboardData,
   Fertilizer,
+  AlmanacEntry,
+  AlmanacListResponse,
 } from "./index";
 
 // ---------- Locations ----------
@@ -754,5 +756,56 @@ export function useRefreshPlantMoods() {
   return useMutation({
     mutationFn: () => api.refreshPlantMoods(),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["plantInstances"] }),
+  });
+}
+
+// ---------- Almanac ----------
+
+export function useAlmanacEntries(tag?: string) {
+  return useQuery<AlmanacListResponse>({
+    queryKey: ["almanac", { tag: tag ?? null }],
+    queryFn: () => api.getAlmanacEntries(tag),
+  });
+}
+
+export function useAlmanacEntry(slug: string | undefined) {
+  return useQuery<AlmanacEntry>({
+    queryKey: ["almanac", "entry", slug],
+    queryFn: () => api.getAlmanacEntry(slug!),
+    enabled: slug !== undefined,
+  });
+}
+
+export function useCreateAlmanacEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Parameters<typeof api.createAlmanacEntry>[0]) =>
+      api.createAlmanacEntry(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["almanac"] }),
+  });
+}
+
+export function useUpdateAlmanacEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: Parameters<typeof api.updateAlmanacEntry>[1];
+    }) => api.updateAlmanacEntry(id, data),
+    onSuccess: (entry) => {
+      qc.invalidateQueries({ queryKey: ["almanac"] });
+      qc.invalidateQueries({ queryKey: ["almanac", "entry", entry.slug] });
+    },
+  });
+}
+
+export function useDeleteAlmanacEntry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.deleteAlmanacEntry(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["almanac"] }),
   });
 }
