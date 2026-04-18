@@ -31,6 +31,10 @@ function put<T>(path: string, body: unknown): Promise<T> {
   return request<T>(path, { method: "PUT", body: JSON.stringify(body) });
 }
 
+function patch<T>(path: string, body: unknown): Promise<T> {
+  return request<T>(path, { method: "PATCH", body: JSON.stringify(body) });
+}
+
 function del<T = void>(path: string): Promise<T> {
   return request<T>(path, { method: "DELETE" });
 }
@@ -188,4 +192,33 @@ export const api = {
   // Wildlife
   getWildlife: (locationId: number) =>
     request<any>(`/wildlife/${locationId}`),
+
+  // Almanac (user-authored markdown knowledge base)
+  getAlmanacEntries: (tag?: string) => {
+    const q = tag ? `?tag=${encodeURIComponent(tag)}` : "";
+    return request<{
+      entries: any[];
+      tags: { name: string; count: number }[];
+    }>(`/almanac${q}`);
+  },
+  getAlmanacEntry: (slug: string) =>
+    request<any>(`/almanac/${encodeURIComponent(slug)}`),
+  getAlmanacTags: () =>
+    request<{ tags: { name: string; count: number }[] }>("/almanac/tags"),
+  createAlmanacEntry: (data: {
+    title?: string;
+    content?: string;
+    excerpt?: string | null;
+    tags?: string[];
+  }) => post<any>("/almanac", data),
+  updateAlmanacEntry: (
+    id: number,
+    data: {
+      title?: string;
+      content?: string;
+      excerpt?: string | null;
+      tags?: string[];
+    },
+  ) => patch<any>(`/almanac/${id}`, data),
+  deleteAlmanacEntry: (id: number) => del(`/almanac/${id}`),
 };

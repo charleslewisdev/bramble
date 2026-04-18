@@ -4,3 +4,169 @@
   --font-display: "Space Grotesk", sans-serif;
   --font-mono: "Space Mono", monospace;
 }
+
+/* ─── Almanac: markdown rendering (read view) ─────────────────────────────── */
+
+.almanac-prose {
+  line-height: 1.7;
+  font-family: var(--font-display);
+}
+.almanac-prose > * + * {
+  margin-top: 1rem;
+}
+.almanac-prose h1,
+.almanac-prose h2,
+.almanac-prose h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: #f5f5f4; /* stone-100 */
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.25;
+}
+.almanac-prose h1 { font-size: 1.75rem; }
+.almanac-prose h2 { font-size: 1.375rem; }
+.almanac-prose h3 { font-size: 1.125rem; }
+.almanac-prose p {
+  color: #d6d3d1; /* stone-300 */
+}
+.almanac-prose strong { color: #f5f5f4; font-weight: 600; }
+.almanac-prose em { color: #e7e5e4; }
+.almanac-prose a {
+  color: #34d399; /* emerald-400 */
+  text-decoration: underline;
+  text-decoration-color: rgba(52, 211, 153, 0.4);
+  text-underline-offset: 3px;
+}
+.almanac-prose a:hover { color: #6ee7b7; }
+.almanac-prose ul,
+.almanac-prose ol {
+  padding-left: 1.5rem;
+  color: #d6d3d1;
+}
+.almanac-prose ul { list-style: disc; }
+.almanac-prose ol { list-style: decimal; }
+.almanac-prose li + li { margin-top: 0.25rem; }
+.almanac-prose blockquote {
+  border-left: 3px solid #44403c; /* stone-700 */
+  padding-left: 1rem;
+  color: #a8a29e; /* stone-400 */
+  font-style: italic;
+}
+.almanac-prose code {
+  background: #292524; /* stone-800 */
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  color: #f5f5f4;
+}
+.almanac-prose pre {
+  background: #1c1917; /* stone-900 */
+  border: 1px solid #292524;
+  border-radius: 8px;
+  padding: 0.875rem 1rem;
+  overflow-x: auto;
+}
+.almanac-prose pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+.almanac-prose hr {
+  border: 0;
+  border-top: 1px solid #292524;
+  margin: 2rem 0;
+}
+.almanac-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  border: 1px solid #292524;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.almanac-prose thead {
+  background: #1c1917;
+}
+.almanac-prose th {
+  text-align: left;
+  padding: 0.6rem 0.85rem;
+  color: #a8a29e;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid #292524;
+}
+.almanac-prose td {
+  padding: 0.5rem 0.85rem;
+  color: #d6d3d1;
+  border-bottom: 1px solid #292524;
+}
+.almanac-prose tbody tr:last-child td { border-bottom: 0; }
+.almanac-prose img {
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid #292524;
+}
+
+/* ─── Almanac: MDXEditor dark theme overrides ─────────────────────────────── */
+
+.almanac-editor {
+  --accentBase: #064e3b;
+  --accentBgSubtle: #064e3b;
+  --accentBg: #065f46;
+  --accentBgHover: #047857;
+  --accentBgActive: #059669;
+  --accentLine: #14532d;
+  --accentBorder: #10b981;
+  --accentBorderHover: #34d399;
+  --accentSolid: #10b981;
+  --accentSolidHover: #059669;
+  --accentText: #6ee7b7;
+  --accentTextContrast: #f5f5f4;
+
+  --baseBase: #1c1917;
+  --baseBgSubtle: #292524;
+  --baseBg: #1c1917;
+  --baseBgHover: #292524;
+  --baseBgActive: #44403c;
+  --baseLine: #292524;
+  --baseBorder: #44403c;
+  --baseBorderHover: #57534e;
+  --baseSolid: #57534e;
+  --baseSolidHover: #78716c;
+  --baseText: #d6d3d1;
+  --baseTextContrast: #f5f5f4;
+
+  color: #d6d3d1;
+}
+.almanac-editor__toolbar {
+  background: #1c1917;
+  border-bottom: 1px solid #292524;
+  border-radius: 8px 8px 0 0;
+}
+.almanac-editor__content {
+  color: #f5f5f4;
+  min-height: 400px;
+  font-family: var(--font-display);
+  line-height: 1.7;
+}
+.almanac-editor__content h1,
+.almanac-editor__content h2,
+.almanac-editor__content h3 {
+  color: #f5f5f4;
+  font-weight: 700;
+}
+.almanac-editor__content a { color: #34d399; }
+.almanac-editor__content code {
+  background: #292524;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+}
+.almanac-editor__content table { border: 1px solid #44403c; }
+.almanac-editor__content th,
+.almanac-editor__content td { border: 1px solid #44403c; padding: 0.4rem 0.75rem; }

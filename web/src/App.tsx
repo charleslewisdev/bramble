@@ -14,7 +14,7 @@ import ShoppingListPrint from "./pages/ShoppingListPrint";
 import Shed from "./pages/Shed";
 import Settings from "./pages/Settings";
 import Almanac from "./pages/Almanac";
-import CompostingGuide from "./pages/almanac/CompostingGuide";
+import AlmanacEntry from "./pages/almanac/AlmanacEntry";
 import Login from "./pages/Login";
 import Setup from "./pages/Setup";
 import InviteClaim from "./pages/InviteClaim";
@@ -24,6 +24,7 @@ import { useAuth } from "./auth/AuthContext";
 import { lazy, Suspense, type ReactNode } from "react";
 
 const GardenMap = lazy(() => import("./pages/GardenMap"));
+const AlmanacEditor = lazy(() => import("./pages/almanac/AlmanacEditor"));
 
 function NotFound() {
   return (
@@ -83,7 +84,15 @@ function AppRoutes() {
       <Route path="/settings" element={<Settings />} />
       <Route path="/users" element={<Users />} />
       <Route path="/almanac" element={<Almanac />} />
-      <Route path="/almanac/composting" element={<CompostingGuide />} />
+      <Route path="/almanac/:slug" element={<AlmanacEntry />} />
+      <Route
+        path="/almanac/:slug/edit"
+        element={
+          <Suspense fallback={<div className="py-20 text-center text-stone-400 font-display">Loading editor…</div>}>
+            <AlmanacEditor />
+          </Suspense>
+        }
+      />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

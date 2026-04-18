@@ -763,6 +763,87 @@ export function refreshPlantMoods() {
   return post<{ updated: number; total: number }>("/plants/instances/refresh-moods", {});
 }
 
+// ---------- Almanac ----------
+
+export interface AlmanacTagCount {
+  name: string;
+  count: number;
+}
+
+export interface AlmanacImage {
+  id: number;
+  entryId: number;
+  filename: string;
+  mimeType: string;
+  size: number;
+  createdAt: string;
+}
+
+export interface AlmanacEntry {
+  id: number;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  content: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+  images?: AlmanacImage[];
+}
+
+export interface AlmanacListResponse {
+  entries: AlmanacEntry[];
+  tags: AlmanacTagCount[];
+}
+
+export interface AlmanacImageUploadResponse extends AlmanacImage {
+  url: string;
+}
+
+export function getAlmanacEntries(tag?: string) {
+  const q = tag ? `?tag=${encodeURIComponent(tag)}` : "";
+  return request<AlmanacListResponse>(`/almanac${q}`);
+}
+
+export function getAlmanacEntry(slug: string) {
+  return request<AlmanacEntry>(`/almanac/${encodeURIComponent(slug)}`);
+}
+
+export function createAlmanacEntry(data: {
+  title?: string;
+  content?: string;
+  excerpt?: string | null;
+  tags?: string[];
+}) {
+  return post<AlmanacEntry>("/almanac", data);
+}
+
+export function updateAlmanacEntry(
+  id: number,
+  data: {
+    title?: string;
+    content?: string;
+    excerpt?: string | null;
+    tags?: string[];
+  },
+) {
+  return patch<AlmanacEntry>(`/almanac/${id}`, data);
+}
+
+export function deleteAlmanacEntry(id: number) {
+  return del(`/almanac/${id}`);
+}
+
+export function uploadAlmanacImage(entryId: number, imageData: string) {
+  return post<AlmanacImageUploadResponse>(`/almanac/${entryId}/images`, {
+    imageData,
+  });
+}
+
+export function deleteAlmanacImage(id: number) {
+  return del(`/almanac/images/${id}`);
+}
+
 // ---------- Settings ----------
 
 export function getSettings() {
