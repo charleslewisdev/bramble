@@ -130,7 +130,7 @@ git commit -m "fix: add missing GET /api/photos list endpoint"
 **Step 1: Install sharp**
 
 ```bash
-cd /home/carrot/code/bramble && pnpm --filter server add sharp && pnpm --filter server add -D @types/sharp
+cd ~/code/bramble && pnpm --filter server add sharp && pnpm --filter server add -D @types/sharp
 ```
 
 **Step 2: Write the thumbnail service test**
@@ -387,7 +387,7 @@ export interface JournalEntryWithRelations extends JournalEntry {
 **Step 6: Generate and apply migration**
 
 ```bash
-cd /home/carrot/code/bramble/server && npx drizzle-kit generate
+cd ~/code/bramble/server && npx drizzle-kit generate
 ```
 
 Review the generated SQL to make sure it creates the new tables and adds the new column.
@@ -395,7 +395,7 @@ Review the generated SQL to make sure it creates the new tables and adds the new
 **Step 7: Verify migration applies**
 
 ```bash
-cd /home/carrot/code/bramble && pnpm --filter server build && node -e "import('./server/dist/db/index.js')"
+cd ~/code/bramble && pnpm --filter server build && node -e "import('./server/dist/db/index.js')"
 ```
 
 **Step 8: Commit**
@@ -452,7 +452,7 @@ No change needed — the existing file serving endpoint already serves any file 
 **Step 3: Run existing tests**
 
 ```bash
-cd /home/carrot/code/bramble && pnpm test
+cd ~/code/bramble && pnpm test
 ```
 
 **Step 4: Commit**
@@ -811,7 +811,7 @@ Update the import line: `import { careTasks, careTaskLogs, plantInstances, zones
 **Step 4: Run all server tests**
 
 ```bash
-cd /home/carrot/code/bramble && pnpm --filter server test
+cd ~/code/bramble && pnpm --filter server test
 ```
 
 **Step 5: Commit**
@@ -870,7 +870,7 @@ In `server/src/db/schema.ts`, update `notificationPreferences.taskType` enum to 
 **Step 4: Run all tests**
 
 ```bash
-cd /home/carrot/code/bramble && pnpm --filter server test
+cd ~/code/bramble && pnpm --filter server test
 ```
 
 **Step 5: Commit**
@@ -1001,7 +1001,7 @@ export function useDeleteJournalEntry() {
 **Step 3: Run web tests**
 
 ```bash
-cd /home/carrot/code/bramble && pnpm --filter web test
+cd ~/code/bramble && pnpm --filter web test
 ```
 
 **Step 4: Commit**
@@ -1049,7 +1049,7 @@ Wraps the entry list and add form:
 **Step 4: Run web tests + verify TypeScript**
 
 ```bash
-cd /home/carrot/code/bramble && npx tsc --noEmit && pnpm --filter web test
+cd ~/code/bramble && npx tsc --noEmit && pnpm --filter web test
 ```
 
 **Step 5: Commit**
@@ -1094,7 +1094,7 @@ Keep full-size image for lightbox modal.
 **Step 4: TypeScript check + visual test**
 
 ```bash
-cd /home/carrot/code/bramble && npx tsc --noEmit
+cd ~/code/bramble && npx tsc --noEmit
 ```
 
 Start dev server and visually verify:
@@ -1116,7 +1116,7 @@ git commit -m "feat: integrate journal timeline into plant detail page"
 **Step 1: Run all tests**
 
 ```bash
-cd /home/carrot/code/bramble && pnpm test
+cd ~/code/bramble && pnpm test
 ```
 
 **Step 2: TypeScript check**

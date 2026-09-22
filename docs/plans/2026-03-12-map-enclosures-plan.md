@@ -142,7 +142,7 @@ describe("generateMap", () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /home/carrot/code/bramble/.worktrees/map-enclosures && pnpm --filter web test src/components/garden-map/map-generator.test.ts`
+Run: `cd ~/code/bramble/.worktrees/map-enclosures && pnpm --filter web test src/components/garden-map/map-generator.test.ts`
 Expected: FAIL — no fence tiles are painted yet
 
 **Step 3: Implement fence painting**
@@ -217,18 +217,18 @@ Add call in `generateMap` after the sidewalk painting block (~line 665):
 
 **Step 4: Run tests**
 
-Run: `cd /home/carrot/code/bramble/.worktrees/map-enclosures && pnpm --filter web test src/components/garden-map/map-generator.test.ts`
+Run: `cd ~/code/bramble/.worktrees/map-enclosures && pnpm --filter web test src/components/garden-map/map-generator.test.ts`
 Expected: PASS
 
 **Step 5: Run all tests to verify no regressions**
 
-Run: `cd /home/carrot/code/bramble/.worktrees/map-enclosures && pnpm test`
+Run: `cd ~/code/bramble/.worktrees/map-enclosures && pnpm test`
 Expected: All tests pass
 
 **Step 6: Commit**
 
 ```bash
-cd /home/carrot/code/bramble/.worktrees/map-enclosures
+cd ~/code/bramble/.worktrees/map-enclosures
 git add web/src/components/garden-map/map-generator.ts web/src/components/garden-map/map-generator.test.ts
 git commit -m "feat: property boundary fences around map perimeter"
 ```
@@ -301,7 +301,7 @@ In `tiles.test.ts`, add:
 
 **Step 3: Run tests**
 
-Run: `cd /home/carrot/code/bramble/.worktrees/map-enclosures && pnpm --filter web test src/components/garden-map/tiles.test.ts`
+Run: `cd ~/code/bramble/.worktrees/map-enclosures && pnpm --filter web test src/components/garden-map/tiles.test.ts`
 Expected: PASS
 
 **Step 4: Commit**
@@ -872,12 +872,12 @@ In the ticker callback function, add after the wildlife update:
 
 **Step 5: Run TypeScript compile check**
 
-Run: `cd /home/carrot/code/bramble/.worktrees/map-enclosures && npx tsc --noEmit`
+Run: `cd ~/code/bramble/.worktrees/map-enclosures && npx tsc --noEmit`
 Expected: No errors
 
 **Step 6: Run all tests**
 
-Run: `cd /home/carrot/code/bramble/.worktrees/map-enclosures && pnpm test`
+Run: `cd ~/code/bramble/.worktrees/map-enclosures && pnpm test`
 Expected: All tests pass
 
 **Step 7: Commit**
