@@ -19,12 +19,12 @@
 
 Run:
 ```bash
-cd /home/carrot/code/bramble && pnpm add --filter server @node-rs/argon2 @fastify/cookie
+cd ~/code/bramble && pnpm add --filter server @node-rs/argon2 @fastify/cookie
 ```
 
 **Step 2: Verify installation**
 
-Run: `cd /home/carrot/code/bramble && pnpm ls --filter server @node-rs/argon2 @fastify/cookie`
+Run: `cd ~/code/bramble && pnpm ls --filter server @node-rs/argon2 @fastify/cookie`
 Expected: Both packages listed
 
 **Step 3: Commit**
@@ -147,7 +147,7 @@ createdBy: integer("created_by").references(() => users.id, { onDelete: "set nul
 
 Run:
 ```bash
-cd /home/carrot/code/bramble/server && pnpm db:generate
+cd ~/code/bramble/server && pnpm db:generate
 ```
 
 Review the generated SQL file in `server/drizzle/` — should create 3 new tables and ALTER the 4 existing tables.
@@ -156,12 +156,12 @@ Review the generated SQL file in `server/drizzle/` — should create 3 new table
 
 Run:
 ```bash
-cd /home/carrot/code/bramble/server && pnpm db:migrate
+cd ~/code/bramble/server && pnpm db:migrate
 ```
 
 **Step 5: Verify TypeScript compiles**
 
-Run: `cd /home/carrot/code/bramble && npx tsc --noEmit -p server/tsconfig.json`
+Run: `cd ~/code/bramble && npx tsc --noEmit -p server/tsconfig.json`
 
 **Step 6: Commit**
 
@@ -218,7 +218,7 @@ describe("auth service", () => {
 
 **Step 2: Run tests to verify they fail**
 
-Run: `cd /home/carrot/code/bramble/server && pnpm test -- src/services/auth.test.ts`
+Run: `cd ~/code/bramble/server && pnpm test -- src/services/auth.test.ts`
 Expected: FAIL — module not found
 
 **Step 3: Implement auth service**
@@ -253,7 +253,7 @@ export const INVITE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 **Step 4: Run tests to verify they pass**
 
-Run: `cd /home/carrot/code/bramble/server && pnpm test -- src/services/auth.test.ts`
+Run: `cd ~/code/bramble/server && pnpm test -- src/services/auth.test.ts`
 Expected: PASS
 
 **Step 5: Commit**
@@ -406,7 +406,7 @@ Cookie settings: `httpOnly: true`, `sameSite: 'lax'`, `secure: process.env.NODE_
 
 **Step 3: Run tests**
 
-Run: `cd /home/carrot/code/bramble/server && pnpm test -- src/routes/auth.test.ts`
+Run: `cd ~/code/bramble/server && pnpm test -- src/routes/auth.test.ts`
 
 **Step 4: Commit**
 
@@ -495,7 +495,7 @@ export async function someRoutes(app: FastifyInstance) {
 
 **Step 4: Run all server tests**
 
-Run: `cd /home/carrot/code/bramble/server && pnpm test`
+Run: `cd ~/code/bramble/server && pnpm test`
 Expected: All pass (existing tests may need session cookie injection)
 
 **Step 5: Commit**
@@ -738,15 +738,15 @@ git commit -m "feat: track createdBy user on photos, task logs, journal, shoppin
 
 **Step 1: Run all server tests**
 
-Run: `cd /home/carrot/code/bramble/server && pnpm test`
+Run: `cd ~/code/bramble/server && pnpm test`
 
 **Step 2: Run all web tests**
 
-Run: `cd /home/carrot/code/bramble/web && pnpm test`
+Run: `cd ~/code/bramble/web && pnpm test`
 
 **Step 3: TypeScript compile check**
 
-Run: `cd /home/carrot/code/bramble && npx tsc --noEmit -p server/tsconfig.json && npx tsc --noEmit -p web/tsconfig.json`
+Run: `cd ~/code/bramble && npx tsc --noEmit -p server/tsconfig.json && npx tsc --noEmit -p web/tsconfig.json`
 
 **Step 4: Manual smoke test**
 
